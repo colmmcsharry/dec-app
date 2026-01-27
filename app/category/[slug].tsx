@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { getVideosWithUrls, parseVideoMetadata, DropboxVideo } from '@/services/dropbox';
 import { DROPBOX_CONFIG } from '@/config/dropbox.config';
+
+// Import thumbnails
+const thumbnails = [
+  require('@/assets/images/thumbnail1.jpeg'),
+  require('@/assets/images/thumbnail2.jpeg'),
+  require('@/assets/images/thumbnail3.jpeg'),
+];
 
 interface Video {
   id: string;
@@ -123,7 +130,7 @@ export default function CategoryScreen() {
           </View>
         ) : (
           <View style={styles.videoList}>
-            {videos.map((video) => (
+            {videos.map((video, index) => (
               <TouchableOpacity
                 key={video.id}
                 style={styles.videoCard}
@@ -140,6 +147,11 @@ export default function CategoryScreen() {
                 }}
               >
                 <View style={styles.thumbnailContainer}>
+                  <Image
+                    source={thumbnails[index % 3]}
+                    style={styles.thumbnailImage}
+                    resizeMode="cover"
+                  />
                   <View style={styles.playIconCircle}>
                     <Text style={styles.playIcon}>▶</Text>
                   </View>
@@ -210,6 +222,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+  },
+  thumbnailImage: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
   },
   playIconCircle: {
     width: 64,
