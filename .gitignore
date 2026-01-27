@@ -33,6 +33,9 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Dropbox config (contains access token)
+config/dropbox.config.ts
+
 # typescript
 *.tsbuildinfo
 

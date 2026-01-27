@@ -1,7 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
-import { Play, Pause } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Text } from 'react-native';
+import { VideoView, useVideoPlayer } from 'expo-video';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -9,49 +8,42 @@ interface VideoPlayerProps {
 }
 
 export const VideoPlayer = ({ videoUrl, title }: VideoPlayerProps) => {
-  const video = useRef<Video>(null);
-  const [status, setStatus] = useState<any>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Convert Dropbox share link to direct stream URL
-  const getDirectUrl = (url: string) => {
-    // If it's a Dropbox share link, convert it to direct download
-    if (url.includes('dropbox.com')) {
-      return url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('?dl=0', '');
-    }
-    return url;
-  };
+  // Check if URL is valid
+  if (!videoUrl || videoUrl.trim() === '') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No video URL provided</Text>
+        </View>
+      </View>
+    );
+  }
 
-  const directUrl = getDirectUrl(videoUrl);
+  const player = useVideoPlayer(videoUrl, (player) => {
+    player.loop = false;
+    player.play(); // Autoplay when video loads
+  });
 
   return (
     <View style={styles.container}>
-      <Video
-        ref={video}
+      <VideoView
         style={styles.video}
-        source={{ uri: directUrl }}
-        useNativeControls
-        resizeMode={ResizeMode.CONTAIN}
-        isLooping={false}
-        onPlaybackStatusUpdate={(status) => {
-          setStatus(status);
-          if (status.isLoaded) {
-            setIsLoading(false);
-          }
+        player={player}
+        allowsFullscreen
+        allowsPictureInPicture
+        nativeControls
+        contentFit="contain"
+        onError={(error) => {
+          console.error('Video error:', error);
+          setError('Failed to load video');
         }}
-        onLoadStart={() => setIsLoading(true)}
       />
-      
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6B5B8C" />
-          <Text style={styles.loadingText}>Loading video...</Text>
-        </View>
-      )}
 
-      {title && (
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>{title}</Text>
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
     </View>
@@ -71,28 +63,16 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  loadingContainer: {
+  errorContainer: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(200, 50, 50, 0.8)',
+    padding: 16,
   },
-  loadingText: {
-    color: '#fff',
-    marginTop: 12,
-    fontSize: 14,
-  },
-  titleContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    padding: 12,
-  },
-  title: {
+  errorText: {
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    textAlign: 'center',
   },
 });

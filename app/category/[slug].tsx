@@ -1,67 +1,15 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, StyleSheet, Text, View, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
-import { VideoPlayer } from '@/components/video-player';
+import { getVideosWithUrls, parseVideoMetadata, DropboxVideo } from '@/services/dropbox';
+import { DROPBOX_CONFIG } from '@/config/dropbox.config';
 
-// Sample video data structure
-// Replace these with your actual Dropbox links
-const categoryVideos: Record<string, Array<{ id: string; title: string; url: string; description?: string }>> = {
-  sleep: [
-    {
-      id: '1',
-      title: 'Sleep Meditation 1',
-      url: 'https://www.dropbox.com/YOUR_VIDEO_LINK_HERE?dl=0',
-      description: 'A calming meditation to help you fall asleep',
-    },
-    {
-      id: '2',
-      title: 'Sleep Meditation 2',
-      url: 'https://www.dropbox.com/YOUR_VIDEO_LINK_HERE?dl=0',
-      description: 'Deep relaxation for better sleep',
-    },
-  ],
-  'morning-routines': [
-    {
-      id: '1',
-      title: 'Morning Stretch Routine',
-      url: 'https://www.dropbox.com/YOUR_VIDEO_LINK_HERE?dl=0',
-      description: 'Start your day with energizing stretches',
-    },
-  ],
-  'energy-management': [
-    {
-      id: '1',
-      title: 'Energy Boost Workout',
-      url: 'https://www.dropbox.com/YOUR_VIDEO_LINK_HERE?dl=0',
-      description: 'Quick exercises to boost your energy',
-    },
-  ],
-  'fuel-2-perform': [
-    {
-      id: '1',
-      title: 'Nutrition Basics',
-      url: 'https://www.dropbox.com/YOUR_VIDEO_LINK_HERE?dl=0',
-      description: 'Learn the fundamentals of performance nutrition',
-    },
-  ],
-  'move-2-perform': [
-    {
-      id: '1',
-      title: 'Strength Training',
-      url: 'https://www.dropbox.com/YOUR_VIDEO_LINK_HERE?dl=0',
-      description: 'Build strength for peak performance',
-    },
-  ],
-  'thinking-2-perform': [
-    {
-      id: '1',
-      title: 'Mental Focus Techniques',
-      url: 'https://www.dropbox.com/YOUR_VIDEO_LINK_HERE?dl=0',
-      description: 'Improve your mental clarity and focus',
-    },
-  ],
-};
+interface Video {
+  id: string;
+  title: string;
+  url: string;
+  description?: string;
+}
 
 const categoryInfo: Record<string, { title: string; color: string }> = {
   sleep: { title: 'Sleep', color: '#E5D9F2' },
@@ -74,8 +22,64 @@ const categoryInfo: Record<string, { title: string; color: string }> = {
 
 export default function CategoryScreen() {
   const { slug, title } = useLocalSearchParams<{ slug: string; title: string }>();
-  const videos = categoryVideos[slug] || [];
   const info = categoryInfo[slug] || { title: title || 'Videos', color: '#E5D9F2' };
+  
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadVideos();
+  }, [slug]);
+
+  const loadVideos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Get the folder path for this category
+      const folderPath = DROPBOX_CONFIG.folderPaths[slug as keyof typeof DROPBOX_CONFIG.folderPaths];
+      
+      if (!folderPath) {
+        setVideos([]);
+        setLoading(false);
+        return;
+      }
+
+      // Check if access token is configured
+      if (DROPBOX_CONFIG.accessToken === 'YOUR_DROPBOX_ACCESS_TOKEN_HERE') {
+        setError('Dropbox access token not configured. Please see config/dropbox.config.ts');
+        setLoading(false);
+        return;
+      }
+
+      // Fetch videos from Dropbox
+      console.log('Fetching videos from folder:', folderPath);
+      const dropboxVideos = await getVideosWithUrls(folderPath);
+      console.log('Received videos from Dropbox:', dropboxVideos.length);
+      
+      // Transform to our video format
+      const transformedVideos: Video[] = dropboxVideos.map((video) => {
+        const metadata = parseVideoMetadata(video.name);
+        const videoData = {
+          id: video.id,
+          title: metadata.displayName || video.name,
+          url: video.streamUrl || '',
+          description: metadata.description,
+        };
+        console.log('Video:', videoData.title, 'URL:', videoData.url.substring(0, 50) + '...');
+        return videoData;
+      });
+
+      console.log('Total videos to display:', transformedVideos.length);
+      setVideos(transformedVideos);
+    } catch (err) {
+      console.error('Error loading videos:', err);
+      setError('Failed to load videos. Please check your Dropbox configuration.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -93,12 +97,26 @@ export default function CategoryScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <View style={[styles.header, { backgroundColor: info.color }]}>
           <Text style={styles.headerTitle}>{info.title}</Text>
-          <Text style={styles.headerSubtitle}>
-            {videos.length} video{videos.length !== 1 ? 's' : ''} available
-          </Text>
+          {!loading && (
+            <Text style={styles.headerSubtitle}>
+              {videos.length} video{videos.length !== 1 ? 's' : ''} available
+            </Text>
+          )}
         </View>
 
-        {videos.length === 0 ? (
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#6B5B8C" />
+            <Text style={styles.loadingText}>Loading videos...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity onPress={loadVideos} style={styles.retryButton}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : videos.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No videos available yet</Text>
             <Text style={styles.emptySubtext}>Check back soon for new content!</Text>
@@ -106,15 +124,36 @@ export default function CategoryScreen() {
         ) : (
           <View style={styles.videoList}>
             {videos.map((video) => (
-              <View key={video.id} style={styles.videoCard}>
-                <VideoPlayer videoUrl={video.url} />
+              <TouchableOpacity
+                key={video.id}
+                style={styles.videoCard}
+                onPress={() => {
+                  router.push({
+                    pathname: '/video/[id]',
+                    params: {
+                      id: video.id,
+                      title: video.title,
+                      url: video.url,
+                      categoryColor: info.color,
+                    },
+                  });
+                }}
+              >
+                <View style={styles.thumbnailContainer}>
+                  <View style={styles.playIconCircle}>
+                    <Text style={styles.playIcon}>▶</Text>
+                  </View>
+                  <View style={styles.durationBadge}>
+                    <Text style={styles.durationText}>Video</Text>
+                  </View>
+                </View>
                 <View style={styles.videoInfo}>
                   <Text style={styles.videoTitle}>{video.title}</Text>
                   {video.description && (
                     <Text style={styles.videoDescription}>{video.description}</Text>
                   )}
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -149,7 +188,7 @@ const styles = StyleSheet.create({
   },
   videoList: {
     padding: 20,
-    gap: 24,
+    gap: 16,
   },
   videoCard: {
     backgroundColor: '#F8F9FA',
@@ -164,11 +203,46 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  thumbnailContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  playIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(107, 91, 140, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playIcon: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    marginLeft: 4,
+  },
+  durationBadge: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  durationText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   videoInfo: {
     padding: 16,
   },
   videoTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#2C3E50',
     marginBottom: 4,
@@ -195,5 +269,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8E8EA0',
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    marginTop: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6B5B8C',
+    marginTop: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#D97B7B',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#6B5B8C',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
