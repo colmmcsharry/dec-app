@@ -1,98 +1,195 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Heart, Sunrise, Zap, Apple, Dumbbell, Brain } from 'lucide-react-native';
+import { router } from 'expo-router';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+interface CategoryCardProps {
+  title: string;
+  videoCount: number;
+  guideCount: number;
+  icon: React.ReactNode;
+  backgroundColor: string;
+  textColor: string;
+  slug: string;
+}
+
+const CategoryCard = ({ 
+  title, 
+  videoCount, 
+  guideCount, 
+  icon, 
+  backgroundColor, 
+  textColor,
+  slug 
+}: CategoryCardProps) => {
+  const handlePress = () => {
+    router.push({
+      pathname: '/category/[slug]',
+      params: { slug, title },
+    });
+  };
+
+  return (
+    <TouchableOpacity 
+      style={[styles.card, { backgroundColor }]} 
+      activeOpacity={0.7}
+      onPress={handlePress}
+    >
+      <View style={styles.iconContainer}>
+        {icon}
+      </View>
+      <Text style={[styles.cardTitle, { color: textColor }]}>{title}</Text>
+      <Text style={[styles.cardSubtitle, { color: textColor, opacity: 0.7 }]}>
+        {videoCount} videos • {guideCount} guides
+      </Text>
+    </TouchableOpacity>
+  );
+};
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const categories = [
+    {
+      title: 'Sleep',
+      slug: 'sleep',
+      videoCount: 15,
+      guideCount: 8,
+      icon: <Heart size={28} color="#8B7AB8" strokeWidth={2.5} />,
+      backgroundColor: '#E5D9F2',
+      textColor: '#6B5B8C',
+    },
+    {
+      title: 'Morning\nRoutines',
+      slug: 'morning-routines',
+      videoCount: 20,
+      guideCount: 12,
+      icon: <Sunrise size={28} color="#D4A574" strokeWidth={2.5} />,
+      backgroundColor: '#FFF3DC',
+      textColor: '#B8884D',
+    },
+    {
+      title: 'Energy\nManagement',
+      slug: 'energy-management',
+      videoCount: 18,
+      guideCount: 10,
+      icon: <Zap size={28} color="#5D9B8B" strokeWidth={2.5} />,
+      backgroundColor: '#D4F1E8',
+      textColor: '#4A7D6F',
+    },
+    {
+      title: 'Fuel 2 Perform',
+      slug: 'fuel-2-perform',
+      videoCount: 22,
+      guideCount: 15,
+      icon: <Apple size={28} color="#D97B7B" strokeWidth={2.5} />,
+      backgroundColor: '#FFDDD9',
+      textColor: '#B85D5D',
+    },
+    {
+      title: 'Move 2\nPerform',
+      slug: 'move-2-perform',
+      videoCount: 25,
+      guideCount: 14,
+      icon: <Dumbbell size={28} color="#6B9BD1" strokeWidth={2.5} />,
+      backgroundColor: '#D9E9F7',
+      textColor: '#5278A8',
+    },
+    {
+      title: 'Thinking 2\nPerform',
+      slug: 'thinking-2-perform',
+      videoCount: 16,
+      guideCount: 11,
+      icon: <Brain size={28} color="#C97BA8" strokeWidth={2.5} />,
+      backgroundColor: '#F7DBF0',
+      textColor: '#A35D85',
+    },
+  ];
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      {/* Header Section */}
+      <View style={styles.header}>
+        <Text style={styles.welcomeText}>Welcome Back</Text>
+        <Text style={styles.mainTitle}>Mind • Body • Soul</Text>
+        <Text style={styles.subtitle}>Your holistic journey to peak performance</Text>
+      </View>
+
+      {/* Categories Grid */}
+      <View style={styles.grid}>
+        {categories.map((category, index) => (
+          <CategoryCard key={index} {...category} />
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  stepContainer: {
-    gap: 8,
+  contentContainer: {
+    padding: 20,
+    paddingTop: 60,
+  },
+  header: {
+    marginBottom: 24,
+  },
+  welcomeText: {
+    fontSize: 16,
+    color: '#8E8EA0',
+    marginBottom: 4,
+  },
+  mainTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#2C3E50',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#8E8EA0',
+    lineHeight: 20,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  card: {
+    width: '47%',
+    aspectRatio: 0.85,
+    borderRadius: 20,
+    padding: 20,
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+    lineHeight: 22,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    lineHeight: 16,
   },
 });
