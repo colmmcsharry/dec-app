@@ -102,6 +102,42 @@ export default function HomeScreen() {
       backgroundColor: '#F7DBF0',
       textColor: '#A35D85',
     },
+    {
+      title: 'Recovery',
+      slug: 'recovery',
+      videoCount: 12,
+      guideCount: 9,
+      icon: <Heart size={28} color="#7BA8C9" strokeWidth={2.5} />,
+      backgroundColor: '#DBE9F7',
+      textColor: '#5278A8',
+    },
+    {
+      title: 'Mindfulness',
+      slug: 'mindfulness',
+      videoCount: 14,
+      guideCount: 10,
+      icon: <Brain size={28} color="#A87BC9" strokeWidth={2.5} />,
+      backgroundColor: '#EADBF7',
+      textColor: '#7B5299',
+    },
+    {
+      title: 'Stress\nManagement',
+      slug: 'stress-management',
+      videoCount: 18,
+      guideCount: 12,
+      icon: <Zap size={28} color="#C9A87B" strokeWidth={2.5} />,
+      backgroundColor: '#F7EADB',
+      textColor: '#997D5C',
+    },
+    {
+      title: 'Building\nHabits',
+      slug: 'habits',
+      videoCount: 20,
+      guideCount: 13,
+      icon: <Sunrise size={28} color="#7BC9A8" strokeWidth={2.5} />,
+      backgroundColor: '#DBF7EA',
+      textColor: '#52997D',
+    },
   ];
 
   return (

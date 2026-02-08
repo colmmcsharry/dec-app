@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { WebView } from 'react-native-webview';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -8,8 +8,6 @@ interface VideoPlayerProps {
 }
 
 export const VideoPlayer = ({ videoUrl, title }: VideoPlayerProps) => {
-  const [error, setError] = useState<string | null>(null);
-
   // Check if URL is valid
   if (!videoUrl || videoUrl.trim() === '') {
     return (
@@ -21,31 +19,61 @@ export const VideoPlayer = ({ videoUrl, title }: VideoPlayerProps) => {
     );
   }
 
-  const player = useVideoPlayer(videoUrl, (player) => {
-    player.loop = false;
-    player.play(); // Autoplay when video loads
-  });
+  // Extract Vimeo video ID from various URL formats
+  const getVimeoEmbedUrl = (url: string) => {
+    // If it's already a player embed URL
+    if (url.includes('player.vimeo.com')) {
+      return url + '?autoplay=1&title=0&byline=0&portrait=0';
+    }
+    // If it's a regular vimeo URL, extract the ID
+    const match = url.match(/vimeo\.com\/(\d+)/);
+    if (match) {
+      return `https://player.vimeo.com/video/${match[1]}?autoplay=1&title=0&byline=0&portrait=0`;
+    }
+    // Fallback - try using it directly
+    return url;
+  };
+
+  const embedUrl = getVimeoEmbedUrl(videoUrl);
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+      <style>
+        * { margin: 0; padding: 0; }
+        body { background: #000; }
+        iframe {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          border: none;
+        }
+      </style>
+    </head>
+    <body>
+      <iframe
+        src="${embedUrl}"
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowfullscreen
+      ></iframe>
+    </body>
+    </html>
+  `;
 
   return (
     <View style={styles.container}>
-      <VideoView
+      <WebView
         style={styles.video}
-        player={player}
-        allowsFullscreen
-        allowsPictureInPicture
-        nativeControls
-        contentFit="contain"
-        onError={(error) => {
-          console.error('Video error:', error);
-          setError('Failed to load video');
-        }}
+        source={{ html }}
+        allowsInlineMediaPlayback
+        mediaPlaybackRequiresUserAction={false}
+        allowsFullscreenVideo
+        javaScriptEnabled
       />
-
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
     </View>
   );
 };

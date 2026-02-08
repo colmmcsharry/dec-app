@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
-import { getVideosWithUrls, parseVideoMetadata, DropboxVideo } from '@/services/dropbox';
-import { DROPBOX_CONFIG } from '@/config/dropbox.config';
+import { getVideosFromFolder, parseVideoMetadata, VimeoVideo } from '@/services/vimeo';
+import { VIMEO_CONFIG } from '@/config/vimeo.config';
 
 // Import thumbnails
 const thumbnails = [
@@ -25,6 +25,10 @@ const categoryInfo: Record<string, { title: string; color: string }> = {
   'fuel-2-perform': { title: 'Fuel 2 Perform', color: '#FFDDD9' },
   'move-2-perform': { title: 'Move 2 Perform', color: '#D9E9F7' },
   'thinking-2-perform': { title: 'Thinking 2 Perform', color: '#F7DBF0' },
+  'recovery': { title: 'Recovery', color: '#DBE9F7' },
+  'mindfulness': { title: 'Mindfulness', color: '#EADBF7' },
+  'stress-management': { title: 'Stress Management', color: '#F7EADB' },
+  'habits': { title: 'Building Habits', color: '#DBF7EA' },
 };
 
 export default function CategoryScreen() {
@@ -44,45 +48,43 @@ export default function CategoryScreen() {
       setLoading(true);
       setError(null);
 
-      // Get the folder path for this category
-      const folderPath = DROPBOX_CONFIG.folderPaths[slug as keyof typeof DROPBOX_CONFIG.folderPaths];
+      // Get the Vimeo folder ID for this category
+      const folderId = VIMEO_CONFIG.categoryFolders[slug as keyof typeof VIMEO_CONFIG.categoryFolders];
       
-      if (!folderPath) {
+      if (!folderId) {
         setVideos([]);
         setLoading(false);
         return;
       }
 
       // Check if access token is configured
-      if (DROPBOX_CONFIG.accessToken === 'YOUR_DROPBOX_ACCESS_TOKEN_HERE') {
-        setError('Dropbox access token not configured. Please see config/dropbox.config.ts');
+      if (VIMEO_CONFIG.accessToken === 'YOUR_VIMEO_ACCESS_TOKEN_HERE') {
+        setError('Vimeo access token not configured. Please see config/vimeo.config.ts');
         setLoading(false);
         return;
       }
 
-      // Fetch videos from Dropbox
-      console.log('Fetching videos from folder:', folderPath);
-      const dropboxVideos = await getVideosWithUrls(folderPath);
-      console.log('Received videos from Dropbox:', dropboxVideos.length);
+      // Fetch videos from Vimeo
+      console.log('Fetching videos from Vimeo folder:', folderId);
+      const vimeoVideos = await getVideosFromFolder(folderId);
+      console.log('Received videos from Vimeo:', vimeoVideos.length);
       
       // Transform to our video format
-      const transformedVideos: Video[] = dropboxVideos.map((video) => {
+      const transformedVideos: Video[] = vimeoVideos.map((video) => {
         const metadata = parseVideoMetadata(video.name);
-        const videoData = {
+        return {
           id: video.id,
           title: metadata.displayName || video.name,
-          url: video.streamUrl || '',
-          description: metadata.description,
+          url: video.playerEmbedUrl,
+          description: video.description || metadata.description,
         };
-        console.log('Video:', videoData.title, 'URL:', videoData.url.substring(0, 50) + '...');
-        return videoData;
       });
 
       console.log('Total videos to display:', transformedVideos.length);
       setVideos(transformedVideos);
     } catch (err) {
       console.error('Error loading videos:', err);
-      setError('Failed to load videos. Please check your Dropbox configuration.');
+      setError('Failed to load videos. Please check your Vimeo configuration.');
     } finally {
       setLoading(false);
     }
