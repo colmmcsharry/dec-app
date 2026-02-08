@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View, ActivityIndicator, TouchableOpacity
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { getVideosFromFolder, parseVideoMetadata, VimeoVideo } from '@/services/vimeo';
 import { VIMEO_CONFIG } from '@/config/vimeo.config';
+import { useTheme } from '@/context/theme-context';
 
 // Import thumbnails
 const thumbnails = [
@@ -34,6 +35,7 @@ const categoryInfo: Record<string, { title: string; color: string }> = {
 export default function CategoryScreen() {
   const { slug, title } = useLocalSearchParams<{ slug: string; title: string }>();
   const info = categoryInfo[slug] || { title: title || 'Videos', color: '#E5D9F2' };
+  const { isDark } = useTheme();
   
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,14 +100,14 @@ export default function CategoryScreen() {
           headerShown: true,
           headerBackTitle: 'Back',
           headerStyle: {
-            backgroundColor: info.color,
+            backgroundColor: isDark ? '#1A1A2E' : info.color,
           },
-          headerTintColor: '#2C3E50',
+          headerTintColor: isDark ? '#ECEDEE' : '#2C3E50',
         }}
       />
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        <View style={[styles.header, { backgroundColor: info.color }]}>
-          <Text style={styles.headerTitle}>{info.title}</Text>
+      <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
+        <View style={[styles.header, { backgroundColor: isDark ? '#1A1A2E' : info.color }]}>
+          <Text style={[styles.headerTitle, isDark && styles.textDark]}>{info.title}</Text>
           {!loading && (
             <Text style={styles.headerSubtitle}>
               {videos.length} video{videos.length !== 1 ? 's' : ''} available
@@ -135,7 +137,7 @@ export default function CategoryScreen() {
             {videos.map((video, index) => (
               <TouchableOpacity
                 key={video.id}
-                style={styles.videoCard}
+                style={[styles.videoCard, isDark && styles.videoCardDark]}
                 onPress={() => {
                   router.push({
                     pathname: '/video/[id]',
@@ -162,9 +164,9 @@ export default function CategoryScreen() {
                   </View>
                 </View>
                 <View style={styles.videoInfo}>
-                  <Text style={styles.videoTitle}>{video.title}</Text>
+                  <Text style={[styles.videoTitle, isDark && styles.textDark]}>{video.title}</Text>
                   {video.description && (
-                    <Text style={styles.videoDescription}>{video.description}</Text>
+                    <Text style={[styles.videoDescription, isDark && styles.subtextDark]}>{video.description}</Text>
                   )}
                 </View>
               </TouchableOpacity>
@@ -180,6 +182,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  containerDark: {
+    backgroundColor: '#121222',
+  },
+  textDark: {
+    color: '#ECEDEE',
+  },
+  subtextDark: {
+    color: '#9090A8',
   },
   contentContainer: {
     paddingBottom: 40,
@@ -216,6 +227,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+  },
+  videoCardDark: {
+    backgroundColor: '#1E1E32',
   },
   thumbnailContainer: {
     width: '100%',

@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { VideoPlayer } from '@/components/video-player';
+import { useTheme } from '@/context/theme-context';
 
 export default function VideoDetailScreen() {
   const { id, title, url, categoryColor } = useLocalSearchParams<{
@@ -10,8 +11,9 @@ export default function VideoDetailScreen() {
     url: string;
     categoryColor?: string;
   }>();
+  const { isDark } = useTheme();
 
-  const backgroundColor = categoryColor || '#E5D9F2';
+  const backgroundColor = isDark ? '#1A1A2E' : (categoryColor || '#E5D9F2');
 
   return (
     <>
@@ -23,12 +25,12 @@ export default function VideoDetailScreen() {
           headerStyle: {
             backgroundColor: backgroundColor,
           },
-          headerTintColor: '#2C3E50',
+          headerTintColor: isDark ? '#ECEDEE' : '#2C3E50',
         }}
       />
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
         <View style={[styles.header, { backgroundColor }]}>
-          <Text style={styles.videoTitle}>{title}</Text>
+          <Text style={[styles.videoTitle, isDark && styles.textDark]}>{title}</Text>
         </View>
 
         <View style={styles.videoContainer}>
@@ -36,8 +38,8 @@ export default function VideoDetailScreen() {
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>About this video</Text>
-          <Text style={styles.description}>
+          <Text style={[styles.sectionTitle, isDark && styles.textDark]}>About this video</Text>
+          <Text style={[styles.description, isDark && styles.subtextDark]}>
             Watch this video to improve your performance and well-being.
           </Text>
         </View>
@@ -50,6 +52,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  containerDark: {
+    backgroundColor: '#121222',
+  },
+  textDark: {
+    color: '#ECEDEE',
+  },
+  subtextDark: {
+    color: '#9090A8',
   },
   contentContainer: {
     paddingBottom: 40,

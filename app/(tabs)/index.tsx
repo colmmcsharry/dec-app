@@ -1,7 +1,8 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { Heart, Sunrise, Zap, Apple, Dumbbell, Brain } from 'lucide-react-native';
+import { Heart, Sunrise, Zap, Apple, Dumbbell, Brain, Sun, Moon } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useTheme } from '@/context/theme-context';
 
 interface CategoryCardProps {
   title: string;
@@ -47,6 +48,8 @@ const CategoryCard = ({
 };
 
 export default function HomeScreen() {
+  const { isDark, toggleTheme } = useTheme();
+
   const categories = [
     {
       title: 'Sleep',
@@ -141,12 +144,28 @@ export default function HomeScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView
+      style={[styles.container, isDark && styles.containerDark]}
+      contentContainerStyle={styles.contentContainer}
+    >
       {/* Header Section */}
       <View style={styles.header}>
-        <Text style={styles.welcomeText}>Welcome Back</Text>
-        <Text style={styles.mainTitle}>Mind • Body • Soul</Text>
-        <Text style={styles.subtitle}>Your holistic journey to peak performance</Text>
+        <View style={styles.headerRow}>
+          <Text style={[styles.welcomeText, isDark && styles.welcomeTextDark]}>Welcome Back</Text>
+          <TouchableOpacity
+            onPress={toggleTheme}
+            style={[styles.themeToggle, isDark && styles.themeToggleDark]}
+            activeOpacity={0.7}
+          >
+            {isDark ? (
+              <Sun size={20} color="#FDB813" strokeWidth={2.5} />
+            ) : (
+              <Moon size={20} color="#6B5B8C" strokeWidth={2.5} />
+            )}
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.mainTitle, isDark && styles.mainTitleDark]}>Mind • Body • Soul</Text>
+        <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>Your holistic journey to peak performance</Text>
       </View>
 
       {/* Categories Grid */}
@@ -164,6 +183,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  containerDark: {
+    backgroundColor: '#121222',
+  },
   contentContainer: {
     padding: 20,
     paddingTop: 60,
@@ -171,10 +193,18 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 24,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   welcomeText: {
     fontSize: 16,
     color: '#8E8EA0',
-    marginBottom: 4,
+  },
+  welcomeTextDark: {
+    color: '#9090A8',
   },
   mainTitle: {
     fontSize: 32,
@@ -183,10 +213,32 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 0.5,
   },
+  mainTitleDark: {
+    color: '#ECEDEE',
+  },
   subtitle: {
     fontSize: 15,
     color: '#8E8EA0',
     lineHeight: 20,
+  },
+  subtitleDark: {
+    color: '#9090A8',
+  },
+  themeToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F0ECF7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  themeToggleDark: {
+    backgroundColor: '#2A2A3E',
   },
   grid: {
     flexDirection: 'row',
