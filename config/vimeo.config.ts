@@ -16,16 +16,16 @@ export const VIMEO_CONFIG = {
   // Map your Vimeo folder IDs to app categories
   // Get folder IDs from Vimeo URLs (e.g., vimeo.com/user/12345678/folder/28168946)
   categoryFolders: {
-    'sleep': '28168946', // Module 1 - using for all categories for now
-    'morning-routines': '28168946', // Module 1
-    'energy-management': '28168946', // Module 1
-    'fuel-2-perform': '28168946', // Module 1
-    'move-2-perform': '28168946', // Module 1
-    'thinking-2-perform': '28168946', // Module 1
-    'recovery': '28168946', // Module 1
-    'mindfulness': '28168946', // Module 1
-    'stress-management': '28168946', // Module 1
-    'habits': '28168946', // Module 1
+    'sleep': '28168946',             // Module 1
+    'morning-routines': '28168947',  // Module 2
+    'energy-management': '28168950', // Module 3
+    'fuel-2-perform': '28168952',    // Module 4
+    'move-2-perform': '28168954',    // Module 5
+    'thinking-2-perform': '28168955',// Module 6
+    'recovery': '28168956',          // Module 7
+    'mindfulness': '28168957',       // Module 8
+    'stress-management': '28168958', // Module 9
+    'habits': '28168960',            // Module 10
   },
 };
 
