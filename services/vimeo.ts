@@ -53,7 +53,7 @@ export async function getVideosFromFolder(folderId: string): Promise<VimeoVideo[
     }));
 
     console.log(`✓ Found ${videos.length} videos in folder ${folderId}`);
-    return videos;
+    return videos.reverse();
     
   } catch (error) {
     console.error('Error fetching videos from Vimeo:', error);
