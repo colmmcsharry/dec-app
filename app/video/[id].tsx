@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function VideoDetailScreen() {
   const { id, title, url, categoryColor, categorySlug } = useLocalSearchParams<{
@@ -24,6 +25,7 @@ export default function VideoDetailScreen() {
   }>();
   const { isDark } = useTheme();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [watched, setWatched] = useState(false);
 
   const backgroundColor = isDark ? "#1A1A2E" : categoryColor || "#E5D9F2";
@@ -43,35 +45,18 @@ export default function VideoDetailScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: "Now Playing",
-          headerShown: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-              activeOpacity={0.6}
-              style={{
-                width: 40,
-                height: 40,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <ChevronLeft
-                size={30}
-                color={isDark ? "#ECEDEE" : "#2C3E50"}
-                strokeWidth={2}
-              />
-            </TouchableOpacity>
-          ),
-          headerStyle: {
-            backgroundColor: backgroundColor,
-          },
-          headerTintColor: isDark ? "#ECEDEE" : "#2C3E50",
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor }]}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.6}
+          style={styles.customBackButton}
+        >
+          <ChevronLeft size={26} color={isDark ? "#ECEDEE" : "#2C3E50"} strokeWidth={2.5} />
+        </TouchableOpacity>
+        <Text style={[styles.customHeaderTitle, { color: isDark ? "#ECEDEE" : "#2C3E50" }]}>Now Playing</Text>
+        <View style={{ width: 44 }} />
+      </View>
       <ScrollView
         style={[styles.container, isDark && styles.containerDark]}
         contentContainerStyle={styles.contentContainer}
@@ -120,6 +105,25 @@ export default function VideoDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  customHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+    paddingBottom: 12,
+  },
+  customBackButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  customHeaderTitle: {
+    fontSize: 17,
+    fontFamily: AppFonts.headingSemiBold,
+    textAlign: "center",
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",

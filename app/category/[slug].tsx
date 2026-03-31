@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Check, ChevronLeft } from 'lucide-react-native';
@@ -32,6 +33,7 @@ export default function CategoryScreen() {
   const info = categoryInfo[slug] || { title: title || 'Videos', color: '#E5D9F2', moduleNumber: 0 };
   const { isDark } = useTheme();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const videos: VideoEntry[] = MODULE_VIDEOS[slug] || [];
   const [watchedIds, setWatchedIds] = useState<string[]>([]);
@@ -52,26 +54,18 @@ export default function CategoryScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: info.title,
-          headerShown: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-              activeOpacity={0.6}
-              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <ChevronLeft size={30} color={isDark ? '#ECEDEE' : '#2C3E50'} strokeWidth={2} />
-            </TouchableOpacity>
-          ),
-          headerStyle: {
-            backgroundColor: isDark ? '#1A1A2E' : info.color,
-          },
-          headerTintColor: isDark ? '#ECEDEE' : '#2C3E50',
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: isDark ? '#1A1A2E' : info.color }]}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.6}
+          style={styles.customBackButton}
+        >
+          <ChevronLeft size={26} color={isDark ? '#ECEDEE' : '#2C3E50'} strokeWidth={2.5} />
+        </TouchableOpacity>
+        <Text style={[styles.customHeaderTitle, { color: isDark ? '#ECEDEE' : '#2C3E50' }]}>{info.title}</Text>
+        <View style={{ width: 44 }} />
+      </View>
       <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
         {/* Progress Card */}
         {totalCount > 0 && (
@@ -182,6 +176,25 @@ export default function CategoryScreen() {
 }
 
 const styles = StyleSheet.create({
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingBottom: 12,
+  },
+  customBackButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customHeaderTitle: {
+    fontSize: 17,
+    fontFamily: AppFonts.headingSemiBold,
+    textAlign: 'center',
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F5F5F7',
