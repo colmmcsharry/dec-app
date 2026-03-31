@@ -1,21 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View, ActivityIndicator, TouchableOpacity, Pressable, Image } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Pressable, Image } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
-import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from '@react-navigation/native';
 import { ChevronLeft } from 'lucide-react-native';
-import { VIMEO_CONFIG } from '@/config/vimeo.config';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
-import { getCachedVideos, fetchAndCacheVideos } from '@/services/video-cache';
-
-interface Video {
-  id: string;
-  title: string;
-  url: string;
-  description?: string;
-  thumbnail?: string;
-  duration?: number;
-}
+import { MODULE_VIDEOS, VideoEntry } from '@/data/module-videos';
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -40,18 +30,11 @@ export default function CategoryScreen() {
   const { slug, title } = useLocalSearchParams<{ slug: string; title: string }>();
   const info = categoryInfo[slug] || { title: title || 'Videos', color: '#E5D9F2', moduleNumber: 0 };
   const { isDark } = useTheme();
-  
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  const videos: VideoEntry[] = MODULE_VIDEOS[slug] || [];
   const [watchedIds, setWatchedIds] = useState<string[]>([]);
 
-  const navigation = useNavigation();
   const isFocused = useIsFocused();
-
-  useEffect(() => {
-    loadVideos();
-  }, [slug]);
 
   useEffect(() => {
     if (isFocused) {
@@ -60,45 +43,6 @@ export default function CategoryScreen() {
       });
     }
   }, [isFocused, slug]);
-
-  const loadVideos = async () => {
-    try {
-      setError(null);
-
-      const folderId = VIMEO_CONFIG.categoryFolders[slug as keyof typeof VIMEO_CONFIG.categoryFolders];
-      if (!folderId) {
-        setVideos([]);
-        setLoading(false);
-        return;
-      }
-
-      if (VIMEO_CONFIG.accessToken === 'YOUR_VIMEO_ACCESS_TOKEN_HERE') {
-        setError('Vimeo access token not configured. Please see config/vimeo.config.ts');
-        setLoading(false);
-        return;
-      }
-
-      // Show cached data instantly if available
-      const cached = getCachedVideos(slug);
-      if (cached && cached.length > 0) {
-        setVideos(cached);
-        setLoading(false);
-        // Refresh in background
-        fetchAndCacheVideos(slug).then((fresh) => {
-          if (fresh.length > 0) setVideos(fresh);
-        }).catch(() => {});
-      } else {
-        setLoading(true);
-        const fresh = await fetchAndCacheVideos(slug);
-        setVideos(fresh);
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error('Error loading videos:', err);
-      setError('Failed to load videos. Please check your Vimeo configuration.');
-      setLoading(false);
-    }
-  };
 
   const watchedCount = watchedIds.length;
   const totalCount = videos.length;
@@ -127,7 +71,7 @@ export default function CategoryScreen() {
       />
       <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
         {/* Progress Card */}
-        {!loading && totalCount > 0 && (
+        {totalCount > 0 && (
           <View style={[styles.progressCard, { backgroundColor: isDark ? '#1E1E32' : '#FFFFFF' }]}>
             <Text style={[styles.moduleLabel, isDark && styles.subtextDark]}>
               MODULE {info.moduleNumber}
@@ -163,19 +107,7 @@ export default function CategoryScreen() {
           </View>
         )}
 
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6B5B8C" />
-            <Text style={styles.loadingText}>Loading videos...</Text>
-          </View>
-        ) : error ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={loadVideos} style={styles.retryButton}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : videos.length === 0 ? (
+        {videos.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No videos available yet</Text>
             <Text style={styles.emptySubtext}>Check back soon for new content!</Text>
@@ -429,35 +361,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8E8EA0',
     textAlign: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-    marginTop: 60,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6B5B8C',
-    marginTop: 16,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#D97B7B',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#6B5B8C',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   watchedButton: {
-    backgroundColor: "#6B5B8C",
+    backgroundColor: "#7187CE",
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
