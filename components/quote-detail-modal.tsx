@@ -52,6 +52,7 @@ export function QuoteDetailModal({
               style={styles.closeButton}
               onPress={onClose}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              activeOpacity={0.6}
             >
               <X size={24} color={isDark ? '#ccc' : '#666'} strokeWidth={2.5} />
             </TouchableOpacity>
@@ -96,6 +97,16 @@ export function QuoteDetailModal({
               >
                 — {quote.author}
               </Text>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.bottomCloseButton,
+                  { opacity: pressed ? 0.75 : 1 },
+                ]}
+                onPress={onClose}
+              >
+                <Text style={styles.bottomCloseButtonText}>Close</Text>
+              </Pressable>
             </View>
           </View>
         </Pressable>
@@ -134,7 +145,10 @@ const styles = StyleSheet.create({
     top: 14,
     right: 14,
     zIndex: 10,
-    padding: 4,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardInner: {
     padding: 28,
@@ -161,5 +175,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: AppFonts.bodyMedium,
     textAlign: 'right',
+  },
+  bottomCloseButton: {
+    marginTop: 24,
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: ACCENT_GREEN,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  bottomCloseButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: AppFonts.bodyBold,
   },
 });

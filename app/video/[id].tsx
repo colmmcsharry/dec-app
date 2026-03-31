@@ -7,12 +7,13 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
+import { TouchableOpacity } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function VideoDetailScreen() {
@@ -45,15 +46,18 @@ export default function VideoDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor }]}>
-        <TouchableOpacity
+        <Pressable
           onPress={() => navigation.goBack()}
-          activeOpacity={0.6}
-          style={styles.customBackButton}
+          hitSlop={16}
+          style={({ pressed }) => [
+            styles.customBackButton,
+            { opacity: pressed ? 0.6 : 1 },
+          ]}
         >
           <ChevronLeft size={26} color={isDark ? "#ECEDEE" : "#2C3E50"} strokeWidth={2.5} />
-        </TouchableOpacity>
+        </Pressable>
         <Text style={[styles.customHeaderTitle, { color: isDark ? "#ECEDEE" : "#2C3E50" }]}>Now Playing</Text>
         <View style={{ width: 44 }} />
       </View>

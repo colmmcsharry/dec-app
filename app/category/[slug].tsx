@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
@@ -54,15 +55,18 @@ export default function CategoryScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: isDark ? '#1A1A2E' : info.color }]}>
-        <TouchableOpacity
+        <Pressable
           onPress={() => navigation.goBack()}
-          activeOpacity={0.6}
-          style={styles.customBackButton}
+          hitSlop={16}
+          style={({ pressed }) => [
+            styles.customBackButton,
+            { opacity: pressed ? 0.6 : 1 },
+          ]}
         >
           <ChevronLeft size={26} color={isDark ? '#ECEDEE' : '#2C3E50'} strokeWidth={2.5} />
-        </TouchableOpacity>
+        </Pressable>
         <Text style={[styles.customHeaderTitle, { color: isDark ? '#ECEDEE' : '#2C3E50' }]}>{info.title}</Text>
         <View style={{ width: 44 }} />
       </View>
