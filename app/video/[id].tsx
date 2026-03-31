@@ -1,10 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Pressable } from 'react-native';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
-import { VideoPlayer } from '@/components/video-player';
-import { useTheme } from '@/context/theme-context';
-import { markVideoWatched, isVideoWatched } from '@/services/progress';
-import { ChevronLeft } from 'lucide-react-native';
+import { VideoPlayer } from "@/components/video-player";
+import { useTheme } from "@/context/theme-context";
+import { isVideoWatched, markVideoWatched } from "@/services/progress";
+import { Stack, router, useLocalSearchParams } from "expo-router";
+import { ChevronLeft } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function VideoDetailScreen() {
   const { id, title, url, categoryColor, categorySlug } = useLocalSearchParams<{
@@ -17,7 +24,7 @@ export default function VideoDetailScreen() {
   const { isDark } = useTheme();
   const [watched, setWatched] = useState(false);
 
-  const backgroundColor = isDark ? '#1A1A2E' : (categoryColor || '#E5D9F2');
+  const backgroundColor = isDark ? "#1A1A2E" : categoryColor || "#E5D9F2";
 
   useEffect(() => {
     if (categorySlug && id) {
@@ -36,29 +43,49 @@ export default function VideoDetailScreen() {
     <>
       <Stack.Screen
         options={{
-          title: 'Now Playing',
+          title: "Now Playing",
           headerShown: true,
           headerLeft: () => (
             <Pressable
               onPress={() => router.back()}
               hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-              style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <ChevronLeft size={22} color={isDark ? '#ECEDEE' : '#2C3E50'} style={{ marginLeft: -1 }} />
+              <ChevronLeft
+                size={22}
+                color={isDark ? "#ECEDEE" : "#2C3E50"}
+                style={{ marginLeft: -1 }}
+              />
             </Pressable>
           ),
           headerStyle: {
             backgroundColor: backgroundColor,
           },
-          headerTintColor: isDark ? '#ECEDEE' : '#2C3E50',
+          headerTintColor: isDark ? "#ECEDEE" : "#2C3E50",
         }}
       />
-      <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={[styles.container, isDark && styles.containerDark]}
+        contentContainerStyle={styles.contentContainer}
+      >
         <View style={[styles.header, { backgroundColor }]}>
-          <Text style={[styles.videoTitle, isDark && styles.textDark]}>{title}</Text>
+          <Text style={[styles.videoTitle, isDark && styles.textDark]}>
+            {title}
+          </Text>
         </View>
 
-        <View style={{ height: 80, backgroundColor: isDark ? '#121222' : '#FFFFFF' }} />
+        <View
+          style={{
+            height: 80,
+            backgroundColor: isDark ? "#121222" : "#FFFFFF",
+          }}
+        />
 
         <View style={styles.videoContainer}>
           <VideoPlayer videoUrl={url} />
@@ -66,21 +93,23 @@ export default function VideoDetailScreen() {
 
         <View style={styles.infoSection}>
           <TouchableOpacity
-            style={[
-              styles.watchedButton,
-              watched && styles.watchedButtonDone,
-            ]}
+            style={[styles.watchedButton, watched && styles.watchedButtonDone]}
             onPress={handleMarkWatched}
             disabled={watched}
             activeOpacity={0.7}
           >
-            <Text style={[styles.watchedButtonText, watched && styles.watchedButtonTextDone]}>
-              {watched ? '✓  Marked as Watched' : 'Mark as Watched'}
+            <Text
+              style={[
+                styles.watchedButtonText,
+                watched && styles.watchedButtonTextDone,
+              ]}
+            >
+              {watched ? "✓  Marked as Watched" : "Mark as Watched"}
             </Text>
           </TouchableOpacity>
 
           <Text style={[styles.description, isDark && styles.subtextDark]}>
-            Watch this video to improve your performance and well-being.
+            Any additional worksheets or guides will be added below here.
           </Text>
         </View>
       </ScrollView>
@@ -91,16 +120,16 @@ export default function VideoDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   containerDark: {
-    backgroundColor: '#121222',
+    backgroundColor: "#121222",
   },
   textDark: {
-    color: '#ECEDEE',
+    color: "#ECEDEE",
   },
   subtextDark: {
-    color: '#9090A8',
+    color: "#9090A8",
   },
   contentContainer: {
     paddingBottom: 40,
@@ -112,38 +141,38 @@ const styles = StyleSheet.create({
   },
   videoTitle: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#2C3E50',
+    fontWeight: "700",
+    color: "#2C3E50",
     lineHeight: 32,
   },
   videoContainer: {
     padding: 16,
-    backgroundColor: '#000',
+    backgroundColor: "#000",
   },
   infoSection: {
     padding: 20,
   },
   watchedButton: {
-    backgroundColor: '#6B5B8C',
+    backgroundColor: "#6B5B8C",
     paddingVertical: 14,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   watchedButtonDone: {
-    backgroundColor: '#5D9B8B',
+    backgroundColor: "#5D9B8B",
   },
   watchedButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   watchedButtonTextDone: {
     opacity: 0.9,
   },
   description: {
     fontSize: 15,
-    color: '#6B7280',
+    color: "#6B7280",
     lineHeight: 22,
   },
 });

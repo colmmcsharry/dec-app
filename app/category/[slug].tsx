@@ -129,26 +129,24 @@ export default function CategoryScreen() {
         {/* Progress Card */}
         {!loading && totalCount > 0 && (
           <View style={[styles.progressCard, { backgroundColor: isDark ? '#1E1E32' : '#FFFFFF' }]}>
+            <Text style={[styles.moduleLabel, isDark && styles.subtextDark]}>
+              MODULE {info.moduleNumber}
+            </Text>
             <View style={styles.progressHeader}>
-              <View>
-                <Text style={[styles.moduleLabel, isDark && styles.subtextDark]}>
-                  MODULE {info.moduleNumber}
-                </Text>
-                <Text style={[styles.progressTitle, isDark && styles.textDark]}>
-                  {info.title}
-                </Text>
-              </View>
-              <View style={styles.progressCount}>
+              <Text style={[styles.progressTitle, isDark && styles.textDark]}>
+                {info.title}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                 <Text style={[styles.progressNumber, isDark && styles.textDark]}>{watchedCount}</Text>
                 <Text style={[styles.progressTotal, isDark && styles.subtextDark]}>/{totalCount}</Text>
-                <Text style={[styles.progressLabel, isDark && styles.subtextDark]}>{'\n'}completed</Text>
               </View>
             </View>
+            <Text style={[styles.progressLabel, isDark && styles.subtextDark]}>watched</Text>
             <View style={[styles.progressBarBg, isDark && { backgroundColor: '#2A2A3E' }]}>
               <View
                 style={[
                   styles.progressBarFill,
-                  { width: `${progressPercent * 100}%`, backgroundColor: info.color === '#E5D9F2' ? '#8B7AB8' : info.color },
+                  { width: `${progressPercent * 100}%`, backgroundColor: '#5D9B8B' },
                 ]}
               />
             </View>
@@ -226,7 +224,7 @@ export default function CategoryScreen() {
                     )}
                   </View>
                   <View style={styles.videoInfo}>
-                    <Text style={[styles.videoTitle, isDark && styles.textDark]}>{video.title}</Text>
+                    <Text style={[styles.videoTitle, isDark && styles.textDark]}>{index + 1}. {video.title}</Text>
                     {video.description && (
                       <Text style={[styles.videoDescription, isDark && styles.subtextDark]}>{video.description}</Text>
                     )}
@@ -260,7 +258,7 @@ const styles = StyleSheet.create({
   },
   progressCard: {
     margin: 16,
-    marginTop: 8,
+    marginTop: 30,
     padding: 20,
     borderRadius: 16,
     shadowColor: '#000',
@@ -272,8 +270,8 @@ const styles = StyleSheet.create({
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    alignItems: 'baseline',
+    marginBottom: 2,
   },
   moduleLabel: {
     fontSize: 12,
@@ -304,13 +302,16 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 12,
     color: '#8E8EA0',
-    marginTop: -2,
+    textAlign: 'right',
+    marginTop: 0,
+    marginBottom: 4,
   },
   progressBarBg: {
     height: 6,
     backgroundColor: '#E8E8EE',
     borderRadius: 3,
     overflow: 'hidden',
+    marginTop: 14,
   },
   progressBarFill: {
     height: '100%',
@@ -325,7 +326,7 @@ const styles = StyleSheet.create({
   videoList: {
     padding: 20,
     paddingTop: 12,
-    gap: 16,
+    gap: 30,
   },
   videoCard: {
     backgroundColor: '#FFFFFF',
