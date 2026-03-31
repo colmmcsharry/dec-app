@@ -3,7 +3,7 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { AppFonts, Colors } from '@/constants/theme';
 import { useTheme } from '@/context/theme-context';
 
 export default function TabLayout() {
@@ -20,6 +20,7 @@ export default function TabLayout() {
           borderTopColor: theme === 'dark' ? '#2A2A3E' : '#E5E5E5',
         },
         tabBarInactiveTintColor: Colors[theme].tabIconDefault,
+        tabBarLabelStyle: { fontFamily: AppFonts.bodyMedium },
       }}>
       <Tabs.Screen
         name="index"

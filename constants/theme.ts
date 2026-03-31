@@ -10,6 +10,15 @@ const tintColorDark = '#fff';
 
 export const MAIN_PURPLE = '#7187CE';
 
+export const AppFonts = {
+  headingMedium: 'Poppins_500Medium',
+  headingSemiBold: 'Poppins_600SemiBold',
+  headingBold: 'Poppins_700Bold',
+  bodyRegular: 'Karla_400Regular',
+  bodyMedium: 'Karla_500Medium',
+  bodyBold: 'Karla_700Bold',
+};
+
 export const Colors = {
   light: {
     text: '#11181C',

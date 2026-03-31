@@ -6,6 +6,7 @@ import { ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
 import { MODULE_VIDEOS, VideoEntry } from '@/data/module-videos';
+import { AppFonts } from '@/constants/theme';
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
   },
   moduleLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: AppFonts.headingBold,
     color: '#8E8EA0',
     letterSpacing: 1,
     textTransform: 'uppercase',
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
   },
   progressTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: AppFonts.headingBold,
     color: '#2C3E50',
   },
   progressCount: {
@@ -223,13 +224,14 @@ const styles = StyleSheet.create({
   },
   progressNumber: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: AppFonts.headingBold,
     color: '#2C3E50',
   },
   progressTotal: {
     fontSize: 16,
     color: '#8E8EA0',
     marginTop: -4,
+    fontFamily: AppFonts.bodyRegular,
   },
   progressLabel: {
     fontSize: 12,
@@ -237,6 +239,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 0,
     marginBottom: 4,
+    fontFamily: AppFonts.bodyRegular,
   },
   progressBarBg: {
     height: 6,
@@ -254,6 +257,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#8E8EA0',
     marginTop: 12,
+    fontFamily: AppFonts.bodyRegular,
   },
   videoList: {
     padding: 20,
@@ -314,7 +318,7 @@ const styles = StyleSheet.create({
   durationText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: AppFonts.bodyMedium,
   },
   watchedBadge: {
     position: 'absolute',
@@ -328,14 +332,14 @@ const styles = StyleSheet.create({
   watchedBadgeText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: AppFonts.bodyBold,
   },
   videoInfo: {
     padding: 16,
   },
   videoTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: AppFonts.headingSemiBold,
     color: '#2C3E50',
     marginBottom: 4,
   },
@@ -343,6 +347,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     lineHeight: 20,
+    fontFamily: AppFonts.bodyRegular,
   },
   emptyState: {
     flex: 1,
@@ -353,7 +358,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: AppFonts.headingSemiBold,
     color: '#2C3E50',
     marginBottom: 8,
   },
@@ -361,5 +366,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8E8EA0',
     textAlign: 'center',
+    fontFamily: AppFonts.bodyRegular,
   },
 });

@@ -8,7 +8,8 @@ import {
   Pressable,
   Platform,
 } from 'react-native';
-import { X } from 'lucide-react-native';
+import { Quote, X } from 'lucide-react-native';
+import { AppFonts } from '@/constants/theme';
 import type { DailyQuote } from '@/data/quotes';
 
 const ACCENT_GREEN = '#5D9B8B';
@@ -62,20 +63,23 @@ export function QuoteDetailModal({
 
               <Text
                 style={[
-                  styles.quoteIcon,
-                  { color: isDark ? '#5D9B8B' : '#4A7D6F' },
-                ]}
-              >
-                "
-              </Text>
-
-              <Text
-                style={[
                   styles.quoteText,
                   { color: isDark ? '#ECEDEE' : '#2C3E50' },
                 ]}
               >
-                {quote.text}
+                <View style={{ transform: [{ scaleX: -1 }] }}>
+                  <Quote
+                    size={20}
+                    color={isDark ? '#5D9B8B' : '#4A7D6F'}
+                    strokeWidth={2.5}
+                  />
+                </View>
+                {'  '}{quote.text}{'  '}
+                <Quote
+                  size={20}
+                  color={isDark ? '#5D9B8B' : '#4A7D6F'}
+                  strokeWidth={2.5}
+                />
               </Text>
 
               <Text
@@ -132,26 +136,20 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: AppFonts.headingBold,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginBottom: 8,
   },
-  quoteIcon: {
-    fontSize: 60,
-    lineHeight: 60,
-    fontWeight: '700',
-    marginBottom: -8,
-  },
   quoteText: {
     fontSize: 22,
-    fontWeight: '600',
+    fontFamily: AppFonts.headingSemiBold,
     lineHeight: 32,
     marginBottom: 20,
   },
   quoteAuthor: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: AppFonts.bodyMedium,
     textAlign: 'right',
   },
 });

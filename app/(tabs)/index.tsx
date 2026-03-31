@@ -26,6 +26,7 @@ import {
   requestNotificationPermission,
   scheduleDailyReminder,
 } from '@/services/notifications';
+import { AppFonts } from '@/constants/theme';
 
 interface CategoryCardProps {
   title: string;
@@ -477,13 +478,14 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 16,
     color: '#8E8EA0',
+    fontFamily: AppFonts.bodyRegular,
   },
   welcomeTextDark: {
     color: '#9090A8',
   },
   mainTitle: {
     fontSize: 32,
-    fontWeight: '700',
+    fontFamily: AppFonts.headingBold,
     color: '#2C3E50',
     marginBottom: 8,
     letterSpacing: 0.5,
@@ -495,6 +497,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#8E8EA0',
     lineHeight: 20,
+    fontFamily: AppFonts.bodyRegular,
   },
   subtitleDark: {
     color: '#9090A8',
@@ -547,18 +550,19 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: AppFonts.headingSemiBold,
     marginBottom: 4,
     lineHeight: 22,
   },
   cardSubtitle: {
     fontSize: 13,
     lineHeight: 16,
+    fontFamily: AppFonts.bodyRegular,
   },
 
   modulesTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: AppFonts.headingBold,
     color: '#2C3E50',
     marginTop: 8,
     marginBottom: 14,
@@ -598,7 +602,7 @@ const styles = StyleSheet.create({
   },
   dieselLabel: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: AppFonts.headingBold,
     color: '#4A7D6F',
     letterSpacing: 0.3,
   },
@@ -607,7 +611,7 @@ const styles = StyleSheet.create({
   },
   dieselQuote: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: AppFonts.bodyMedium,
     fontStyle: 'italic',
     lineHeight: 25,
     color: '#2C3E50',
@@ -618,7 +622,7 @@ const styles = StyleSheet.create({
   },
   dieselAuthor: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: AppFonts.bodyMedium,
     color: '#8E8EA0',
     textAlign: 'right',
     marginBottom: 16,
@@ -642,7 +646,7 @@ const styles = StyleSheet.create({
   },
   readQuoteText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: AppFonts.bodyBold,
     color: '#5D9B8B',
     textAlign: 'center',
   },
@@ -660,6 +664,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#8E8EA0',
     textAlign: 'center',
+    fontFamily: AppFonts.bodyRegular,
   },
   reminderLabelDark: {
     color: '#9BA1A6',
@@ -668,6 +673,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#5D9B8B',
     textDecorationLine: 'underline',
+    fontFamily: AppFonts.bodyMedium,
   },
   reminderCtaButton: {
     flexDirection: 'row',
@@ -684,7 +690,7 @@ const styles = StyleSheet.create({
   },
   reminderCtaText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: AppFonts.bodyBold,
     color: '#fff',
   },
   timePickerOverlay: {
@@ -707,7 +713,7 @@ const styles = StyleSheet.create({
   },
   timePickerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: AppFonts.headingSemiBold,
     marginBottom: 16,
     color: '#2C3E50',
   },
@@ -734,12 +740,12 @@ const styles = StyleSheet.create({
   },
   timePickerButtonTextCancel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: AppFonts.bodyMedium,
     color: '#2C3E50',
   },
   timePickerButtonTextSet: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: AppFonts.bodyBold,
     color: '#fff',
   },
 });

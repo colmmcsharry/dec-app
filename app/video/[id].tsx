@@ -1,4 +1,5 @@
 import { VideoPlayer } from "@/components/video-player";
+import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { isVideoWatched, markVideoWatched } from "@/services/progress";
 import { Stack, router, useLocalSearchParams } from "expo-router";
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
   },
   videoTitle: {
     fontSize: 24,
-    fontWeight: "700",
+    fontFamily: AppFonts.headingBold,
     color: "#2C3E50",
     lineHeight: 32,
   },
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
   watchedButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: AppFonts.bodyBold,
   },
   watchedButtonTextDone: {
     opacity: 0.9,
@@ -174,5 +175,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#6B7280",
     lineHeight: 22,
+    fontFamily: AppFonts.bodyRegular,
   },
 });

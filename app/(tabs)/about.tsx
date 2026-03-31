@@ -1,4 +1,4 @@
-import { MAIN_PURPLE } from "@/constants/theme";
+import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import {
   Image,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   heroName: {
     fontSize: 28,
-    fontWeight: "700",
+    fontFamily: AppFonts.headingBold,
     color: "#2C3E50",
     marginBottom: 4,
   },
@@ -245,6 +245,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontStyle: "italic",
     color: "#8E8EA0",
+    fontFamily: AppFonts.bodyRegular,
   },
 
   section: {
@@ -284,7 +285,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 22,
-    fontWeight: "700",
+    fontFamily: AppFonts.headingBold,
     color: "#2C3E50",
     marginBottom: 12,
   },
@@ -293,6 +294,7 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     color: "#4A5568",
     marginBottom: 12,
+    fontFamily: AppFonts.bodyRegular,
   },
   bulletList: {
     marginTop: 4,
@@ -303,6 +305,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: "#4A5568",
     paddingLeft: 4,
+    fontFamily: AppFonts.bodyRegular,
   },
   teamPhoto: {
     width: "100%",
@@ -317,10 +320,11 @@ const styles = StyleSheet.create({
     color: "#8E8EA0",
     textAlign: "center",
     marginTop: 8,
+    fontFamily: AppFonts.bodyRegular,
   },
   closingText: {
     fontSize: 18,
-    fontWeight: "700",
+    fontFamily: AppFonts.headingSemiBold,
     fontStyle: "italic",
     textAlign: "center",
     marginTop: 16,
@@ -328,7 +332,7 @@ const styles = StyleSheet.create({
 
   testimonialsSectionTitle: {
     fontSize: 22,
-    fontWeight: "700",
+    fontFamily: AppFonts.headingBold,
     color: "#2C3E50",
     marginBottom: 16,
   },
@@ -367,19 +371,21 @@ const styles = StyleSheet.create({
   },
   testimonialName: {
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: AppFonts.headingSemiBold,
     color: "#2C3E50",
   },
   testimonialRole: {
     fontSize: 13,
     color: "#8E8EA0",
     marginTop: 2,
+    fontFamily: AppFonts.bodyRegular,
   },
   testimonialQuote: {
     fontSize: 14,
     lineHeight: 22,
     fontStyle: "italic",
     color: "#4A5568",
+    fontFamily: AppFonts.bodyRegular,
   },
 
   linksCard: {
@@ -406,6 +412,6 @@ const styles = StyleSheet.create({
   linkButtonText: {
     color: "#fff",
     fontSize: 15,
-    fontWeight: "700",
+    fontFamily: AppFonts.bodyBold,
   },
 });
