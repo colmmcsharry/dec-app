@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Pressable, Image } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
-import { ChevronLeft } from 'lucide-react-native';
+import { Check, ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
 import { MODULE_VIDEOS, VideoEntry } from '@/data/module-videos';
@@ -157,7 +157,14 @@ export default function CategoryScreen() {
                     )}
                   </View>
                   <View style={styles.videoInfo}>
-                    <Text style={[styles.videoTitle, isDark && styles.textDark]}>{index + 1}. {video.title}</Text>
+                    <View style={styles.videoTitleRow}>
+                      <Text style={[styles.videoTitle, isDark && styles.textDark, { flex: 1 }]}>{index + 1}. {video.title}</Text>
+                      {isWatched && (
+                        <View style={styles.watchedTick}>
+                          <Check size={14} color="#fff" strokeWidth={3} />
+                        </View>
+                      )}
+                    </View>
                     {video.description && (
                       <Text style={[styles.videoDescription, isDark && styles.subtextDark]}>{video.description}</Text>
                     )}
@@ -336,6 +343,19 @@ const styles = StyleSheet.create({
   },
   videoInfo: {
     padding: 16,
+  },
+  videoTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  watchedTick: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#5D9B8B',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   videoTitle: {
     fontSize: 16,

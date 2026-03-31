@@ -93,7 +93,7 @@ export default function AboutScreen() {
         <Text style={[styles.bodyText, isDark && styles.subtextDark]}>
           This app is the culmination of my 10 years of experience in the field
           of psychology and performance, working with high performers and
-          average Joes.
+          average Joes and Janes.
         </Text>
       </View>
 
