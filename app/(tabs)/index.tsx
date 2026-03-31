@@ -28,6 +28,7 @@ import {
   Zap,
 } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef, useState } from "react";
+import Svg, { Circle } from "react-native-svg";
 import {
   Alert,
   Modal,
@@ -496,6 +497,11 @@ export default function HomeScreen() {
           0,
         );
         const pct = allTotal > 0 ? allWatched / allTotal : 0;
+        const gaugeSize = 100;
+        const strokeWidth = 10;
+        const radius = (gaugeSize - strokeWidth) / 2;
+        const circumference = 2 * Math.PI * radius;
+        const strokeDashoffset = circumference * (1 - pct);
         return (
           <View
             style={[
@@ -503,36 +509,53 @@ export default function HomeScreen() {
               isDark && styles.overallProgressCardDark,
             ]}
           >
-            <View style={styles.overallProgressHeader}>
-              <Text
-                style={[
-                  styles.overallProgressLabel,
-                  isDark && styles.overallProgressLabelDark,
-                ]}
-              >
-               {Math.round(pct * 100)}% Completed
-              </Text>
-              <Text
-                style={[
-                  styles.overallProgressCount,
-                  isDark && styles.overallProgressCountDark,
-                ]}
-              >
-                {allWatched}/{allTotal} videos
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.overallProgressBarBg,
-                isDark && styles.overallProgressBarBgDark,
-              ]}
-            >
-              <View
-                style={[
-                  styles.overallProgressBarFill,
-                  { width: `${pct * 100}%` },
-                ]}
-              />
+            <View style={styles.overallProgressRow}>
+              <View style={styles.gaugeContainer}>
+                <Svg width={gaugeSize} height={gaugeSize}>
+                  <Circle
+                    cx={gaugeSize / 2}
+                    cy={gaugeSize / 2}
+                    r={radius}
+                    stroke={isDark ? '#2A2A3E' : '#E8E8EE'}
+                    strokeWidth={strokeWidth}
+                    fill="none"
+                  />
+                  <Circle
+                    cx={gaugeSize / 2}
+                    cy={gaugeSize / 2}
+                    r={radius}
+                    stroke="#5D9B8B"
+                    strokeWidth={strokeWidth}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={`${circumference}`}
+                    strokeDashoffset={strokeDashoffset}
+                    rotation="-90"
+                    origin={`${gaugeSize / 2}, ${gaugeSize / 2}`}
+                  />
+                </Svg>
+                <Text style={[styles.gaugePctText, isDark && { color: '#ECEDEE' }]}>
+                  {Math.round(pct * 100)}%
+                </Text>
+              </View>
+              <View style={styles.overallProgressInfo}>
+                <Text
+                  style={[
+                    styles.overallProgressLabel,
+                    isDark && styles.overallProgressLabelDark,
+                  ]}
+                >
+                  Overall Progress
+                </Text>
+                <Text
+                  style={[
+                    styles.overallProgressCount,
+                    isDark && styles.overallProgressCountDark,
+                  ]}
+                >
+                  {allWatched} of {allTotal} videos watched
+                </Text>
+              </View>
             </View>
           </View>
         );
@@ -694,9 +717,10 @@ const styles = StyleSheet.create({
     color: "#ECEDEE",
   },
   overallProgressCard: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: 3,
-    marginBottom: 26,
+    padding: 16,
+    marginBottom: 18,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -706,14 +730,28 @@ const styles = StyleSheet.create({
   overallProgressCardDark: {
     backgroundColor: "#1E1E32",
   },
-  overallProgressHeader: {
+  overallProgressRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    gap: 16,
+  },
+  gaugeContainer: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gaugePctText: {
+    position: "absolute",
+    fontSize: 20,
+    fontFamily: AppFonts.headingBold,
+    color: "#2C3E50",
+  },
+  overallProgressInfo: {
+    flex: 1,
+    gap: 4,
   },
   overallProgressLabel: {
-    fontSize: 15,
+    fontSize: 17,
     fontFamily: AppFonts.headingSemiBold,
     color: "#2C3E50",
   },
@@ -722,25 +760,11 @@ const styles = StyleSheet.create({
   },
   overallProgressCount: {
     fontSize: 14,
-    fontFamily: AppFonts.bodyMedium,
+    fontFamily: AppFonts.bodyRegular,
     color: "#8E8EA0",
   },
   overallProgressCountDark: {
     color: "#9090A8",
-  },
-  overallProgressBarBg: {
-    height: 10,
-    backgroundColor: "#E8E8EE",
-    borderRadius: 5,
-    overflow: "hidden",
-  },
-  overallProgressBarBgDark: {
-    backgroundColor: "#2A2A3E",
-  },
-  overallProgressBarFill: {
-    height: "100%",
-    borderRadius: 5,
-    backgroundColor: "#5D9B8B",
   },
   dieselCard: {
     width: "100%",
