@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2C3E50',
     marginTop: 8,
-    marginBottom: 10,
+    marginBottom: 14,
     marginLeft: 4,
   },
   modulesTitleDark: {
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   dieselIconWrap: {
     width: 36,
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#8E8EA0',
     textAlign: 'right',
-    marginBottom: 10,
+    marginBottom: 16,
   },
   dieselAuthorDark: {
     color: '#9BA1A6',
