@@ -510,7 +510,7 @@ export default function HomeScreen() {
                   isDark && styles.overallProgressLabelDark,
                 ]}
               >
-                Overall progress — {Math.round(pct * 100)}%
+               {Math.round(pct * 100)}% Completed
               </Text>
               <Text
                 style={[
@@ -694,10 +694,9 @@ const styles = StyleSheet.create({
     color: "#ECEDEE",
   },
   overallProgressCard: {
-    backgroundColor: "#f0faf1",
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 22,
+    padding: 3,
+    marginBottom: 26,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,

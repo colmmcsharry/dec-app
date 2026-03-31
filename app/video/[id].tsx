@@ -2,11 +2,11 @@ import { VideoPlayer } from "@/components/video-player";
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { isVideoWatched, markVideoWatched } from "@/services/progress";
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,6 +23,7 @@ export default function VideoDetailScreen() {
     categorySlug?: string;
   }>();
   const { isDark } = useTheme();
+  const navigation = useNavigation();
   const [watched, setWatched] = useState(false);
 
   const backgroundColor = isDark ? "#1A1A2E" : categoryColor || "#E5D9F2";
@@ -47,23 +48,23 @@ export default function VideoDetailScreen() {
           title: "Now Playing",
           headerShown: true,
           headerLeft: () => (
-            <Pressable
-              onPress={() => router.back()}
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
               hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              activeOpacity={0.6}
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
+                width: 40,
+                height: 40,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
               <ChevronLeft
-                size={22}
+                size={30}
                 color={isDark ? "#ECEDEE" : "#2C3E50"}
-                style={{ marginLeft: -1 }}
+                strokeWidth={2}
               />
-            </Pressable>
+            </TouchableOpacity>
           ),
           headerStyle: {
             backgroundColor: backgroundColor,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Pressable, Image } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Check, ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
@@ -31,6 +31,7 @@ export default function CategoryScreen() {
   const { slug, title } = useLocalSearchParams<{ slug: string; title: string }>();
   const info = categoryInfo[slug] || { title: title || 'Videos', color: '#E5D9F2', moduleNumber: 0 };
   const { isDark } = useTheme();
+  const navigation = useNavigation();
 
   const videos: VideoEntry[] = MODULE_VIDEOS[slug] || [];
   const [watchedIds, setWatchedIds] = useState<string[]>([]);
@@ -56,13 +57,14 @@ export default function CategoryScreen() {
           title: info.title,
           headerShown: true,
           headerLeft: () => (
-            <Pressable
-              onPress={() => router.back()}
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
               hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-              style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}
+              activeOpacity={0.6}
+              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
             >
-              <ChevronLeft size={22} color={isDark ? '#ECEDEE' : '#2C3E50'} style={{ marginLeft: -1 }} />
-            </Pressable>
+              <ChevronLeft size={30} color={isDark ? '#ECEDEE' : '#2C3E50'} strokeWidth={2} />
+            </TouchableOpacity>
           ),
           headerStyle: {
             backgroundColor: isDark ? '#1A1A2E' : info.color,

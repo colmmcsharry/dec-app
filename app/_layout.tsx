@@ -22,7 +22,7 @@ function AppContent() {
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <OpenQuoteFromNotificationProvider>
         {Platform.OS !== 'web' && <NotificationResponseHandler />}
-        <Stack screenOptions={{ headerBackTitleVisible: false }}>
+        <Stack screenOptions={{ headerBackTitleVisible: false, headerBackTitle: ' ' }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="category/[slug]" options={{ headerShown: true }} />
           <Stack.Screen name="video/[id]" options={{ headerShown: true }} />
