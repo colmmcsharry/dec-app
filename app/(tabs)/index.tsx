@@ -86,13 +86,12 @@ const CategoryCard = ({
       <Text style={[styles.cardTitle, { color: textColor }]}>{title}</Text>
       <View style={styles.cardProgressBarBg}>
         <View
-          style={[
-            styles.cardProgressBarFill,
-            { width: `${percent * 100}%` },
-          ]}
+          style={[styles.cardProgressBarFill, { width: `${percent * 100}%` }]}
         />
       </View>
-      <Text style={[styles.cardProgressLabel, { color: textColor, opacity: 0.7 }]}>
+      <Text
+        style={[styles.cardProgressLabel, { color: textColor, opacity: 0.7 }]}
+      >
         {label}
       </Text>
       <Text style={[styles.cardSubtitle, { color: textColor, opacity: 0.7 }]}>
@@ -488,21 +487,52 @@ export default function HomeScreen() {
 
       {/* Overall Progress */}
       {(() => {
-        const allTotal = Object.values(MODULE_VIDEOS).reduce((sum, vids) => sum + vids.length, 0);
-        const allWatched = Object.values(progress).reduce((sum, ids) => sum + ids.length, 0);
+        const allTotal = Object.values(MODULE_VIDEOS).reduce(
+          (sum, vids) => sum + vids.length,
+          0,
+        );
+        const allWatched = Object.values(progress).reduce(
+          (sum, ids) => sum + ids.length,
+          0,
+        );
         const pct = allTotal > 0 ? allWatched / allTotal : 0;
         return (
-          <View style={[styles.overallProgressCard, isDark && styles.overallProgressCardDark]}>
+          <View
+            style={[
+              styles.overallProgressCard,
+              isDark && styles.overallProgressCardDark,
+            ]}
+          >
             <View style={styles.overallProgressHeader}>
-              <Text style={[styles.overallProgressLabel, isDark && styles.overallProgressLabelDark]}>
+              <Text
+                style={[
+                  styles.overallProgressLabel,
+                  isDark && styles.overallProgressLabelDark,
+                ]}
+              >
                 Overall progress — {Math.round(pct * 100)}%
               </Text>
-              <Text style={[styles.overallProgressCount, isDark && styles.overallProgressCountDark]}>
+              <Text
+                style={[
+                  styles.overallProgressCount,
+                  isDark && styles.overallProgressCountDark,
+                ]}
+              >
                 {allWatched}/{allTotal} videos
               </Text>
             </View>
-            <View style={[styles.overallProgressBarBg, isDark && styles.overallProgressBarBgDark]}>
-              <View style={[styles.overallProgressBarFill, { width: `${pct * 100}%` }]} />
+            <View
+              style={[
+                styles.overallProgressBarBg,
+                isDark && styles.overallProgressBarBgDark,
+              ]}
+            >
+              <View
+                style={[
+                  styles.overallProgressBarFill,
+                  { width: `${pct * 100}%` },
+                ]}
+              />
             </View>
           </View>
         );
@@ -664,10 +694,10 @@ const styles = StyleSheet.create({
     color: "#ECEDEE",
   },
   overallProgressCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#f0faf1",
     borderRadius: 16,
     padding: 16,
-    marginBottom: 18,
+    marginBottom: 22,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,

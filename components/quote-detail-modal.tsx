@@ -61,26 +61,32 @@ export function QuoteDetailModal({
                 Daily Diesel
               </Text>
 
+              <View style={[styles.quoteIconRow, { alignSelf: 'flex-start' }]}>
+                <View style={{ transform: [{ scaleX: -1 }] }}>
+                  <Quote
+                    size={24}
+                    color={isDark ? '#5D9B8B' : '#4A7D6F'}
+                    strokeWidth={2.5}
+                  />
+                </View>
+              </View>
+
               <Text
                 style={[
                   styles.quoteText,
                   { color: isDark ? '#ECEDEE' : '#2C3E50' },
                 ]}
               >
-                <View style={{ transform: [{ scaleX: -1 }] }}>
-                  <Quote
-                    size={20}
-                    color={isDark ? '#5D9B8B' : '#4A7D6F'}
-                    strokeWidth={2.5}
-                  />
-                </View>
-                {'  '}{quote.text}{'  '}
+                {quote.text}
+              </Text>
+
+              <View style={[styles.quoteIconRow, { alignSelf: 'flex-end' }]}>
                 <Quote
-                  size={20}
+                  size={24}
                   color={isDark ? '#5D9B8B' : '#4A7D6F'}
                   strokeWidth={2.5}
                 />
-              </Text>
+              </View>
 
               <Text
                 style={[
@@ -140,6 +146,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginBottom: 8,
+  },
+  quoteIconRow: {
+    marginVertical: 22,
+    opacity: 0.8,
   },
   quoteText: {
     fontSize: 22,
