@@ -1,96 +1,108 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, ActivityIndicator, TouchableOpacity, Pressable, Image } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
-import { getVideosFromFolder, parseVideoMetadata, VimeoVideo } from '@/services/vimeo';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { ChevronLeft } from 'lucide-react-native';
 import { VIMEO_CONFIG } from '@/config/vimeo.config';
 import { useTheme } from '@/context/theme-context';
-
-// Import thumbnails
-const thumbnails = [
-  require('@/assets/images/thumbnail1.jpeg'),
-  require('@/assets/images/thumbnail2.jpeg'),
-  require('@/assets/images/thumbnail3.jpeg'),
-];
+import { getWatchedVideos } from '@/services/progress';
+import { getCachedVideos, fetchAndCacheVideos } from '@/services/video-cache';
 
 interface Video {
   id: string;
   title: string;
   url: string;
   description?: string;
+  thumbnail?: string;
+  duration?: number;
 }
 
-const categoryInfo: Record<string, { title: string; color: string }> = {
-  sleep: { title: 'Sleep', color: '#E5D9F2' },
-  'morning-routines': { title: 'Morning Routines', color: '#FFF3DC' },
-  'energy-management': { title: 'Energy Management', color: '#D4F1E8' },
-  'fuel-2-perform': { title: 'Fuel 2 Perform', color: '#FFDDD9' },
-  'move-2-perform': { title: 'Move 2 Perform', color: '#D9E9F7' },
-  'thinking-2-perform': { title: 'Thinking 2 Perform', color: '#F7DBF0' },
-  'recovery': { title: 'Recovery', color: '#DBE9F7' },
-  'mindfulness': { title: 'Mindfulness', color: '#EADBF7' },
-  'stress-management': { title: 'Stress Management', color: '#F7EADB' },
-  'habits': { title: 'Building Habits', color: '#DBF7EA' },
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+const categoryInfo: Record<string, { title: string; color: string; moduleNumber: number }> = {
+  sleep: { title: 'Sleep', color: '#E5D9F2', moduleNumber: 1 },
+  'morning-routines': { title: 'Morning Routines', color: '#FFF3DC', moduleNumber: 2 },
+  'energy-management': { title: 'Energy Management', color: '#D4F1E8', moduleNumber: 3 },
+  'fuel-2-perform': { title: 'Fuel 2 Perform', color: '#FFDDD9', moduleNumber: 4 },
+  'move-2-perform': { title: 'Move 2 Perform', color: '#D9E9F7', moduleNumber: 5 },
+  'thinking-2-perform': { title: 'Thinking 2 Perform', color: '#F7DBF0', moduleNumber: 6 },
+  'recovery': { title: 'Recovery', color: '#DBE9F7', moduleNumber: 7 },
+  'mindfulness': { title: 'Mindfulness', color: '#EADBF7', moduleNumber: 8 },
+  'stress-management': { title: 'Stress Management', color: '#F7EADB', moduleNumber: 9 },
+  'habits': { title: 'Building Habits', color: '#DBF7EA', moduleNumber: 10 },
 };
 
 export default function CategoryScreen() {
   const { slug, title } = useLocalSearchParams<{ slug: string; title: string }>();
-  const info = categoryInfo[slug] || { title: title || 'Videos', color: '#E5D9F2' };
+  const info = categoryInfo[slug] || { title: title || 'Videos', color: '#E5D9F2', moduleNumber: 0 };
   const { isDark } = useTheme();
   
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [watchedIds, setWatchedIds] = useState<string[]>([]);
+
+  const navigation = useNavigation();
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     loadVideos();
   }, [slug]);
 
+  useEffect(() => {
+    if (isFocused) {
+      getWatchedVideos(slug).then((watched) => {
+        setWatchedIds([...watched]);
+      });
+    }
+  }, [isFocused, slug]);
+
   const loadVideos = async () => {
     try {
-      setLoading(true);
       setError(null);
 
-      // Get the Vimeo folder ID for this category
       const folderId = VIMEO_CONFIG.categoryFolders[slug as keyof typeof VIMEO_CONFIG.categoryFolders];
-      
       if (!folderId) {
         setVideos([]);
         setLoading(false);
         return;
       }
 
-      // Check if access token is configured
       if (VIMEO_CONFIG.accessToken === 'YOUR_VIMEO_ACCESS_TOKEN_HERE') {
         setError('Vimeo access token not configured. Please see config/vimeo.config.ts');
         setLoading(false);
         return;
       }
 
-      // Fetch videos from Vimeo
-      console.log('Fetching videos from Vimeo folder:', folderId);
-      const vimeoVideos = await getVideosFromFolder(folderId);
-      console.log('Received videos from Vimeo:', vimeoVideos.length);
-      
-      // Transform to our video format
-      const transformedVideos: Video[] = vimeoVideos.map((video) => {
-        const metadata = parseVideoMetadata(video.name);
-        return {
-          id: video.id,
-          title: metadata.displayName || video.name,
-          url: video.playerEmbedUrl,
-          description: video.description || metadata.description,
-        };
-      });
-
-      console.log('Total videos to display:', transformedVideos.length);
-      setVideos(transformedVideos);
+      // Show cached data instantly if available
+      const cached = getCachedVideos(slug);
+      if (cached && cached.length > 0) {
+        setVideos(cached);
+        setLoading(false);
+        // Refresh in background
+        fetchAndCacheVideos(slug).then((fresh) => {
+          if (fresh.length > 0) setVideos(fresh);
+        }).catch(() => {});
+      } else {
+        setLoading(true);
+        const fresh = await fetchAndCacheVideos(slug);
+        setVideos(fresh);
+        setLoading(false);
+      }
     } catch (err) {
       console.error('Error loading videos:', err);
       setError('Failed to load videos. Please check your Vimeo configuration.');
-    } finally {
       setLoading(false);
     }
   };
+
+  const watchedCount = watchedIds.length;
+  const totalCount = videos.length;
+  const progressPercent = totalCount > 0 ? watchedCount / totalCount : 0;
 
   return (
     <>
@@ -98,7 +110,15 @@ export default function CategoryScreen() {
         options={{
           title: info.title,
           headerShown: true,
-          headerBackTitle: 'Back',
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <ChevronLeft size={22} color={isDark ? '#ECEDEE' : '#2C3E50'} style={{ marginLeft: -1 }} />
+            </Pressable>
+          ),
           headerStyle: {
             backgroundColor: isDark ? '#1A1A2E' : info.color,
           },
@@ -106,14 +126,44 @@ export default function CategoryScreen() {
         }}
       />
       <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
-        <View style={[styles.header, { backgroundColor: isDark ? '#1A1A2E' : info.color }]}>
-          <Text style={[styles.headerTitle, isDark && styles.textDark]}>{info.title}</Text>
-          {!loading && (
-            <Text style={styles.headerSubtitle}>
-              {videos.length} video{videos.length !== 1 ? 's' : ''} available
-            </Text>
-          )}
-        </View>
+        {/* Progress Card */}
+        {!loading && totalCount > 0 && (
+          <View style={[styles.progressCard, { backgroundColor: isDark ? '#1E1E32' : '#FFFFFF' }]}>
+            <View style={styles.progressHeader}>
+              <View>
+                <Text style={[styles.moduleLabel, isDark && styles.subtextDark]}>
+                  MODULE {info.moduleNumber}
+                </Text>
+                <Text style={[styles.progressTitle, isDark && styles.textDark]}>
+                  {info.title}
+                </Text>
+              </View>
+              <View style={styles.progressCount}>
+                <Text style={[styles.progressNumber, isDark && styles.textDark]}>{watchedCount}</Text>
+                <Text style={[styles.progressTotal, isDark && styles.subtextDark]}>/{totalCount}</Text>
+                <Text style={[styles.progressLabel, isDark && styles.subtextDark]}>{'\n'}completed</Text>
+              </View>
+            </View>
+            <View style={[styles.progressBarBg, isDark && { backgroundColor: '#2A2A3E' }]}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${progressPercent * 100}%`, backgroundColor: info.color === '#E5D9F2' ? '#8B7AB8' : info.color },
+                ]}
+              />
+            </View>
+            {watchedCount > 0 && watchedCount < totalCount && (
+              <Text style={[styles.progressEncouragement, isDark && styles.subtextDark]}>
+                You're on track! Complete {totalCount - watchedCount} more to finish this module.
+              </Text>
+            )}
+            {watchedCount === totalCount && totalCount > 0 && (
+              <Text style={[styles.progressEncouragement, { color: '#5D9B8B' }]}>
+                Module complete! Great work.
+              </Text>
+            )}
+          </View>
+        )}
 
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -134,43 +184,56 @@ export default function CategoryScreen() {
           </View>
         ) : (
           <View style={styles.videoList}>
-            {videos.map((video, index) => (
-              <TouchableOpacity
-                key={video.id}
-                style={[styles.videoCard, isDark && styles.videoCardDark]}
-                onPress={() => {
-                  router.push({
-                    pathname: '/video/[id]',
-                    params: {
-                      id: video.id,
-                      title: video.title,
-                      url: video.url,
-                      categoryColor: info.color,
-                    },
-                  });
-                }}
-              >
-                <View style={styles.thumbnailContainer}>
-                  <Image
-                    source={thumbnails[index % 3]}
-                    style={styles.thumbnailImage}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.playIconCircle}>
-                    <Text style={styles.playIcon}>▶</Text>
+            {videos.map((video, index) => {
+              const isWatched = watchedIds.includes(video.id);
+              return (
+                <TouchableOpacity
+                  key={video.id}
+                  style={[styles.videoCard, isDark && styles.videoCardDark]}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/video/[id]',
+                      params: {
+                        id: video.id,
+                        title: video.title,
+                        url: video.url,
+                        categoryColor: info.color,
+                        categorySlug: slug,
+                      },
+                    });
+                  }}
+                >
+                  <View style={styles.thumbnailContainer}>
+                    {video.thumbnail ? (
+                      <Image
+                        source={{ uri: video.thumbnail }}
+                        style={styles.thumbnailImage}
+                        resizeMode="cover"
+                      />
+                    ) : null}
+                    <View style={styles.playIconCircle}>
+                      <Text style={styles.playIcon}>▶</Text>
+                    </View>
+                    {video.duration ? (
+                      <View style={styles.durationBadge}>
+                        <Text style={styles.durationText}>{formatDuration(video.duration)}</Text>
+                      </View>
+                    ) : null}
+                    {isWatched && (
+                      <View style={styles.watchedBadge}>
+                        <Text style={styles.watchedBadgeText}>✓ Watched</Text>
+                      </View>
+                    )}
                   </View>
-                  <View style={styles.durationBadge}>
-                    <Text style={styles.durationText}>Video</Text>
+                  <View style={styles.videoInfo}>
+                    <Text style={[styles.videoTitle, isDark && styles.textDark]}>{video.title}</Text>
+                    {video.description && (
+                      <Text style={[styles.videoDescription, isDark && styles.subtextDark]}>{video.description}</Text>
+                    )}
                   </View>
-                </View>
-                <View style={styles.videoInfo}>
-                  <Text style={[styles.videoTitle, isDark && styles.textDark]}>{video.title}</Text>
-                  {video.description && (
-                    <Text style={[styles.videoDescription, isDark && styles.subtextDark]}>{video.description}</Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -181,7 +244,7 @@ export default function CategoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F5F7',
   },
   containerDark: {
     backgroundColor: '#121222',
@@ -195,28 +258,77 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingBottom: 40,
   },
-  header: {
+  progressCard: {
+    margin: 16,
+    marginTop: 8,
     padding: 20,
-    paddingTop: 0,
-    paddingBottom: 24,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  headerTitle: {
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  moduleLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8E8EA0',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  progressTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#2C3E50',
+  },
+  progressCount: {
+    alignItems: 'flex-end',
+  },
+  progressNumber: {
     fontSize: 28,
     fontWeight: '700',
     color: '#2C3E50',
-    marginBottom: 4,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6B5B8C',
-    opacity: 0.8,
+  progressTotal: {
+    fontSize: 16,
+    color: '#8E8EA0',
+    marginTop: -4,
+  },
+  progressLabel: {
+    fontSize: 12,
+    color: '#8E8EA0',
+    marginTop: -2,
+  },
+  progressBarBg: {
+    height: 6,
+    backgroundColor: '#E8E8EE',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+    minWidth: 0,
+  },
+  progressEncouragement: {
+    fontSize: 13,
+    color: '#8E8EA0',
+    marginTop: 12,
   },
   videoList: {
     padding: 20,
+    paddingTop: 12,
     gap: 16,
   },
   videoCard: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -224,7 +336,7 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
   },
@@ -245,17 +357,17 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   playIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(107, 91, 140, 0.9)',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(107, 91, 140, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   playIcon: {
-    fontSize: 24,
+    fontSize: 22,
     color: '#FFFFFF',
-    marginLeft: 4,
+    marginLeft: 3,
   },
   durationBadge: {
     position: 'absolute',
@@ -270,6 +382,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
+  },
+  watchedBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: 'rgba(93, 155, 139, 0.9)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  watchedBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   videoInfo: {
     padding: 16,

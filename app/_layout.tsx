@@ -14,8 +14,10 @@ function AppContent() {
 
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack screenOptions={{ headerBackTitleVisible: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="category/[slug]" options={{ headerShown: true }} />
+        <Stack.Screen name="video/[id]" options={{ headerShown: true }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
