@@ -1,17 +1,23 @@
+import { Asset } from "expo-asset";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
+import { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   Linking,
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 
 const ACCENT = "#5D9B8B";
+const COURSE_LEAFLET = require("@/assets/documents/course-leaflet.pdf");
 
 interface TestimonialProps {
   name: string;
@@ -59,6 +65,43 @@ function Testimonial({
 
 export default function AboutScreen() {
   const { isDark } = useTheme();
+  const [isPreparingLeaflet, setIsPreparingLeaflet] = useState(false);
+
+  const handleDownloadLeaflet = async () => {
+    if (isPreparingLeaflet) return;
+
+    try {
+      setIsPreparingLeaflet(true);
+      const asset = Asset.fromModule(COURSE_LEAFLET);
+
+      if (!asset.localUri) {
+        await asset.downloadAsync();
+      }
+
+      const leafletUri = asset.localUri ?? asset.uri;
+      if (!leafletUri) {
+        throw new Error("Leaflet URI unavailable");
+      }
+
+      if (Platform.OS === "web") {
+        await Linking.openURL(asset.uri);
+        return;
+      }
+
+      await Share.share({
+        title: "Daily Diesel Course Leaflet",
+        message: "Daily Diesel Course Leaflet",
+        url: leafletUri,
+      });
+    } catch {
+      Alert.alert(
+        "Unable to open leaflet",
+        "Please try again in a moment."
+      );
+    } finally {
+      setIsPreparingLeaflet(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -183,8 +226,37 @@ export default function AboutScreen() {
       {/* Links */}
       <View style={[styles.linksCard, isDark && styles.cardDark]}>
         <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
-          Find Me Online
+          Downloads & Links
         </Text>
+        <Text style={[styles.linkCardText, isDark && styles.subtextDark]}>
+          Download the course leaflet to keep a copy on your device.
+        </Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.linkButton,
+            styles.downloadButton,
+            { opacity: pressed || isPreparingLeaflet ? 0.7 : 1 },
+          ]}
+          onPress={handleDownloadLeaflet}
+          disabled={isPreparingLeaflet}
+          accessibilityRole="button"
+          accessibilityLabel="Download course leaflet PDF"
+        >
+          <View style={styles.linkButtonContent}>
+            {isPreparingLeaflet ? (
+              <ActivityIndicator
+                size="small"
+                color="#FFFFFF"
+                style={styles.linkButtonSpinner}
+              />
+            ) : null}
+            <Text style={styles.linkButtonText}>
+              {isPreparingLeaflet
+                ? "Preparing leaflet..."
+                : "Download Course Leaflet (PDF)"}
+            </Text>
+          </View>
+        </Pressable>
         <Pressable
           style={({ pressed }) => [
             styles.linkButton,
@@ -403,11 +475,29 @@ const styles = StyleSheet.create({
       android: { elevation: 3 },
     }),
   },
+  linkCardText: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: "#4A5568",
+    marginBottom: 14,
+    fontFamily: AppFonts.bodyRegular,
+  },
   linkButton: {
     backgroundColor: MAIN_PURPLE,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
+  },
+  linkButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  linkButtonSpinner: {
+    marginRight: 10,
+  },
+  downloadButton: {
+    marginBottom: 12,
   },
   linkButtonText: {
     color: "#fff",

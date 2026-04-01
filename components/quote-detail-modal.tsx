@@ -53,6 +53,8 @@ export function QuoteDetailModal({
               onPress={onClose}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               activeOpacity={0.6}
+              accessibilityRole="button"
+              accessibilityLabel="Close quote"
             >
               <X size={24} color={isDark ? '#ccc' : '#666'} strokeWidth={2.5} />
             </TouchableOpacity>
@@ -144,15 +146,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 14,
     right: 14,
-    zIndex: 10,
-    width: 40,
-    height: 40,
+    zIndex: 20,
+    padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardInner: {
     padding: 28,
-    paddingTop: 24,
+    paddingTop: 56,
   },
   label: {
     fontSize: 14,

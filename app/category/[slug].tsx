@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useLocalSearchParams, Stack, router, useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import { Check, ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
@@ -33,7 +33,7 @@ export default function CategoryScreen() {
   const { slug, title } = useLocalSearchParams<{ slug: string; title: string }>();
   const info = categoryInfo[slug] || { title: title || 'Videos', color: '#E5D9F2', moduleNumber: 0 };
   const { isDark } = useTheme();
-  const navigation = useNavigation();
+  const appRouter = useRouter();
   const insets = useSafeAreaInsets();
 
   const videos: VideoEntry[] = MODULE_VIDEOS[slug] || [];
@@ -58,17 +58,22 @@ export default function CategoryScreen() {
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: isDark ? '#1A1A2E' : info.color }]}>
         <Pressable
-          onPress={() => navigation.goBack()}
+          onPress={() => appRouter.back()}
           hitSlop={16}
           style={({ pressed }) => [
             styles.customBackButton,
             { opacity: pressed ? 0.6 : 1 },
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ChevronLeft size={26} color={isDark ? '#ECEDEE' : '#2C3E50'} strokeWidth={2.5} />
+          <Text style={[styles.customBackText, { color: isDark ? '#ECEDEE' : '#2C3E50' }]}>
+            Back
+          </Text>
         </Pressable>
         <Text style={[styles.customHeaderTitle, { color: isDark ? '#ECEDEE' : '#2C3E50' }]}>{info.title}</Text>
-        <View style={{ width: 44 }} />
+        <View style={styles.customHeaderSpacer} />
       </View>
       <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
         {/* Progress Card */}
@@ -97,7 +102,7 @@ export default function CategoryScreen() {
             </View>
             {watchedCount > 0 && watchedCount < totalCount && (
               <Text style={[styles.progressEncouragement, isDark && styles.subtextDark]}>
-                You're on track! Complete {totalCount - watchedCount} more to finish this module.
+                You&apos;re on track! Complete {totalCount - watchedCount} more to finish this module.
               </Text>
             )}
             {watchedCount === totalCount && totalCount > 0 && (
@@ -114,65 +119,100 @@ export default function CategoryScreen() {
             <Text style={styles.emptySubtext}>Check back soon for new content!</Text>
           </View>
         ) : (
-          <View style={styles.videoList}>
-            {videos.map((video, index) => {
-              const isWatched = watchedIds.includes(video.id);
-              return (
-                <TouchableOpacity
-                  key={video.id}
-                  style={[styles.videoCard, isDark && styles.videoCardDark]}
-                  onPress={() => {
-                    router.push({
-                      pathname: '/video/[id]',
-                      params: {
-                        id: video.id,
-                        title: video.title,
-                        url: video.url,
-                        categoryColor: info.color,
-                        categorySlug: slug,
-                      },
-                    });
-                  }}
-                >
-                  <View style={styles.thumbnailContainer}>
-                    {video.thumbnail ? (
-                      <Image
-                        source={{ uri: video.thumbnail }}
-                        style={styles.thumbnailImage}
-                        resizeMode="cover"
-                      />
-                    ) : null}
-                    <View style={styles.playIconCircle}>
-                      <Text style={styles.playIcon}>▶</Text>
-                    </View>
-                    {video.duration ? (
-                      <View style={styles.durationBadge}>
-                        <Text style={styles.durationText}>{formatDuration(video.duration)}</Text>
+          <>
+            <View style={styles.videoList}>
+              {videos.map((video, index) => {
+                const isWatched = watchedIds.includes(video.id);
+                return (
+                  <TouchableOpacity
+                    key={video.id}
+                    style={[styles.videoCard, isDark && styles.videoCardDark]}
+                    onPress={() => {
+                      router.push({
+                        pathname: '/video/[id]',
+                        params: {
+                          id: video.id,
+                          title: video.title,
+                          url: video.url,
+                          categoryColor: info.color,
+                          categorySlug: slug,
+                        },
+                      });
+                    }}
+                  >
+                    <View style={styles.thumbnailContainer}>
+                      {video.thumbnail ? (
+                        <Image
+                          source={{ uri: video.thumbnail }}
+                          style={styles.thumbnailImage}
+                          resizeMode="cover"
+                        />
+                      ) : null}
+                      <View style={styles.playIconCircle}>
+                        <Text style={styles.playIcon}>▶</Text>
                       </View>
-                    ) : null}
-                    {isWatched && (
-                      <View style={styles.watchedBadge}>
-                        <Text style={styles.watchedBadgeText}>✓ Watched</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.videoInfo}>
-                    <View style={styles.videoTitleRow}>
-                      <Text style={[styles.videoTitle, isDark && styles.textDark, { flex: 1 }]}>{index + 1}. {video.title}</Text>
+                      {video.duration ? (
+                        <View style={styles.durationBadge}>
+                          <Text style={styles.durationText}>{formatDuration(video.duration)}</Text>
+                        </View>
+                      ) : null}
                       {isWatched && (
-                        <View style={styles.watchedTick}>
-                          <Check size={14} color="#fff" strokeWidth={3} />
+                        <View style={styles.watchedBadge}>
+                          <Text style={styles.watchedBadgeText}>✓ Watched</Text>
                         </View>
                       )}
                     </View>
-                    {video.description && (
-                      <Text style={[styles.videoDescription, isDark && styles.subtextDark]}>{video.description}</Text>
-                    )}
+                    <View style={styles.videoInfo}>
+                      <View style={styles.videoTitleRow}>
+                        <Text style={[styles.videoTitle, isDark && styles.textDark, { flex: 1 }]}>{index + 1}. {video.title}</Text>
+                        {isWatched && (
+                          <View style={styles.watchedTick}>
+                            <Check size={14} color="#fff" strokeWidth={3} />
+                          </View>
+                        )}
+                      </View>
+                      {video.description && (
+                        <Text style={[styles.videoDescription, isDark && styles.subtextDark]}>{video.description}</Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {slug === 'sleep' && (
+              <View style={styles.workbookWrap}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.workbookCard,
+                    isDark && styles.workbookCardDark,
+                    { opacity: pressed ? 0.8 : 1 },
+                  ]}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/module-workbook/[slug]',
+                      params: { slug },
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel="Open module 1 workbook"
+                >
+                  <Text style={[styles.workbookEyebrow, isDark && styles.subtextDark]}>
+                    MODULE 1 WORKBOOK
+                  </Text>
+                  <Text style={[styles.workbookTitle, isDark && styles.textDark]}>
+                    Digital Sleep Workbook
+                  </Text>
+                  <Text style={[styles.workbookBody, isDark && styles.subtextDark]}>
+                    Complete the sleep action plan, evening audit and journal prompts in the app. Your answers save automatically on this device.
+                  </Text>
+                  <View style={styles.workbookButton}>
+                    <Text style={styles.workbookButtonText}>Open Workbook</Text>
                   </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                </Pressable>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
     </>
@@ -184,20 +224,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     paddingBottom: 12,
+    zIndex: 20,
   },
   customBackButton: {
-    width: 44,
+    minWidth: 72,
     height: 44,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  customBackText: {
+    fontSize: 13,
+    fontFamily: AppFonts.bodyBold,
+    marginLeft: 2,
   },
   customHeaderTitle: {
     fontSize: 17,
     fontFamily: AppFonts.headingSemiBold,
     textAlign: 'center',
     flex: 1,
+  },
+  customHeaderSpacer: {
+    minWidth: 72,
   },
   container: {
     flex: 1,
@@ -289,6 +339,58 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 12,
     gap: 30,
+  },
+  workbookWrap: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  workbookCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  workbookCardDark: {
+    backgroundColor: '#1E1E32',
+  },
+  workbookEyebrow: {
+    fontSize: 12,
+    fontFamily: AppFonts.headingBold,
+    color: '#8E8EA0',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  workbookTitle: {
+    fontSize: 22,
+    fontFamily: AppFonts.headingBold,
+    color: '#2C3E50',
+  },
+  workbookBody: {
+    marginTop: 10,
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#6B7280',
+    fontFamily: AppFonts.bodyRegular,
+  },
+  workbookButton: {
+    marginTop: 16,
+    backgroundColor: '#7187CE',
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  workbookButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontFamily: AppFonts.bodyBold,
   },
   videoCard: {
     backgroundColor: '#FFFFFF',
