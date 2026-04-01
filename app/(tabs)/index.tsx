@@ -106,8 +106,8 @@ export default function HomeScreen() {
   const { isDark, toggleTheme } = useTheme();
   const { consumeOpenQuote } = useOpenQuoteFromNotification();
 
-  const today = useMemo(() => new Date(), []);
-  const dailyQuote = useMemo(() => getQuoteOfTheDay(today), [today]);
+  const [quoteDate, setQuoteDate] = useState(() => new Date());
+  const dailyQuote = useMemo(() => getQuoteOfTheDay(quoteDate), [quoteDate]);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [progress, setProgress] = useState<Record<string, string[]>>({});
   const [dailyReminderOn, setDailyReminderOn] = useState(false);
@@ -132,11 +132,24 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      setQuoteDate(new Date());
       refreshReminderState();
       getAllProgress().then(setProgress);
       if (consumeOpenQuote()) setShowQuoteModal(true);
     }, [refreshReminderState, consumeOpenQuote]),
   );
+
+  React.useEffect(() => {
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+
+    const timeout = setTimeout(() => {
+      setQuoteDate(new Date());
+    }, nextMidnight.getTime() - now.getTime());
+
+    return () => clearTimeout(timeout);
+  }, [quoteDate]);
 
   const scheduleAt = useCallback(
     async (hour: number, minute: number, label: string) => {
@@ -365,7 +378,7 @@ export default function HomeScreen() {
           style={[styles.dieselQuote, isDark && styles.dieselQuoteDark]}
           numberOfLines={3}
         >
-          "{dailyQuote.text}"
+          &ldquo;{dailyQuote.text}&rdquo;
         </Text>
         <Text style={[styles.dieselAuthor, isDark && styles.dieselAuthorDark]}>
           — {dailyQuote.author}
