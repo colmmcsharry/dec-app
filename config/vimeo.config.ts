@@ -19,11 +19,11 @@ export const VIMEO_CONFIG = {
     'sleep': '28168946',             // Module 1
     'morning-routines': '28168947',  // Module 2
     'energy-management': '28168950', // Module 3
-    'fuel-2-perform': '28168952',    // Module 4
+    'mindfulness': '28168952',       // Module 4 (Creative Solutions / Mindfulness in app)
     'move-2-perform': '28168954',    // Module 5
     'thinking-2-perform': '28168955',// Module 6
     'recovery': '28168956',          // Module 7
-    'mindfulness': '28168957',       // Module 8
+    'fuel-2-perform': '28168957',    // Module 8 (Nutrition / Fuel 2 Perform in app)
     'stress-management': '28168958', // Module 9
     'habits': '28168960',            // Module 10
   },

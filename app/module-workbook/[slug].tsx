@@ -13,6 +13,8 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -169,6 +171,7 @@ export default function ModuleWorkbookScreen() {
       : saveState === "saving"
         ? "Saving..."
         : "Saved on this device";
+  const keyboardVerticalOffset = insets.top + 56;
 
   return (
     <>
@@ -217,81 +220,143 @@ export default function ModuleWorkbookScreen() {
         <View style={styles.customHeaderSpacer} />
       </View>
 
-      <ScrollView
-        style={[styles.container, isDark && styles.containerDark]}
-        contentContainerStyle={styles.contentContainer}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.keyboardWrap}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={keyboardVerticalOffset}
       >
-        <View
-          style={[
-            styles.heroCard,
-            { backgroundColor: isDark ? "#1E1E32" : "#FFFFFF" },
-          ]}
+        <ScrollView
+          style={[styles.container, isDark && styles.containerDark]}
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
         >
-          <Text style={[styles.moduleLabel, isDark && styles.subtextDark]}>
-            MODULE {definition.moduleNumber}
-          </Text>
-          <Text style={[styles.heroTitle, isDark && styles.textDark]}>
-            {definition.title}
-          </Text>
-          <Text style={[styles.heroBody, isDark && styles.subtextDark]}>
-            {definition.intro}
-          </Text>
-          <Text style={[styles.saveState, isDark && styles.subtextDark]}>
-            {saveStatusText}
-          </Text>
-        </View>
-
-        <View style={styles.sectionStack}>
           <View
             style={[
-              styles.sectionCard,
-              isDark && styles.sectionCardDark,
+              styles.heroCard,
+              { backgroundColor: isDark ? "#1E1E32" : "#FFFFFF" },
             ]}
           >
-            <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
-              1 Week for Better Sleep
+            <Text style={[styles.moduleLabel, isDark && styles.subtextDark]}>
+              MODULE {definition.moduleNumber}
             </Text>
-            <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
-              Choose one manageable action in each category and track how it went across the week.
+            <Text style={[styles.heroTitle, isDark && styles.textDark]}>
+              {definition.title}
             </Text>
+            <Text style={[styles.heroBody, isDark && styles.subtextDark]}>
+              {definition.intro}
+            </Text>
+            <Text style={[styles.saveState, isDark && styles.subtextDark]}>
+              {saveStatusText}
+            </Text>
+          </View>
 
-            {definition.weeklyPlanSections.map((section) => (
-              <View key={section.id} style={styles.planSection}>
-                <Text style={[styles.planTitle, isDark && styles.textDark]}>
-                  {section.title}
-                </Text>
-                <Text style={[styles.planPrompt, isDark && styles.subtextDark]}>
-                  {section.prompt}
-                </Text>
-                <TextInput
-                  value={formData.weeklyPlan[section.id].action}
-                  onChangeText={(value) => updatePlanAction(section.id, value)}
-                  placeholder="Type your plan here"
-                  placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
-                  multiline
-                  style={[
-                    styles.textArea,
-                    isDark && styles.inputDark,
-                    isDark && styles.textDark,
-                  ]}
-                />
+          <View style={styles.sectionStack}>
+            <View
+              style={[
+                styles.sectionCard,
+                isDark && styles.sectionCardDark,
+              ]}
+            >
+              <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
+                1 Week for Better Sleep
+              </Text>
+              <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
+                Choose one manageable action in each category and track how it went across the week.
+              </Text>
 
-                <View style={styles.dayRows}>
-                  {formData.weeklyPlan[section.id].dayNotes.map((note, index) => (
-                    <View key={`${section.id}-${index}`} style={styles.dayRow}>
-                      <Text style={[styles.dayLabel, isDark && styles.subtextDark]}>
-                        Day {index + 1}
-                      </Text>
+              {definition.weeklyPlanSections.map((section) => (
+                <View key={section.id} style={styles.planSection}>
+                  <Text style={[styles.planTitle, isDark && styles.textDark]}>
+                    {section.title}
+                  </Text>
+                  <Text style={[styles.planPrompt, isDark && styles.subtextDark]}>
+                    {section.prompt}
+                  </Text>
+                  <TextInput
+                    value={formData.weeklyPlan[section.id].action}
+                    onChangeText={(value) => updatePlanAction(section.id, value)}
+                    placeholder="Type your plan here"
+                    placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
+                    multiline
+                    style={[
+                      styles.textArea,
+                      isDark && styles.inputDark,
+                      isDark && styles.textDark,
+                    ]}
+                  />
+
+                  <View style={styles.dayRows}>
+                    {formData.weeklyPlan[section.id].dayNotes.map((note, index) => (
+                      <View key={`${section.id}-${index}`} style={styles.dayRow}>
+                        <Text style={[styles.dayLabel, isDark && styles.subtextDark]}>
+                          Day {index + 1}
+                        </Text>
+                        <TextInput
+                          value={note}
+                          onChangeText={(value) =>
+                            updatePlanDayNote(section.id, index, value)
+                          }
+                          placeholder="Done / note"
+                          placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
+                          style={[
+                            styles.dayInput,
+                            isDark && styles.inputDark,
+                            isDark && styles.textDark,
+                          ]}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <View
+              style={[
+                styles.sectionCard,
+                isDark && styles.sectionCardDark,
+              ]}
+            >
+              <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
+                Evening-Time Audit
+              </Text>
+              <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
+                Log two real evenings from when you arrive home until you go to sleep so you can spot time sinks.
+              </Text>
+
+              {formData.eveningAudits.map((audit, auditIndex) => (
+                <View key={`audit-${auditIndex}`} style={styles.auditBlock}>
+                  <Text style={[styles.planTitle, isDark && styles.textDark]}>
+                    Evening {auditIndex + 1}
+                  </Text>
+                  {audit.rows.map((row, rowIndex) => (
+                    <View key={`audit-row-${auditIndex}-${rowIndex}`} style={styles.auditRow}>
                       <TextInput
-                        value={note}
+                        value={row.time}
                         onChangeText={(value) =>
-                          updatePlanDayNote(section.id, index, value)
+                          updateAuditRow(auditIndex, rowIndex, "time", value)
                         }
-                        placeholder="Done / note"
+                        placeholder={rowIndex === 0 ? "Time" : "e.g. 7:30"}
                         placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
                         style={[
-                          styles.dayInput,
+                          styles.timeInput,
+                          isDark && styles.inputDark,
+                          isDark && styles.textDark,
+                        ]}
+                      />
+                      <TextInput
+                        value={row.activity}
+                        onChangeText={(value) =>
+                          updateAuditRow(auditIndex, rowIndex, "activity", value)
+                        }
+                        placeholder={
+                          rowIndex === 0 ? "Activity" : "What were you doing?"
+                        }
+                        placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
+                        style={[
+                          styles.activityInput,
                           isDark && styles.inputDark,
                           isDark && styles.textDark,
                         ]}
@@ -299,107 +364,56 @@ export default function ModuleWorkbookScreen() {
                     </View>
                   ))}
                 </View>
-              </View>
-            ))}
-          </View>
-
-          <View
-            style={[
-              styles.sectionCard,
-              isDark && styles.sectionCardDark,
-            ]}
-          >
-            <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
-              Evening-Time Audit
-            </Text>
-            <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
-              Log two real evenings from when you arrive home until you go to sleep so you can spot time sinks.
-            </Text>
-
-            {formData.eveningAudits.map((audit, auditIndex) => (
-              <View key={`audit-${auditIndex}`} style={styles.auditBlock}>
-                <Text style={[styles.planTitle, isDark && styles.textDark]}>
-                  Evening {auditIndex + 1}
-                </Text>
-                {audit.rows.map((row, rowIndex) => (
-                  <View key={`audit-row-${auditIndex}-${rowIndex}`} style={styles.auditRow}>
-                    <TextInput
-                      value={row.time}
-                      onChangeText={(value) =>
-                        updateAuditRow(auditIndex, rowIndex, "time", value)
-                      }
-                      placeholder={rowIndex === 0 ? "Time" : "e.g. 7:30"}
-                      placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
-                      style={[
-                        styles.timeInput,
-                        isDark && styles.inputDark,
-                        isDark && styles.textDark,
-                      ]}
-                    />
-                    <TextInput
-                      value={row.activity}
-                      onChangeText={(value) =>
-                        updateAuditRow(auditIndex, rowIndex, "activity", value)
-                      }
-                      placeholder={
-                        rowIndex === 0 ? "Activity" : "What were you doing?"
-                      }
-                      placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
-                      style={[
-                        styles.activityInput,
-                        isDark && styles.inputDark,
-                        isDark && styles.textDark,
-                      ]}
-                    />
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
-
-          <View
-            style={[
-              styles.sectionCard,
-              isDark && styles.sectionCardDark,
-            ]}
-          >
-            <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
-              Journaling Made Simple
-            </Text>
-            <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
-              Pick any of the prompts below and write for a minute or two, or longer if you want.
-            </Text>
-            <View style={styles.promptList}>
-              {definition.journalPrompts.map((prompt, index) => (
-                <Text
-                  key={`prompt-${index}`}
-                  style={[styles.promptItem, isDark && styles.subtextDark]}
-                >
-                  {index + 1}. {prompt}
-                </Text>
               ))}
             </View>
-            <TextInput
-              value={formData.journalEntry}
-              onChangeText={updateJournalEntry}
-              placeholder="Write your reflection here"
-              placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
-              multiline
-              textAlignVertical="top"
+
+            <View
               style={[
-                styles.journalInput,
-                isDark && styles.inputDark,
-                isDark && styles.textDark,
+                styles.sectionCard,
+                isDark && styles.sectionCardDark,
               ]}
-            />
+            >
+              <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
+                Journaling Made Simple
+              </Text>
+              <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
+                Pick any of the prompts below and write for a minute or two, or longer if you want.
+              </Text>
+              <View style={styles.promptList}>
+                {definition.journalPrompts.map((prompt, index) => (
+                  <Text
+                    key={`prompt-${index}`}
+                    style={[styles.promptItem, isDark && styles.subtextDark]}
+                  >
+                    {index + 1}. {prompt}
+                  </Text>
+                ))}
+              </View>
+              <TextInput
+                value={formData.journalEntry}
+                onChangeText={updateJournalEntry}
+                placeholder="Write your reflection here"
+                placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
+                multiline
+                textAlignVertical="top"
+                style={[
+                  styles.journalInput,
+                  isDark && styles.inputDark,
+                  isDark && styles.textDark,
+                ]}
+              />
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardWrap: {
+    flex: 1,
+  },
   customHeader: {
     flexDirection: "row",
     alignItems: "center",

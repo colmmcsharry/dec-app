@@ -179,7 +179,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       buttonLabel: "Open PDF",
     },
   ],
-  "fuel-2-perform:1162888376": [
+  "mindfulness:1162888376": [
     {
       title: "Creative Thinking Overview",
       assetModule: require("@/assets/documents/module-resources/Module4/Module-4_sheet1.pdf"),
@@ -188,7 +188,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       buttonLabel: "Open PDF",
     },
   ],
-  "fuel-2-perform:1162888393": [
+  "mindfulness:1162888393": [
     {
       title: "The 9-Dot Problem",
       assetModule: require("@/assets/documents/module-resources/Module4/The-nine-dot-problem.pdf"),
@@ -197,7 +197,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       buttonLabel: "Open PDF",
     },
   ],
-  "fuel-2-perform:1162888402": [
+  "mindfulness:1162888402": [
     {
       title: "Your Best Creative Solutions",
       assetModule: require("@/assets/documents/module-resources/Module4/Your-best-creative-solutions.pdf"),
@@ -206,7 +206,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       buttonLabel: "Open PDF",
     },
   ],
-  "fuel-2-perform:1162888421": [
+  "mindfulness:1162888421": [
     {
       title: "Emilie Wapnick TED Talk",
       url: "https://www.ted.com/talks/emilie_wapnick_why_some_of_us_don_t_have_one_true_calling?language=en",
@@ -214,7 +214,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
         "A TED Talk on the strengths of having diverse interests and talents.",
     },
   ],
-  "fuel-2-perform:1162888469": [
+  "mindfulness:1162888469": [
     {
       title: "Creative Thinking Boosters",
       assetModule: require("@/assets/documents/module-resources/Module4/Module-4_sheet2.pdf"),
@@ -223,7 +223,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       buttonLabel: "Open PDF",
     },
   ],
-  "fuel-2-perform:1162888508": [
+  "mindfulness:1162888508": [
     {
       title: "Selective Attention Test",
       url: "https://www.youtube.com/watch?v=KB_lTKZm1Ts",
@@ -231,7 +231,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
         "A quick awareness test on how focusing on one thing can make you miss the bigger picture.",
     },
   ],
-  "fuel-2-perform:1162888573": [
+  "mindfulness:1162888573": [
     {
       title: "How to Make Difficult Decisions",
       assetModule: require("@/assets/documents/module-resources/Module4/How-to-make-difficult-decisions.pdf"),
@@ -339,7 +339,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       buttonLabel: "Open PDF",
     },
   ],
-  "mindfulness:1162890534": [
+  "fuel-2-perform:1162890534": [
     {
       title: "Nutrition & Hydration Overview",
       assetModule: require("@/assets/documents/module-resources/Module8/Module-8_sheet1.pdf"),
@@ -348,7 +348,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       buttonLabel: "Open PDF",
     },
   ],
-  "mindfulness:1162890588": [
+  "fuel-2-perform:1162890588": [
     {
       title: "Eating for Performance",
       assetModule: require("@/assets/documents/module-resources/Module8/Eating-for-performance.pdf"),
@@ -357,7 +357,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       buttonLabel: "Open PDF",
     },
   ],
-  "mindfulness:1162890604": [
+  "fuel-2-perform:1162890604": [
     {
       title: "Macronutrients Guide",
       assetModule: require("@/assets/documents/module-resources/Module8/Macronutrients.pdf"),
@@ -366,7 +366,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       buttonLabel: "Open PDF",
     },
   ],
-  "mindfulness:1162890694": [
+  "fuel-2-perform:1162890694": [
     {
       title: "Shopping List",
       assetModule: require("@/assets/documents/module-resources/Module8/EatingOnWildSide_ShoppingList_2020.pdf"),
@@ -375,7 +375,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       buttonLabel: "Open PDF",
     },
   ],
-  "mindfulness:1162890726": [
+  "fuel-2-perform:1162890726": [
     {
       title: "Reconnect With Food",
       assetModule: require("@/assets/documents/module-resources/Module8/Module-8_sheet2.pdf"),
@@ -398,7 +398,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       buttonLabel: "Open PDF",
     },
   ],
-  "mindfulness:1162890753": [
+  "fuel-2-perform:1162890753": [
     {
       title: "Hydrating for Performance",
       assetModule: require("@/assets/documents/module-resources/Module8/Hydrating-for-performance.pdf"),

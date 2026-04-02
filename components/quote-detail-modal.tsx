@@ -4,11 +4,10 @@ import {
   Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   Pressable,
   Platform,
 } from 'react-native';
-import { Quote, X } from 'lucide-react-native';
+import { Quote } from 'lucide-react-native';
 import { AppFonts } from '@/constants/theme';
 import type { DailyQuote } from '@/data/quotes';
 
@@ -48,17 +47,6 @@ export function QuoteDetailModal({
               { backgroundColor: isDark ? '#1E2E2A' : CARD_BG },
             ]}
           >
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={onClose}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              activeOpacity={0.6}
-              accessibilityRole="button"
-              accessibilityLabel="Close quote"
-            >
-              <X size={24} color={isDark ? '#ccc' : '#666'} strokeWidth={2.5} />
-            </TouchableOpacity>
-
             <View style={styles.cardInner}>
               <Text style={[styles.label, { color: ACCENT_GREEN }]}>
                 Daily Diesel
@@ -142,18 +130,9 @@ const styles = StyleSheet.create({
       android: { elevation: 8 },
     }),
   },
-  closeButton: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    zIndex: 20,
-    padding: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   cardInner: {
     padding: 28,
-    paddingTop: 56,
+    paddingTop: 28,
   },
   label: {
     fontSize: 14,
