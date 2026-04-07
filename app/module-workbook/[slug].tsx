@@ -1,6 +1,7 @@
 import { AppFonts } from "@/constants/theme";
 import {
   createInitialWorkbookData,
+  mergeModuleWorkbookData,
   MODULE_WORKBOOKS,
   type ModuleWorkbookData,
 } from "@/data/module-workbooks";
@@ -9,8 +10,9 @@ import {
   getModuleWorkbook,
   saveModuleWorkbook,
 } from "@/services/module-workbooks";
+import { MODULE_PDFS } from "@/data/pdf-assets";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, FileText } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -20,6 +22,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -49,7 +52,7 @@ export default function ModuleWorkbookScreen() {
       if (!slug || !initialData) return;
       const stored = await getModuleWorkbook(slug, initialData);
       if (!isMounted) return;
-      setFormData(stored);
+      setFormData(mergeModuleWorkbookData(stored, initialData));
       setSaveState("saved");
       hasHydratedRef.current = true;
     }
@@ -154,6 +157,26 @@ export default function ModuleWorkbookScreen() {
     });
   };
 
+  const updateWorksheetField = (
+    worksheetId: string,
+    fieldId: string,
+    value: string
+  ) => {
+    setFormData((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        worksheets: {
+          ...current.worksheets,
+          [worksheetId]: {
+            ...(current.worksheets?.[worksheetId] ?? {}),
+            [fieldId]: value,
+          },
+        },
+      };
+    });
+  };
+
   const updateJournalEntry = (value: string) => {
     setFormData((current) =>
       current
@@ -253,6 +276,38 @@ export default function ModuleWorkbookScreen() {
           </View>
 
           <View style={styles.sectionStack}>
+            {/* ── Educational Content ── */}
+            {definition.contentSections.length > 0 && (
+              <View
+                style={[
+                  styles.sectionCard,
+                  isDark && styles.sectionCardDark,
+                ]}
+              >
+                <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
+                  Course Content
+                </Text>
+                {definition.contentSections.map((cs, i) => (
+                  <View key={`cs-${i}`} style={styles.contentBlock}>
+                    <Text
+                      style={[styles.contentHeading, isDark && styles.textDark]}
+                    >
+                      {cs.heading}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.contentBody,
+                        isDark && styles.subtextDark,
+                      ]}
+                    >
+                      {cs.body}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* ── Weekly Plan ── */}
             <View
               style={[
                 styles.sectionCard,
@@ -260,10 +315,10 @@ export default function ModuleWorkbookScreen() {
               ]}
             >
               <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
-                1 Week for Better Sleep
+                {definition.weeklyPlanCardTitle}
               </Text>
               <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
-                Choose one manageable action in each category and track how it went across the week.
+                {definition.weeklyPlanCardDescription}
               </Text>
 
               {definition.weeklyPlanSections.map((section) => (
@@ -313,6 +368,7 @@ export default function ModuleWorkbookScreen() {
               ))}
             </View>
 
+            {definition.includeEveningAudit && formData.eveningAudits.length > 0 && (
             <View
               style={[
                 styles.sectionCard,
@@ -320,16 +376,16 @@ export default function ModuleWorkbookScreen() {
               ]}
             >
               <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
-                Evening-Time Audit
+                {definition.eveningAuditCardTitle}
               </Text>
               <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
-                Log two real evenings from when you arrive home until you go to sleep so you can spot time sinks.
+                {definition.eveningAuditCardDescription}
               </Text>
 
               {formData.eveningAudits.map((audit, auditIndex) => (
                 <View key={`audit-${auditIndex}`} style={styles.auditBlock}>
                   <Text style={[styles.planTitle, isDark && styles.textDark]}>
-                    Evening {auditIndex + 1}
+                    {definition.auditBlockLabel(auditIndex)}
                   </Text>
                   {audit.rows.map((row, rowIndex) => (
                     <View key={`audit-row-${auditIndex}-${rowIndex}`} style={styles.auditRow}>
@@ -366,7 +422,100 @@ export default function ModuleWorkbookScreen() {
                 </View>
               ))}
             </View>
+            )}
 
+            {/* ── Interactive Worksheets ── */}
+            {definition.worksheetDefinitions.map((ws) => (
+              <View
+                key={ws.id}
+                style={[
+                  styles.sectionCard,
+                  isDark && styles.sectionCardDark,
+                ]}
+              >
+                <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
+                  {ws.title}
+                </Text>
+                <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
+                  {ws.description}
+                </Text>
+                {ws.fields.map((field) => (
+                  <View key={field.id} style={styles.worksheetField}>
+                    <Text
+                      style={[styles.worksheetLabel, isDark && styles.textDark]}
+                    >
+                      {field.label}
+                    </Text>
+                    <TextInput
+                      value={formData.worksheets?.[ws.id]?.[field.id] ?? ""}
+                      onChangeText={(v) =>
+                        updateWorksheetField(ws.id, field.id, v)
+                      }
+                      placeholder={field.placeholder ?? "Type here"}
+                      placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
+                      multiline
+                      style={[
+                        styles.textArea,
+                        isDark && styles.inputDark,
+                        isDark && styles.textDark,
+                      ]}
+                    />
+                  </View>
+                ))}
+              </View>
+            ))}
+
+            {/* ── PDF Resources ── */}
+            {(MODULE_PDFS[slug as string] ?? []).length > 0 && (
+              <View
+                style={[
+                  styles.sectionCard,
+                  isDark && styles.sectionCardDark,
+                ]}
+              >
+                <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
+                  Printable Resources
+                </Text>
+                <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
+                  Tap to view the original formatted worksheets.
+                </Text>
+                {(MODULE_PDFS[slug as string] ?? []).map((pdf) => (
+                  <TouchableOpacity
+                    key={pdf.id}
+                    style={[styles.pdfCard, isDark && styles.pdfCardDark]}
+                    activeOpacity={0.7}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/pdf-viewer",
+                        params: {
+                          slug: slug as string,
+                          pdfId: pdf.id,
+                          title: pdf.title,
+                        },
+                      })
+                    }
+                  >
+                    <FileText
+                      size={22}
+                      color={isDark ? "#818CF8" : "#6366F1"}
+                    />
+                    <Text
+                      style={[styles.pdfTitle, isDark && styles.textDark]}
+                      numberOfLines={2}
+                    >
+                      {pdf.title}
+                    </Text>
+                    <ChevronLeft
+                      size={18}
+                      color={isDark ? "#6B7280" : "#9CA3AF"}
+                      style={{ transform: [{ rotate: "180deg" }] }}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* ── Journal ── */}
             <View
               style={[
                 styles.sectionCard,
@@ -374,10 +523,10 @@ export default function ModuleWorkbookScreen() {
               ]}
             >
               <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
-                Journaling Made Simple
+                {definition.journalCardTitle}
               </Text>
               <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
-                Pick any of the prompts below and write for a minute or two, or longer if you want.
+                {definition.journalCardDescription}
               </Text>
               <View style={styles.promptList}>
                 {definition.journalPrompts.map((prompt, index) => (
@@ -615,6 +764,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#2C3E50",
     fontFamily: AppFonts.bodyRegular,
+  },
+  contentBlock: {
+    marginTop: 18,
+  },
+  contentHeading: {
+    fontSize: 18,
+    fontFamily: AppFonts.headingSemiBold,
+    color: "#2C3E50",
+    marginBottom: 8,
+  },
+  contentBody: {
+    fontSize: 15,
+    lineHeight: 23,
+    color: "#4B5563",
+    fontFamily: AppFonts.bodyRegular,
+  },
+  pdfCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginTop: 10,
+  },
+  pdfCardDark: {
+    backgroundColor: "#262940",
+  },
+  pdfTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: AppFonts.bodyMedium,
+    color: "#374151",
+  },
+  worksheetField: {
+    marginTop: 14,
+  },
+  worksheetLabel: {
+    fontSize: 15,
+    fontFamily: AppFonts.bodyMedium,
+    color: "#2C3E50",
+    marginBottom: 8,
   },
   promptList: {
     marginTop: 14,

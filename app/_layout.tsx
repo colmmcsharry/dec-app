@@ -45,6 +45,14 @@ function AppContent() {
               animation: 'slide_from_right',
             }}
           />
+          <Stack.Screen
+            name="pdf-viewer"
+            options={{
+              headerShown: false,
+              presentation: 'card',
+              animation: 'slide_from_right',
+            }}
+          />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
       </OpenQuoteFromNotificationProvider>

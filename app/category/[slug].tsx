@@ -8,6 +8,7 @@ import { Check, ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
 import { MODULE_VIDEOS, VideoEntry } from '@/data/module-videos';
+import { MODULE_WORKBOOKS } from '@/data/module-workbooks';
 import { AppFonts } from '@/constants/theme';
 
 function formatDuration(seconds: number): string {
@@ -37,6 +38,7 @@ export default function CategoryScreen() {
   const insets = useSafeAreaInsets();
 
   const videos: VideoEntry[] = MODULE_VIDEOS[slug] || [];
+  const workbookDef = slug ? MODULE_WORKBOOKS[slug] : undefined;
   const [watchedIds, setWatchedIds] = useState<string[]>([]);
 
   const isFocused = useIsFocused();
@@ -180,7 +182,7 @@ export default function CategoryScreen() {
               })}
             </View>
 
-            {slug === 'sleep' && (
+            {workbookDef && (
               <View style={styles.workbookWrap}>
                 <Pressable
                   style={({ pressed }) => [
@@ -195,16 +197,16 @@ export default function CategoryScreen() {
                     })
                   }
                   accessibilityRole="button"
-                  accessibilityLabel="Open module 1 workbook"
+                  accessibilityLabel={`Open module ${workbookDef.moduleNumber} workbook`}
                 >
                   <Text style={[styles.workbookEyebrow, isDark && styles.subtextDark]}>
-                    MODULE 1 WORKBOOK
+                    MODULE {workbookDef.moduleNumber} WORKBOOK
                   </Text>
                   <Text style={[styles.workbookTitle, isDark && styles.textDark]}>
-                    Digital Sleep Workbook
+                    Digital {workbookDef.title} Workbook
                   </Text>
                   <Text style={[styles.workbookBody, isDark && styles.subtextDark]}>
-                    Complete the sleep action plan, evening audit and journal prompts in the app. Your answers save automatically on this device.
+                    {workbookDef.workbookCardTeaser}
                   </Text>
                   <View style={styles.workbookButton}>
                     <Text style={styles.workbookButtonText}>Open Workbook</Text>

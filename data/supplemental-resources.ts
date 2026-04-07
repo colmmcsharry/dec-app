@@ -59,7 +59,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Morning Routine Overview",
       assetModule: require("@/assets/documents/module-resources/Module2/Module-2_sheet1.pdf"),
       description:
-        "A quick summary sheet covering the key ideas behind a calmer, more effective morning routine.",
+        "A quick summary sheet covering the key ideas behind a calmer, more effective morning routine. Use the digital workbook on the module screen for typed, saved exercises.",
       buttonLabel: "Open PDF",
     },
   ],
@@ -103,7 +103,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Energy Management Overview",
       assetModule: require("@/assets/documents/module-resources/Module3/Module-3_sheet1.pdf"),
       description:
-        "An overview sheet on high-potential hours, energy management, and using your time more intentionally.",
+        "An overview sheet on high-potential hours, energy management, and using your time more intentionally. Use the digital workbook on the module screen for typed, saved exercises.",
       buttonLabel: "Open PDF",
     },
   ],
@@ -184,7 +184,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Creative Thinking Overview",
       assetModule: require("@/assets/documents/module-resources/Module4/Module-4_sheet1.pdf"),
       description:
-        "A summary sheet on creativity, problem solving, and bringing a more flexible mindset to challenges.",
+        "A summary sheet on creativity, problem solving, and bringing a more flexible mindset to challenges. Use the digital workbook on the module screen for typed, saved exercises.",
       buttonLabel: "Open PDF",
     },
   ],
@@ -245,7 +245,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Downtime Overview",
       assetModule: require("@/assets/documents/module-resources/Module5/Module-5_sheet1.pdf"),
       description:
-        "A summary sheet on why downtime is essential for sustained performance and better recovery.",
+        "A summary sheet on why downtime is essential for sustained performance and better recovery. Use the digital workbook on the module screen for typed, saved exercises.",
       buttonLabel: "Open PDF",
     },
   ],
@@ -290,7 +290,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Inner Game Overview",
       assetModule: require("@/assets/documents/module-resources/Module6/Module-6_sheet1.pdf"),
       description:
-        "A summary sheet on self-talk, mindfulness, and building a healthier internal dialogue.",
+        "A summary sheet on self-talk, mindfulness, and building a healthier internal dialogue. Use the digital workbook on the module screen for typed, saved exercises.",
       buttonLabel: "Open PDF",
     },
   ],
@@ -317,7 +317,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Exercise & Physical Activity Overview",
       assetModule: require("@/assets/documents/module-resources/Module7/Module-7_sheet1.pdf"),
       description:
-        "A summary resource on why movement matters and how to make it work alongside real life and work.",
+        "A summary resource on why movement matters and how to make it work alongside real life and work. Use the digital workbook on the module screen for typed, saved exercises.",
       buttonLabel: "Open PDF",
     },
   ],
@@ -344,7 +344,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Nutrition & Hydration Overview",
       assetModule: require("@/assets/documents/module-resources/Module8/Module-8_sheet1.pdf"),
       description:
-        "A summary sheet on eating and drinking for better energy, concentration, and performance.",
+        "A summary sheet on eating and drinking for better energy, concentration, and performance. Use the digital workbook on the module screen for typed, saved exercises.",
       buttonLabel: "Open PDF",
     },
   ],
@@ -412,7 +412,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Confidence, Charisma & Assertiveness Overview",
       assetModule: require("@/assets/documents/module-resources/Module9/Module-9_sheet1.pdf"),
       description:
-        "A summary sheet on confidence, public anxiety, presence, and becoming more authentic under pressure.",
+        "A summary sheet on confidence, public anxiety, presence, and becoming more authentic under pressure. Use the digital workbook on the module screen for typed, saved exercises.",
       buttonLabel: "Open PDF",
     },
   ],
@@ -472,7 +472,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "4 Questions Reflection Sheet",
       assetModule: require("@/assets/documents/module-resources/Module10/Module-10_sheet1.pdf"),
       description:
-        "A self-reflection worksheet to help you clarify what you want and why it matters.",
+        "A self-reflection worksheet to help you clarify what you want and why it matters. Use the digital workbook on the module screen for typed, saved exercises.",
       buttonLabel: "Open PDF",
     },
   ],
