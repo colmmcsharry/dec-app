@@ -23,6 +23,7 @@ import {
   Flame,
   Heart,
   Moon,
+  Sparkles,
   Sun,
   Sunrise,
   Zap,
@@ -77,27 +78,51 @@ const CategoryCard = ({
         ? "Complete!"
         : `${watchedCount}/${totalCount}`;
 
+  const metaLine = `${totalCount} videos${
+    guideCount > 0 ? ` • ${guideCount} guides` : ""
+  }`;
+
   return (
     <TouchableOpacity
       style={[styles.card, { backgroundColor }]}
       activeOpacity={0.7}
       onPress={handlePress}
     >
-      <View style={styles.iconContainer}>{icon}</View>
-      <Text style={[styles.cardTitle, { color: textColor }]}>{title}</Text>
-      <View style={styles.cardProgressBarBg}>
-        <View
-          style={[styles.cardProgressBarFill, { width: `${percent * 100}%` }]}
-        />
+      <View style={styles.cardHeader}>
+        <View style={styles.iconContainer}>{icon}</View>
+        <Text
+          style={[styles.cardTitle, { color: textColor }]}
+          numberOfLines={4}
+          adjustsFontSizeToFit
+          minimumFontScale={0.55}
+          {...(Platform.OS === "android"
+            ? ({ textBreakStrategy: "simple" } as const)
+            : {})}
+        >
+          {title}
+        </Text>
       </View>
-      <Text
-        style={[styles.cardProgressLabel, { color: textColor, opacity: 0.7 }]}
-      >
-        {label}
-      </Text>
-      <Text style={[styles.cardSubtitle, { color: textColor, opacity: 0.7 }]}>
-        {totalCount} videos{guideCount > 0 ? ` • ${guideCount} guides` : ""}
-      </Text>
+      <View style={styles.cardFooter}>
+        <View style={styles.cardProgressBarBg}>
+          <View
+            style={[styles.cardProgressBarFill, { width: `${percent * 100}%` }]}
+          />
+        </View>
+        <Text
+          style={[styles.cardProgressLabel, { color: textColor, opacity: 0.7 }]}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+        <Text
+          style={[styles.cardSubtitle, { color: textColor, opacity: 0.7 }]}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+        >
+          {metaLine}
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -305,7 +330,7 @@ export default function HomeScreen() {
       textColor: "#5278A8",
     },
     {
-      title: "Fuel 2 Perform",
+      title: "Fuel 2\nPerform",
       slug: "fuel-2-perform",
       guideCount: 15,
       icon: <Apple size={28} color="#D97B7B" strokeWidth={2.5} />,
@@ -341,17 +366,32 @@ export default function HomeScreen() {
           <Text style={[styles.welcomeText, isDark && styles.welcomeTextDark]}>
             Welcome Back, Declan
           </Text>
-          <TouchableOpacity
-            onPress={toggleTheme}
-            style={[styles.themeToggle, isDark && styles.themeToggleDark]}
-            activeOpacity={0.7}
-          >
-            {isDark ? (
-              <Sun size={20} color="#FDB813" strokeWidth={2.5} />
-            ) : (
-              <Moon size={20} color="#6B5B8C" strokeWidth={2.5} />
-            )}
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: "/onboarding",
+                  params: { preview: "1" },
+                })
+              }
+              style={[styles.tourButton, isDark && styles.tourButtonDark]}
+              activeOpacity={0.7}
+              accessibilityLabel="Preview app onboarding"
+            >
+              <Sparkles size={20} color="#7187CE" strokeWidth={2.5} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={toggleTheme}
+              style={[styles.themeToggle, isDark && styles.themeToggleDark]}
+              activeOpacity={0.7}
+            >
+              {isDark ? (
+                <Sun size={20} color="#FDB813" strokeWidth={2.5} />
+              ) : (
+                <Moon size={20} color="#6B5B8C" strokeWidth={2.5} />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={[styles.mainTitle, isDark && styles.mainTitleDark]}>
           Mind • Body • Soul
@@ -614,6 +654,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  tourButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#EEF1FB",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tourButtonDark: {
+    backgroundColor: "#2A2A3E",
+  },
   welcomeText: {
     fontSize: 16,
     color: "#8E8EA0",
@@ -662,13 +723,17 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     gap: 16,
+    alignItems: "stretch",
   },
   card: {
     width: "47%",
-    aspectRatio: 0.85,
     borderRadius: 20,
-    padding: 20,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 16,
     justifyContent: "space-between",
+    alignSelf: "stretch",
+    minHeight: 168,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -678,9 +743,18 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  cardHeader: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  cardFooter: {
+    marginTop: 10,
+    gap: 5,
+    paddingTop: 2,
+  },
   iconContainer: {
-    width: 56,
-    height: 56,
+    width: 52,
+    height: 52,
     borderRadius: 16,
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
@@ -688,19 +762,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontFamily: AppFonts.headingSemiBold,
-    marginBottom: 4,
-    lineHeight: 22,
-    height: 44,
+    lineHeight: 21,
+    minHeight: 40,
+    ...(Platform.OS === "web"
+      ? ({
+          wordBreak: "normal",
+          overflowWrap: "normal",
+          whiteSpace: "pre-line",
+        } as object)
+      : {}),
   },
   cardProgressBarBg: {
     height: 6,
     backgroundColor: "rgba(255,255,255,0.5)",
     borderRadius: 3,
     overflow: "hidden",
-    marginTop: 10,
-    marginBottom: 6,
+    marginTop: 0,
+    marginBottom: 0,
   },
   cardProgressBarFill: {
     height: "100%",
@@ -708,14 +788,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#5D9B8B",
   },
   cardProgressLabel: {
-    fontSize: 14,
+    fontSize: 13,
+    lineHeight: 17,
     fontFamily: AppFonts.bodyRegular,
   },
   cardSubtitle: {
-    fontSize: 13,
-    lineHeight: 16,
-    marginTop: 2,
+    fontSize: 12,
+    lineHeight: 15,
     fontFamily: AppFonts.bodyRegular,
+    ...(Platform.OS === "web"
+      ? ({
+          wordBreak: "normal",
+          overflowWrap: "normal",
+        } as object)
+      : {}),
   },
 
   modulesTitle: {

@@ -25,6 +25,9 @@ function AppContent() {
       <OpenQuoteFromNotificationProvider>
         {Platform.OS !== 'web' && <NotificationResponseHandler />}
         <Stack screenOptions={{ headerBackTitleVisible: false, headerBackTitle: ' ' }}>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
+          <Stack.Screen name="paywall-placeholder" options={{ headerShown: false, animation: 'fade' }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
             name="category/[slug]"
