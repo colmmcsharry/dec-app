@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "7",
+      "buildNumber": "15",
       "bundleIdentifier": "com.colmmcs.dailydiesel",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false

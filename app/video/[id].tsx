@@ -1,19 +1,25 @@
-import { Asset } from "expo-asset";
 import { VideoPlayer } from "@/components/video-player";
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
+import { MODULE_VIDEOS } from "@/data/module-videos";
+import { MODULE_WORKBOOKS } from "@/data/module-workbooks";
 import { SUPPLEMENTAL_RESOURCES } from "@/data/supplemental-resources";
-import { isVideoWatched, markVideoWatched } from "@/services/progress";
+import {
+  getWatchedVideos,
+  isVideoWatched,
+  markVideoWatched,
+} from "@/services/progress";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Animated,
+  Easing,
   Linking,
-  Platform,
+  Modal,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   View,
@@ -50,24 +56,146 @@ export default function VideoDetailScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView | null>(null);
   const [watched, setWatched] = useState(false);
   const [openingResourceKey, setOpeningResourceKey] = useState<string | null>(null);
+  const [showCompletion, setShowCompletion] = useState(false);
+
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const cardAnim = useRef(new Animated.Value(0)).current;
+  const checkAnim = useRef(new Animated.Value(0)).current;
+  const sparkleAnims = useRef(
+    Array.from({ length: 8 }, () => new Animated.Value(0))
+  ).current;
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const backgroundColor = isDark ? "#1A1A2E" : categoryColor || "#E5D9F2";
   const supplementalResources =
     SUPPLEMENTAL_RESOURCES[`${categorySlug ?? ""}:${id ?? ""}`] ?? [];
 
+  const nextVideo = useMemo(() => {
+    if (!categorySlug || !id) return null;
+    const list = MODULE_VIDEOS[categorySlug];
+    if (!list) return null;
+    const index = list.findIndex((v) => v.id === id);
+    if (index === -1 || index >= list.length - 1) return null;
+    return list[index + 1];
+  }, [categorySlug, id]);
+
+  const moduleDef = categorySlug ? MODULE_WORKBOOKS[categorySlug] : undefined;
+
   useEffect(() => {
+    setWatched(false);
+    setOpeningResourceKey(null);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+
     if (categorySlug && id) {
       isVideoWatched(categorySlug, id).then(setWatched);
     }
   }, [categorySlug, id]);
 
-  const handleMarkWatched = async () => {
-    if (categorySlug && id) {
-      await markVideoWatched(categorySlug, id);
-      setWatched(true);
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    };
+  }, []);
+
+  const dismissCompletion = useCallback(() => {
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
     }
+    Animated.parallel([
+      Animated.timing(backdropAnim, {
+        toValue: 0,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardAnim, {
+        toValue: 0,
+        duration: 280,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => setShowCompletion(false));
+  }, [backdropAnim, cardAnim]);
+
+  const triggerCompletion = useCallback(() => {
+    backdropAnim.setValue(0);
+    cardAnim.setValue(0);
+    checkAnim.setValue(0);
+    sparkleAnims.forEach((a) => a.setValue(0));
+    setShowCompletion(true);
+
+    Animated.parallel([
+      Animated.timing(backdropAnim, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.spring(cardAnim, {
+        toValue: 1,
+        friction: 7,
+        tension: 80,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    Animated.sequence([
+      Animated.delay(140),
+      Animated.spring(checkAnim, {
+        toValue: 1,
+        friction: 5,
+        tension: 110,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    Animated.stagger(
+      55,
+      sparkleAnims.map((a) =>
+        Animated.timing(a, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        })
+      )
+    ).start();
+
+    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    dismissTimerRef.current = setTimeout(() => {
+      dismissCompletion();
+    }, 4400);
+  }, [backdropAnim, cardAnim, checkAnim, sparkleAnims, dismissCompletion]);
+
+  const handleMarkWatched = async () => {
+    if (!categorySlug || !id) return;
+    await markVideoWatched(categorySlug, id);
+    setWatched(true);
+
+    const list = MODULE_VIDEOS[categorySlug];
+    if (!list || list.length === 0) return;
+    const allWatched = await getWatchedVideos(categorySlug);
+    const watchedSet = new Set(allWatched);
+    const moduleNowComplete = list.every((v) => watchedSet.has(v.id));
+    if (moduleNowComplete) {
+      triggerCompletion();
+    }
+  };
+
+  const handleNextVideo = () => {
+    if (!nextVideo) return;
+    router.replace({
+      pathname: "/video/[id]",
+      params: {
+        id: nextVideo.id,
+        title: nextVideo.title,
+        url: nextVideo.url,
+        categoryColor: categoryColor ?? "",
+        categorySlug: categorySlug ?? "",
+      },
+    });
   };
 
   const handleOpenResource = async (
@@ -80,26 +208,12 @@ export default function VideoDetailScreen() {
       setOpeningResourceKey(resourceKey);
 
       if (resource.assetModule) {
-        const asset = Asset.fromModule(resource.assetModule);
-
-        if (!asset.localUri) {
-          await asset.downloadAsync();
-        }
-
-        const resourceUri = asset.localUri ?? asset.uri;
-        if (!resourceUri) {
-          throw new Error("Resource URI unavailable");
-        }
-
-        if (Platform.OS === "web") {
-          await Linking.openURL(asset.uri);
-          return;
-        }
-
-        await Share.share({
-          title: resource.title,
-          message: resource.title,
-          url: resourceUri,
+        router.push({
+          pathname: "/pdf-viewer",
+          params: {
+            assetId: String(resource.assetModule),
+            title: resource.title,
+          },
         });
         return;
       }
@@ -140,6 +254,7 @@ export default function VideoDetailScreen() {
         <View style={styles.customHeaderSpacer} />
       </View>
       <ScrollView
+        ref={scrollRef}
         style={[styles.container, isDark && styles.containerDark]}
         contentContainerStyle={styles.contentContainer}
       >
@@ -176,6 +291,39 @@ export default function VideoDetailScreen() {
               {watched ? "✓  Marked as Watched" : "Mark as Watched"}
             </Text>
           </TouchableOpacity>
+
+          {watched && (
+            nextVideo ? (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.nextVideoButton,
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
+                onPress={handleNextVideo}
+                accessibilityRole="button"
+                accessibilityLabel={`Play next video, ${nextVideo.title}`}
+              >
+                <Text style={styles.nextVideoTitle} numberOfLines={1}>
+                  Next: {nextVideo.title}
+                </Text>
+                <ChevronRight size={20} color="#FFFFFF" strokeWidth={2.5} />
+              </Pressable>
+            ) : (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.backToModuleButton,
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
+                onPress={() => router.back()}
+                accessibilityRole="button"
+                accessibilityLabel="Back to module"
+              >
+                <Text style={styles.backToModuleButtonText}>
+                  Back to Module
+                </Text>
+              </Pressable>
+            )
+          )}
 
           {supplementalResources.length > 0 && (
             <View style={styles.resourcesSection}>
@@ -242,6 +390,118 @@ export default function VideoDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showCompletion}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={dismissCompletion}
+      >
+        <Pressable style={styles.completionRoot} onPress={dismissCompletion}>
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFillObject,
+              styles.completionBackdrop,
+              { opacity: backdropAnim },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.completionCard,
+              isDark && styles.completionCardDark,
+              {
+                opacity: cardAnim,
+                transform: [
+                  {
+                    scale: cardAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.85, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <View style={styles.completionBadgeWrap}>
+              {sparkleAnims.map((a, i) => {
+                const angle = (i / sparkleAnims.length) * Math.PI * 2;
+                const radius = 64;
+                const tx = a.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, Math.cos(angle) * radius],
+                });
+                const ty = a.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, Math.sin(angle) * radius],
+                });
+                const opacity = a.interpolate({
+                  inputRange: [0, 0.2, 0.7, 1],
+                  outputRange: [0, 1, 1, 0],
+                });
+                const scale = a.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [0.4, 1, 0.6],
+                });
+                return (
+                  <Animated.View
+                    key={i}
+                    style={[
+                      styles.sparkle,
+                      {
+                        opacity,
+                        transform: [
+                          { translateX: tx },
+                          { translateY: ty },
+                          { scale },
+                        ],
+                      },
+                    ]}
+                  />
+                );
+              })}
+              <Animated.View
+                style={[
+                  styles.completionBadge,
+                  {
+                    opacity: checkAnim,
+                    transform: [
+                      {
+                        scale: checkAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.3, 1],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <Check size={42} color="#FFFFFF" strokeWidth={3.5} />
+              </Animated.View>
+            </View>
+            <Text
+              style={[styles.completionTitle, isDark && styles.textDark]}
+            >
+              Module Complete!
+            </Text>
+            {moduleDef && (
+              <Text
+                style={[
+                  styles.completionSubtitle,
+                  isDark && styles.subtextDark,
+                ]}
+              >
+                Module {moduleDef.moduleNumber} · {moduleDef.title}
+              </Text>
+            )}
+            <Text
+              style={[styles.completionBody, isDark && styles.subtextDark]}
+            >
+              You&apos;ve finished every video in this module. Thanks for showing up — keep the momentum going!
+            </Text>
+          </Animated.View>
+        </Pressable>
+      </Modal>
     </>
   );
 }
@@ -328,6 +588,38 @@ const styles = StyleSheet.create({
   watchedButtonTextDone: {
     opacity: 0.9,
   },
+  nextVideoButton: {
+    backgroundColor: "#7187CE",
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    marginTop: -8,
+    marginBottom: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  nextVideoTitle: {
+    flexShrink: 1,
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: AppFonts.bodyBold,
+    textAlign: "center",
+  },
+  backToModuleButton: {
+    backgroundColor: "#7187CE",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: -8,
+    marginBottom: 20,
+  },
+  backToModuleButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: AppFonts.bodyBold,
+  },
   description: {
     fontSize: 15,
     color: "#6B7280",
@@ -385,5 +677,81 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 15,
     fontFamily: AppFonts.bodyBold,
+  },
+  completionRoot: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 28,
+  },
+  completionBackdrop: {
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  completionCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    paddingTop: 28,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  completionCardDark: {
+    backgroundColor: "#1E1E32",
+  },
+  completionBadgeWrap: {
+    width: 96,
+    height: 96,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  completionBadge: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: "#5D9B8B",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#5D9B8B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  sparkle: {
+    position: "absolute",
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#5D9B8B",
+  },
+  completionTitle: {
+    fontSize: 22,
+    fontFamily: AppFonts.headingBold,
+    color: "#2C3E50",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  completionSubtitle: {
+    fontSize: 13,
+    fontFamily: AppFonts.bodyBold,
+    color: "#5D9B8B",
+    textAlign: "center",
+    marginBottom: 12,
+    letterSpacing: 0.3,
+  },
+  completionBody: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: AppFonts.bodyRegular,
+    color: "#6B7280",
+    textAlign: "center",
   },
 });

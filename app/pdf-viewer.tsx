@@ -4,10 +4,12 @@ import {
   cacheDirectory,
   copyAsync,
 } from "expo-file-system";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Platform,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,53 +17,114 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Share2 } from "lucide-react-native";
 
 import { useTheme } from "@/context/theme-context";
 import { MODULE_PDFS } from "@/data/pdf-assets";
 
 export default function PdfViewerScreen() {
-  const { slug, pdfId, title } = useLocalSearchParams<{
-    slug: string;
-    pdfId: string;
-    title: string;
+  const { slug, pdfId, assetId, title } = useLocalSearchParams<{
+    slug?: string;
+    pdfId?: string;
+    assetId?: string;
+    title?: string;
   }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+
+  const resolvedAsset = useMemo<{ module: number; id: string } | null>(() => {
+    if (assetId) {
+      const moduleId = Number(assetId);
+      if (!Number.isFinite(moduleId)) return null;
+      return { module: moduleId, id: `asset-${moduleId}` };
+    }
+
+    if (slug && pdfId) {
+      const pdfs = MODULE_PDFS[slug];
+      const entry = pdfs?.find((p) => p.id === pdfId);
+      if (!entry) return null;
+      return { module: entry.asset, id: entry.id };
+    }
+
+    return null;
+  }, [assetId, slug, pdfId]);
 
   useEffect(() => {
+    let cancelled = false;
+
     (async () => {
       try {
-        const pdfs = MODULE_PDFS[slug ?? ""];
-        const entry = pdfs?.find((p) => p.id === pdfId);
-        if (!entry) {
+        if (!resolvedAsset) {
           setError("PDF not found");
           return;
         }
 
-        const asset = Asset.fromModule(entry.asset);
+        const asset = Asset.fromModule(resolvedAsset.module);
         await asset.downloadAsync();
 
+        let finalUri: string | null = null;
         if (Platform.OS === "android") {
-          const dest = `${cacheDirectory}${entry.id}.pdf`;
+          const dest = `${cacheDirectory}${resolvedAsset.id}.pdf`;
           if (asset.localUri) {
             await copyAsync({ from: asset.localUri, to: dest });
           }
-          setLocalUri(dest);
+          finalUri = dest;
         } else {
-          setLocalUri(asset.localUri ?? null);
+          finalUri = asset.localUri ?? null;
         }
+
+        if (!cancelled) setLocalUri(finalUri);
       } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Failed to load PDF");
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Failed to load PDF");
+        }
       }
     })();
-  }, [slug, pdfId]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedAsset]);
 
   const displayTitle =
-    typeof title === "string" ? title : "Document";
+    typeof title === "string" && title.length > 0 ? title : "Document";
+
+  const handleShare = async () => {
+    if (!localUri || sharing) return;
+    try {
+      setSharing(true);
+      if (Platform.OS === "web") {
+        window.open(localUri, "_blank");
+        return;
+      }
+      await Share.share({
+        title: displayTitle,
+        message: displayTitle,
+        url: localUri,
+      });
+    } catch {
+      Alert.alert(
+        "Unable to share",
+        "Please try again in a moment."
+      );
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const viewerSource = useMemo(() => {
+    if (!localUri) return null;
+    if (Platform.OS === "android") {
+      // Android WebView can't render file:// PDFs natively; use Google's viewer.
+      const encoded = encodeURIComponent(localUri);
+      return { uri: `https://docs.google.com/gview?embedded=1&url=${encoded}` };
+    }
+    return { uri: localUri };
+  }, [localUri]);
 
   return (
     <>
@@ -76,8 +139,10 @@ export default function PdfViewerScreen() {
         <View style={[styles.header, isDark && styles.headerDark]}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.backBtn}
+            style={styles.iconBtn}
             hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft size={24} color={isDark ? "#E5E7EB" : "#374151"} />
           </TouchableOpacity>
@@ -87,7 +152,23 @@ export default function PdfViewerScreen() {
           >
             {displayTitle}
           </Text>
-          <View style={{ width: 36 }} />
+          <TouchableOpacity
+            onPress={handleShare}
+            style={[styles.iconBtn, (!localUri || sharing) && styles.iconBtnDisabled]}
+            hitSlop={12}
+            disabled={!localUri || sharing}
+            accessibilityRole="button"
+            accessibilityLabel="Share or save PDF"
+          >
+            <Share2
+              size={22}
+              color={
+                !localUri || sharing
+                  ? isDark ? "#4B5563" : "#9CA3AF"
+                  : isDark ? "#E5E7EB" : "#374151"
+              }
+            />
+          </TouchableOpacity>
         </View>
 
         {error ? (
@@ -96,7 +177,7 @@ export default function PdfViewerScreen() {
               {error}
             </Text>
           </View>
-        ) : !localUri ? (
+        ) : !viewerSource ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={isDark ? "#818CF8" : "#6366F1"} />
             <Text style={[styles.loadingText, isDark && { color: "#9CA3AF" }]}>
@@ -105,7 +186,7 @@ export default function PdfViewerScreen() {
           </View>
         ) : (
           <WebView
-            source={{ uri: localUri }}
+            source={viewerSource}
             style={[styles.webview, isDark && { backgroundColor: "#1A1D2E" }]}
             originWhitelist={["*"]}
             startInLoadingState
@@ -140,11 +221,14 @@ const styles = StyleSheet.create({
   headerDark: {
     borderBottomColor: "#2D3044",
   },
-  backBtn: {
+  iconBtn: {
     width: 36,
     height: 36,
     justifyContent: "center",
     alignItems: "center",
+  },
+  iconBtnDisabled: {
+    opacity: 0.6,
   },
   headerTitle: {
     flex: 1,

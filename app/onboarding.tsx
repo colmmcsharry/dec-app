@@ -1,17 +1,26 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  Activity,
+  Apple,
   ArrowRight,
   Brain,
+  Check,
   Heart,
+  Moon,
   Quote,
   Sparkles,
+  Sunrise,
+  Target,
   TrendingUp,
+  Zap,
+  type LucideIcon,
 } from "lucide-react-native";
 import React, { useCallback, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -21,12 +30,15 @@ import {
   ViewToken,
 } from "react-native";
 import Animated, {
+  Easing,
   FadeIn,
   FadeInDown,
   FadeInUp,
+  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
+  withRepeat,
   withSpring,
   withTiming,
   type SharedValue,
@@ -34,11 +46,20 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Line, Polyline } from "react-native-svg";
 
+const AnimatedPolyline = Animated.createAnimatedComponent(Polyline);
+
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const H_PADDING = 24;
 const SLIDE_INNER = SCREEN_WIDTH - H_PADDING * 2;
 
-type SlideId = "welcome" | "growth" | "social" | "progress" | "cta";
+type SlideId =
+  | "welcome"
+  | "growth"
+  | "social"
+  | "progress"
+  | "goals"
+  | "match"
+  | "cta";
 
 type Slide = {
   id: SlideId;
@@ -50,30 +71,310 @@ const SLIDES: Slide[] = [
   { id: "growth", key: "growth" },
   { id: "social", key: "social" },
   { id: "progress", key: "progress" },
+  { id: "goals", key: "goals" },
+  { id: "match", key: "match" },
   { id: "cta", key: "cta" },
 ];
 
-function ProgressWave() {
-  const points = [
-    [0, 80],
-    [40, 55],
-    [80, 70],
-    [120, 35],
-    [160, 48],
-    [200, 25],
-    [240, 40],
-    [280, 15],
-    [320, 30],
-  ];
-  const flat = points.map((p) => p.join(",")).join(" ");
-  const progress = useSharedValue(0);
+type GoalOption = {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  iconColor: string;
+  moduleSlug: string;
+};
+
+const GOALS: GoalOption[] = [
+  { id: "sleep", label: "Sleep better", icon: Moon, iconColor: "#7C3AED", moduleSlug: "sleep" },
+  { id: "mornings", label: "Better mornings", icon: Sunrise, iconColor: "#F59E0B", moduleSlug: "morning-routines" },
+  { id: "energy", label: "More energy", icon: Zap, iconColor: "#10B981", moduleSlug: "energy-management" },
+  { id: "focus", label: "Sharper focus", icon: Brain, iconColor: "#8B5CF6", moduleSlug: "mindfulness" },
+  { id: "stress", label: "Less stress", icon: Heart, iconColor: "#EC4899", moduleSlug: "stress-management" },
+  { id: "eat", label: "Eat better", icon: Apple, iconColor: "#EF4444", moduleSlug: "fuel-2-perform" },
+  { id: "move", label: "Move more", icon: Activity, iconColor: "#0EA5E9", moduleSlug: "move-2-perform" },
+  { id: "habits", label: "Build habits", icon: Target, iconColor: "#14B8A6", moduleSlug: "habits" },
+];
+
+const COLLAGE_IMAGE = require("@/assets/images/onboarding/modules-collage.png");
+
+type FloatingCardData = {
+  title: string;
+  videoCount: number;
+  guideCount: number;
+  background: string;
+  textColor: string;
+  iconBg: string;
+  icon: LucideIcon;
+  iconColor: string;
+  // Position as percentages of the parent container.
+  top?: string;
+  left?: string;
+  right?: string;
+  bottom?: string;
+  width: number;
+  duration: number;
+  delay: number;
+  amplitude: number;
+};
+
+const FLOATING_CARDS: FloatingCardData[] = [
+  {
+    title: "Sleep",
+    videoCount: 26,
+    guideCount: 8,
+    background: "#E5D9F2",
+    textColor: "#6B5B8C",
+    iconBg: "#FFFFFF",
+    icon: Heart,
+    iconColor: "#8B7AB8",
+    top: "0%",
+    left: "4%",
+    width: 130,
+    duration: 4000,
+    delay: 0,
+    amplitude: 6.4,
+  },
+  {
+    title: "Fuel 2 Perform",
+    videoCount: 31,
+    guideCount: 16,
+    background: "#FFDDD9",
+    textColor: "#B85D5D",
+    iconBg: "#FFFFFF",
+    icon: Apple,
+    iconColor: "#D97B7B",
+    top: "-2%",
+    left: "32%",
+    width: 130,
+    duration: 4500,
+    delay: 250,
+    amplitude: 7.2,
+  },
+  {
+    title: "Recovery",
+    videoCount: 19,
+    guideCount: 9,
+    background: "#DBE9F7",
+    textColor: "#5278A8",
+    iconBg: "#FFFFFF",
+    icon: Heart,
+    iconColor: "#7BA8C9",
+    top: "2%",
+    right: "4%",
+    width: 130,
+    duration: 3700,
+    delay: 500,
+    amplitude: 5.6,
+  },
+  {
+    title: "Energy Management",
+    videoCount: 17,
+    guideCount: 10,
+    background: "#D4F1E8",
+    textColor: "#4A7D6F",
+    iconBg: "#FFFFFF",
+    icon: Zap,
+    iconColor: "#5D9B8B",
+    top: "44%",
+    left: "2%",
+    width: 132,
+    duration: 4800,
+    delay: 350,
+    amplitude: 8,
+  },
+  {
+    title: "Building Habits",
+    videoCount: 28,
+    guideCount: 13,
+    background: "#DBF7EA",
+    textColor: "#52997D",
+    iconBg: "#FFFFFF",
+    icon: Sunrise,
+    iconColor: "#7BC9A8",
+    top: "46%",
+    right: "2%",
+    width: 132,
+    duration: 4200,
+    delay: 150,
+    amplitude: 6.4,
+  },
+  {
+    title: "Morning Routines",
+    videoCount: 13,
+    guideCount: 12,
+    background: "#FFF3DC",
+    textColor: "#B8884D",
+    iconBg: "#FFFFFF",
+    icon: Sunrise,
+    iconColor: "#D4A574",
+    bottom: "1%",
+    left: "4%",
+    width: 130,
+    duration: 4300,
+    delay: 600,
+    amplitude: 7.2,
+  },
+  {
+    title: "Thinking 2 Perform",
+    videoCount: 27,
+    guideCount: 11,
+    background: "#F7DBF0",
+    textColor: "#A35D85",
+    iconBg: "#FFFFFF",
+    icon: Brain,
+    iconColor: "#C97BA8",
+    bottom: "-3%",
+    left: "32%",
+    width: 132,
+    duration: 3800,
+    delay: 100,
+    amplitude: 5.6,
+  },
+  {
+    title: "Stress Management",
+    videoCount: 21,
+    guideCount: 12,
+    background: "#F7EADB",
+    textColor: "#997D5C",
+    iconBg: "#FFFFFF",
+    icon: Zap,
+    iconColor: "#C9A87B",
+    bottom: "2%",
+    right: "4%",
+    width: 132,
+    duration: 4700,
+    delay: 450,
+    amplitude: 7.2,
+  },
+];
+
+function FloatingMiniCard({ data }: { data: FloatingCardData }) {
+  const drift = useSharedValue(-data.amplitude);
 
   React.useEffect(() => {
-    progress.value = withDelay(200, withTiming(1, { duration: 1400 }));
-  }, [progress]);
+    drift.value = withDelay(
+      data.delay,
+      withRepeat(
+        withTiming(data.amplitude, {
+          duration: data.duration,
+          easing: Easing.inOut(Easing.quad),
+        }),
+        -1,
+        true
+      )
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const lineStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: drift.value }],
+  }));
+
+  const Icon = data.icon;
+  const positionStyle = {
+    top: data.top as `${number}%` | undefined,
+    left: data.left as `${number}%` | undefined,
+    right: data.right as `${number}%` | undefined,
+    bottom: data.bottom as `${number}%` | undefined,
+    width: data.width,
+  };
+
+  return (
+    <Animated.View
+      style={[
+        floatingStyles.card,
+        positionStyle,
+        { backgroundColor: data.background },
+        animatedStyle,
+      ]}
+    >
+      <View style={[floatingStyles.iconWrap, { backgroundColor: data.iconBg }]}>
+        <Icon size={16} color={data.iconColor} strokeWidth={2.5} />
+      </View>
+      <Text
+        style={[floatingStyles.title, { color: data.textColor }]}
+        numberOfLines={2}
+      >
+        {data.title}
+      </Text>
+      <Text
+        style={[floatingStyles.sub, { color: data.textColor, opacity: 0.55 }]}
+        numberOfLines={1}
+      >
+        {data.videoCount} videos · {data.guideCount} guides
+      </Text>
+    </Animated.View>
+  );
+}
+
+const floatingStyles = StyleSheet.create({
+  card: {
+    position: "absolute",
+    borderRadius: 14,
+    padding: 10,
+    opacity: 0.65,
+  },
+  iconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  title: {
+    fontFamily: AppFonts.headingBold,
+    fontSize: 12,
+    lineHeight: 14,
+    marginBottom: 6,
+  },
+  sub: {
+    fontFamily: AppFonts.bodyRegular,
+    fontSize: 9,
+  },
+});
+
+const WAVE_POINTS: [number, number][] = [
+  [0, 80],
+  [40, 55],
+  [80, 70],
+  [120, 35],
+  [160, 48],
+  [200, 25],
+  [240, 40],
+  [280, 15],
+  [320, 30],
+];
+const WAVE_POINTS_FLAT = WAVE_POINTS.map((p) => p.join(",")).join(" ");
+const WAVE_PATH_LENGTH = WAVE_POINTS.reduce((acc, point, i) => {
+  if (i === 0) return acc;
+  const [x1, y1] = WAVE_POINTS[i - 1];
+  const [x2, y2] = point;
+  return acc + Math.hypot(x2 - x1, y2 - y1);
+}, 0);
+
+function ProgressWave({ active }: { active: boolean }) {
+  const draw = useSharedValue(1);
+  const captionOpacity = useSharedValue(0);
+
+  React.useEffect(() => {
+    if (!active) return;
+    draw.value = 1;
+    captionOpacity.value = 0;
+    draw.value = withDelay(
+      200,
+      withTiming(0, { duration: 1400, easing: Easing.out(Easing.cubic) })
+    );
+    captionOpacity.value = withDelay(1500, withTiming(1, { duration: 400 }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- shared values are stable refs
+  }, [active]);
+
+  const polylineProps = useAnimatedProps(() => ({
+    strokeDashoffset: draw.value * WAVE_PATH_LENGTH,
+  }));
+
+  const captionStyle = useAnimatedStyle(() => ({
+    opacity: captionOpacity.value,
   }));
 
   return (
@@ -87,16 +388,18 @@ function ProgressWave() {
           stroke="#E5E7EB"
           strokeWidth="2"
         />
-        <Polyline
-          points={flat}
+        <AnimatedPolyline
+          points={WAVE_POINTS_FLAT}
           fill="none"
           stroke={MAIN_PURPLE}
           strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
+          strokeDasharray={`${WAVE_PATH_LENGTH}`}
+          animatedProps={polylineProps}
         />
       </Svg>
-      <Animated.View style={[waveStyles.captionWrap, lineStyle]}>
+      <Animated.View style={[waveStyles.captionWrap, captionStyle]}>
         <Text style={waveStyles.caption}>Consistency compounds</Text>
       </Animated.View>
     </View>
@@ -209,6 +512,18 @@ export default function OnboardingScreen() {
   const listRef = useRef<FlatList>(null);
   const [index, setIndex] = useState(0);
   const [growthActive, setGrowthActive] = useState(false);
+  const [progressActive, setProgressActive] = useState(false);
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+
+  const toggleGoal = useCallback((id: string) => {
+    setSelectedGoals((prev) =>
+      prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]
+    );
+  }, []);
+
+  const currentSlideId = SLIDES[index]?.id;
+  const isNextDisabled =
+    currentSlideId === "goals" && selectedGoals.length === 0;
 
   const goPaywall = useCallback(() => {
     router.push({
@@ -232,6 +547,7 @@ export default function OnboardingScreen() {
       setIndex(i);
       const slide = SLIDES[i];
       setGrowthActive(slide?.id === "growth");
+      setProgressActive(slide?.id === "progress");
     },
     [],
   );
@@ -346,7 +662,102 @@ export default function OnboardingScreen() {
               Track modules completed, celebrate streaks, and spot where to
               double down next.
             </Text>
-            <ProgressWave />
+            <ProgressWave active={progressActive} />
+          </View>
+        );
+      case "goals":
+        return (
+          <View style={styles.slide}>
+            <Text style={styles.slideTitle}>What do you want to improve?</Text>
+            <Text style={styles.slideBody}>
+              Pick everything that matters to you — we&apos;ll show which
+              modules will help most.
+            </Text>
+            <View style={styles.goalsGrid}>
+              {GOALS.map((g, i) => {
+                const selected = selectedGoals.includes(g.id);
+                const Icon = g.icon;
+                return (
+                  <Animated.View
+                    key={g.id}
+                    entering={FadeInUp.delay(i * 40).duration(320)}
+                    style={styles.goalCellWrap}
+                  >
+                    <Pressable
+                      onPress={() => toggleGoal(g.id)}
+                      style={({ pressed }) => [
+                        styles.goalCell,
+                        selected && styles.goalCellSelected,
+                        { opacity: pressed ? 0.85 : 1 },
+                      ]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      accessibilityLabel={g.label}
+                    >
+                      <View
+                        style={[
+                          styles.goalIconWrap,
+                          { backgroundColor: g.iconColor + "1F" },
+                        ]}
+                      >
+                        <Icon size={20} color={g.iconColor} strokeWidth={2.2} />
+                      </View>
+                      <Text
+                        style={[
+                          styles.goalLabel,
+                          selected && styles.goalLabelSelected,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {g.label}
+                      </Text>
+                      {selected && (
+                        <View style={styles.goalCheck}>
+                          <Check size={12} color="#FFFFFF" strokeWidth={3.5} />
+                        </View>
+                      )}
+                    </Pressable>
+                  </Animated.View>
+                );
+              })}
+            </View>
+          </View>
+        );
+      case "match":
+        return (
+          <View style={styles.slide}>
+            <Sparkles size={28} color={MAIN_PURPLE} strokeWidth={2} />
+            <Text style={[styles.slideTitle, { marginTop: 12 }]}>
+              {selectedGoals.length > 0
+                ? "We've got you covered"
+                : "10 focused modules inside"}
+            </Text>
+            <Text style={styles.slideBody}>
+              {selectedGoals.length > 0
+                ? `We have modules to help with ${selectedGoals.length === 1 ? "that area" : "all of your main problem areas"}.`
+                : "Explore the full library — there's something here for every part of your day."}
+            </Text>
+            <Animated.View
+              entering={FadeInUp.duration(450)}
+              style={styles.collageImageWrap}
+            >
+              <View
+                style={styles.floatingLayer}
+                pointerEvents="none"
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                {FLOATING_CARDS.map((card) => (
+                  <FloatingMiniCard key={card.title} data={card} />
+                ))}
+              </View>
+              <Image
+                source={COLLAGE_IMAGE}
+                style={styles.collageImage}
+                resizeMode="contain"
+                accessibilityLabel="Preview of modules, sleep videos, and now playing screens"
+              />
+            </Animated.View>
           </View>
         );
       case "cta":
@@ -388,6 +799,7 @@ export default function OnboardingScreen() {
 
       <FlatList
         ref={listRef}
+        style={styles.list}
         data={SLIDES}
         keyExtractor={(s) => s.key}
         horizontal
@@ -411,15 +823,27 @@ export default function OnboardingScreen() {
       <View style={styles.footer}>
         <Pressable
           onPress={next}
+          disabled={isNextDisabled}
+          accessibilityState={{ disabled: isNextDisabled }}
           style={({ pressed }) => [
             styles.primaryBtn,
-            { opacity: pressed ? 0.92 : 1 },
+            isNextDisabled && styles.primaryBtnDisabled,
+            { opacity: isNextDisabled ? 1 : pressed ? 0.92 : 1 },
           ]}
         >
-          <Text style={styles.primaryBtnText}>
+          <Text
+            style={[
+              styles.primaryBtnText,
+              isNextDisabled && styles.primaryBtnTextDisabled,
+            ]}
+          >
             {index === SLIDES.length - 1 ? "Continue" : "Next"}
           </Text>
-          <ArrowRight size={22} color="#FFFFFF" strokeWidth={2.5} />
+          <ArrowRight
+            size={22}
+            color={isNextDisabled ? "#C7C2D6" : "#FFFFFF"}
+            strokeWidth={2.5}
+          />
         </Pressable>
       </View>
     </SafeAreaView>
@@ -458,11 +882,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#6B7280",
   },
+  list: {
+    flex: 1,
+  },
   slide: {
     width: SCREEN_WIDTH,
+    flex: 1,
     paddingHorizontal: H_PADDING,
     paddingTop: 12,
     paddingBottom: 24,
+    justifyContent: "center",
+    overflow: "hidden",
   },
   heroIcon: {
     width: 96,
@@ -604,5 +1034,85 @@ const styles = StyleSheet.create({
     fontFamily: AppFonts.headingSemiBold,
     fontSize: 18,
     color: "#FFFFFF",
+  },
+  primaryBtnDisabled: {
+    backgroundColor: "#E5E1F1",
+  },
+  primaryBtnTextDisabled: {
+    color: "#C7C2D6",
+  },
+  goalsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 20,
+  },
+  goalCellWrap: {
+    width: "48%",
+  },
+  goalCell: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 2,
+    borderColor: "transparent",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+    position: "relative",
+  },
+  goalCellSelected: {
+    borderColor: MAIN_PURPLE,
+    backgroundColor: "#F4F0FB",
+  },
+  goalIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  goalLabel: {
+    flex: 1,
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 14,
+    color: "#374151",
+  },
+  goalLabelSelected: {
+    color: "#1F1248",
+    fontFamily: AppFonts.bodyBold,
+  },
+  goalCheck: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: MAIN_PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  collageImageWrap: {
+    marginTop: 16,
+    marginHorizontal: -H_PADDING,
+    alignItems: "center",
+    justifyContent: "center",
+    height: 540,
+    position: "relative",
+  },
+  floatingLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  collageImage: {
+    width: "100%",
+    height: 540,
+    zIndex: 2,
   },
 });
