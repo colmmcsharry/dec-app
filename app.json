@@ -55,7 +55,9 @@
       "router": {},
       "eas": {
         "projectId": "c38ccbc7-bd1e-41a5-af70-c7db7ca2516b"
-      }
+      },
+      "revenueCatIosKey": "appl_bDspZSLYQkAbHSCRPuwRNZEiTFx",
+      "revenueCatAndroidKey": ""
     }
   }
 }

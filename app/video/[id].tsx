@@ -1,3 +1,4 @@
+import { CelebrationBadge } from "@/components/celebration-badge";
 import { VideoPlayer } from "@/components/video-player";
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -10,7 +11,7 @@ import {
   markVideoWatched,
 } from "@/services/progress";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react-native";
+import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -63,10 +64,6 @@ export default function VideoDetailScreen() {
 
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const cardAnim = useRef(new Animated.Value(0)).current;
-  const checkAnim = useRef(new Animated.Value(0)).current;
-  const sparkleAnims = useRef(
-    Array.from({ length: 8 }, () => new Animated.Value(0))
-  ).current;
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const backgroundColor = isDark ? "#1A1A2E" : categoryColor || "#E5D9F2";
@@ -123,8 +120,6 @@ export default function VideoDetailScreen() {
   const triggerCompletion = useCallback(() => {
     backdropAnim.setValue(0);
     cardAnim.setValue(0);
-    checkAnim.setValue(0);
-    sparkleAnims.forEach((a) => a.setValue(0));
     setShowCompletion(true);
 
     Animated.parallel([
@@ -141,33 +136,11 @@ export default function VideoDetailScreen() {
       }),
     ]).start();
 
-    Animated.sequence([
-      Animated.delay(140),
-      Animated.spring(checkAnim, {
-        toValue: 1,
-        friction: 5,
-        tension: 110,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    Animated.stagger(
-      55,
-      sparkleAnims.map((a) =>
-        Animated.timing(a, {
-          toValue: 1,
-          duration: 700,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        })
-      )
-    ).start();
-
     if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     dismissTimerRef.current = setTimeout(() => {
       dismissCompletion();
     }, 4400);
-  }, [backdropAnim, cardAnim, checkAnim, sparkleAnims, dismissCompletion]);
+  }, [backdropAnim, cardAnim, dismissCompletion]);
 
   const handleMarkWatched = async () => {
     if (!categorySlug || !id) return;
@@ -424,60 +397,7 @@ export default function VideoDetailScreen() {
             ]}
           >
             <View style={styles.completionBadgeWrap}>
-              {sparkleAnims.map((a, i) => {
-                const angle = (i / sparkleAnims.length) * Math.PI * 2;
-                const radius = 64;
-                const tx = a.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, Math.cos(angle) * radius],
-                });
-                const ty = a.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, Math.sin(angle) * radius],
-                });
-                const opacity = a.interpolate({
-                  inputRange: [0, 0.2, 0.7, 1],
-                  outputRange: [0, 1, 1, 0],
-                });
-                const scale = a.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [0.4, 1, 0.6],
-                });
-                return (
-                  <Animated.View
-                    key={i}
-                    style={[
-                      styles.sparkle,
-                      {
-                        opacity,
-                        transform: [
-                          { translateX: tx },
-                          { translateY: ty },
-                          { scale },
-                        ],
-                      },
-                    ]}
-                  />
-                );
-              })}
-              <Animated.View
-                style={[
-                  styles.completionBadge,
-                  {
-                    opacity: checkAnim,
-                    transform: [
-                      {
-                        scale: checkAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.3, 1],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <Check size={42} color="#FFFFFF" strokeWidth={3.5} />
-              </Animated.View>
+              <CelebrationBadge active={showCompletion} />
             </View>
             <Text
               style={[styles.completionTitle, isDark && styles.textDark]}
@@ -706,31 +626,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#1E1E32",
   },
   completionBadgeWrap: {
-    width: 96,
-    height: 96,
-    justifyContent: "center",
-    alignItems: "center",
     marginBottom: 18,
-  },
-  completionBadge: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: "#5D9B8B",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#5D9B8B",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  sparkle: {
-    position: "absolute",
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#5D9B8B",
   },
   completionTitle: {
     fontSize: 22,

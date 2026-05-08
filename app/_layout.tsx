@@ -9,9 +9,11 @@ import { ActivityIndicator, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
+import { DevResetButton } from '@/components/dev-reset-button';
 import { NotificationResponseHandler } from '@/components/notification-response-handler';
-import { OpenQuoteFromNotificationProvider } from '@/context/open-quote-from-notification';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
+import { configurePurchases } from '@/services/purchases';
+import { useEffect } from 'react';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -20,42 +22,47 @@ export const unstable_settings = {
 function AppContent() {
   const { isDark } = useTheme();
 
+  useEffect(() => {
+    configurePurchases();
+  }, []);
+
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-      <OpenQuoteFromNotificationProvider>
-        {Platform.OS !== 'web' && <NotificationResponseHandler />}
-        <Stack screenOptions={{ headerBackTitleVisible: false, headerBackTitle: ' ' }}>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
-          <Stack.Screen name="paywall-placeholder" options={{ headerShown: false, animation: 'fade' }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="category/[slug]"
-            options={{
-              headerShown: false,
-              presentation: 'card',
-              animation: 'slide_from_right',
-            }}
-          />
-          <Stack.Screen
-            name="video/[id]"
-            options={{
-              headerShown: false,
-              presentation: 'card',
-              animation: 'slide_from_right',
-            }}
-          />
-          <Stack.Screen
-            name="pdf-viewer"
-            options={{
-              headerShown: false,
-              presentation: 'card',
-              animation: 'slide_from_right',
-            }}
-          />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-      </OpenQuoteFromNotificationProvider>
+      {Platform.OS !== 'web' && <NotificationResponseHandler />}
+      <Stack screenOptions={{ headerBackTitleVisible: false, headerBackTitle: ' ' }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="paywall-placeholder" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="welcome" options={{ headerShown: false, animation: 'fade', gestureEnabled: false }} />
+        <Stack.Screen name="daily-quote" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="category/[slug]"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="video/[id]"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="pdf-viewer"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      </Stack>
+      <DevResetButton />
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </NavThemeProvider>
   );

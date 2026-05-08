@@ -1,10 +1,17 @@
 import { Asset } from "expo-asset";
+import { MODULE_THEMES, MODULE_ORDER } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_PDFS, type PdfEntry } from "@/data/pdf-assets";
 import { MODULE_WORKBOOKS } from "@/data/module-workbooks";
+import { requirePro } from "@/services/purchases";
 import { useRouter } from "expo-router";
-import { FileText, Download, ExternalLink, ChevronRight } from "lucide-react-native";
+import {
+  FileText,
+  Download,
+  ExternalLink,
+  ChevronRight,
+} from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -22,19 +29,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const COURSE_LEAFLET = require("@/assets/documents/course-leaflet.pdf");
-
-const MODULE_ORDER = [
-  "sleep",
-  "morning-routines",
-  "energy-management",
-  "mindfulness",
-  "move-2-perform",
-  "thinking-2-perform",
-  "recovery",
-  "fuel-2-perform",
-  "stress-management",
-  "habits",
-] as const;
 
 export default function ResourcesScreen() {
   const { isDark } = useTheme();
@@ -67,7 +61,8 @@ export default function ResourcesScreen() {
     }
   };
 
-  const openPdf = (slug: string, pdf: PdfEntry) => {
+  const openPdf = async (slug: string, pdf: PdfEntry) => {
+    if (!(await requirePro())) return;
     router.push({
       pathname: "/pdf-viewer",
       params: { slug, pdfId: pdf.id, title: pdf.title },
@@ -155,36 +150,73 @@ export default function ResourcesScreen() {
       {MODULE_ORDER.map((slug) => {
         const pdfs = MODULE_PDFS[slug];
         const def = MODULE_WORKBOOKS[slug];
-        if (!pdfs || pdfs.length === 0 || !def) return null;
+        const theme = MODULE_THEMES[slug];
+        if (!pdfs || pdfs.length === 0 || !def || !theme) return null;
+        const Icon = theme.Icon;
 
         return (
-          <View key={slug} style={[styles.card, isDark && styles.cardDark]}>
-            <Text style={[styles.moduleLabel, isDark && styles.subtextDark]}>
-              Module {def.moduleNumber}
-            </Text>
-            <Text style={[styles.moduleTitle, isDark && styles.textDark]}>
-              {def.title}
-            </Text>
+          <View
+            key={slug}
+            style={[
+              styles.moduleCard,
+              { backgroundColor: theme.backgroundColor },
+              isDark && styles.moduleCardDark,
+            ]}
+          >
+            <View style={styles.moduleCardHeader}>
+              <View style={styles.moduleIconCircle}>
+                <Icon size={26} color={theme.iconColor} strokeWidth={2.5} />
+              </View>
+              <View style={styles.moduleHeaderText}>
+                <Text
+                  style={[
+                    styles.moduleLabel,
+                    {
+                      color: isDark ? "#D8D8E5" : theme.textColor,
+                      opacity: 0.75,
+                    },
+                  ]}
+                >
+                  Module {def.moduleNumber}
+                </Text>
+                <Text
+                  style={[
+                    styles.moduleTitle,
+                    { color: isDark ? "#FFFFFF" : theme.textColor },
+                  ]}
+                >
+                  {def.title}
+                </Text>
+              </View>
+            </View>
+
             {pdfs.map((pdf) => (
               <TouchableOpacity
                 key={pdf.id}
-                style={[styles.pdfRow, isDark && styles.pdfRowDark]}
+                style={[
+                  styles.pdfRow,
+                  isDark && styles.pdfRowDark,
+                ]}
                 activeOpacity={0.7}
                 onPress={() => openPdf(slug, pdf)}
               >
                 <FileText
                   size={20}
-                  color={isDark ? "#818CF8" : MAIN_PURPLE}
+                  color={isDark ? "#FFFFFF" : theme.iconColor}
                 />
                 <Text
-                  style={[styles.pdfTitle, isDark && styles.textDark]}
+                  style={[
+                    styles.pdfTitle,
+                    { color: isDark ? "#FFFFFF" : theme.textColor },
+                  ]}
                   numberOfLines={2}
                 >
                   {pdf.title}
                 </Text>
                 <ChevronRight
                   size={18}
-                  color={isDark ? "#4B5563" : "#9CA3AF"}
+                  color={isDark ? "#9090A8" : theme.textColor}
+                  opacity={isDark ? 1 : 0.55}
                 />
               </TouchableOpacity>
             ))}
@@ -287,27 +319,64 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
+  moduleCard: {
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+      },
+      android: { elevation: 4 },
+    }),
+  },
+  moduleCardDark: {
+    backgroundColor: "#1E1E32",
+  },
+  moduleCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 14,
+  },
+  moduleIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  moduleHeaderText: {
+    flex: 1,
+  },
   moduleLabel: {
-    fontSize: 12,
-    fontFamily: AppFonts.bodyMedium,
-    color: "#8E8EA0",
+    fontSize: 11,
+    fontFamily: AppFonts.bodyBold,
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 1.1,
     marginBottom: 2,
   },
   moduleTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontFamily: AppFonts.headingSemiBold,
-    color: "#2C3E50",
-    marginBottom: 12,
+    lineHeight: 22,
   },
 
   pdfRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 14,
     marginBottom: 8,
@@ -319,6 +388,5 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontFamily: AppFonts.bodyMedium,
-    color: "#374151",
   },
 });

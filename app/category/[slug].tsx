@@ -7,6 +7,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { Check, ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
+import { requirePro } from '@/services/purchases';
 import { MODULE_VIDEOS, VideoEntry } from '@/data/module-videos';
 import { MODULE_WORKBOOKS } from '@/data/module-workbooks';
 import { AppFonts } from '@/constants/theme';
@@ -129,7 +130,8 @@ export default function CategoryScreen() {
                   <TouchableOpacity
                     key={video.id}
                     style={[styles.videoCard, isDark && styles.videoCardDark]}
-                    onPress={() => {
+                    onPress={async () => {
+                      if (!(await requirePro())) return;
                       router.push({
                         pathname: '/video/[id]',
                         params: {
@@ -190,12 +192,13 @@ export default function CategoryScreen() {
                     isDark && styles.workbookCardDark,
                     { opacity: pressed ? 0.8 : 1 },
                   ]}
-                  onPress={() =>
+                  onPress={async () => {
+                    if (!(await requirePro())) return;
                     router.push({
                       pathname: '/module-workbook/[slug]',
                       params: { slug },
-                    })
-                  }
+                    });
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel={`Open module ${workbookDef.moduleNumber} workbook`}
                 >

@@ -66,7 +66,7 @@ export default function AboutScreen() {
       {/* Hero */}
       <View style={styles.heroSection}>
         <Image
-          source={require("@/assets/images/about/declan.jpg")}
+          source={require("@/assets/images/about/declan.png")}
           style={styles.heroImage}
           resizeMode="cover"
         />
@@ -102,10 +102,10 @@ export default function AboutScreen() {
         </Text>
         <Text style={[styles.bodyText, isDark && styles.subtextDark]}>
           I am an enthusiast for the area of psychology and performance and
-          recently completed a Sports Psychology diploma with distinction.
+          have completed a Sports Psychology diploma with distinction.
         </Text>
         <Text style={[styles.bodyText, isDark && styles.subtextDark]}>
-          Residing in Brussels and am a REPs accredited (Register of Exercise
+          Residing in Dublin, Ireland, I am happily married, a father and and a REPs accredited (Register of Exercise
           Professionals), fully qualified Personal Trainer. This qualification
           includes a national certificate in Nutrition for Physical Activity.
         </Text>

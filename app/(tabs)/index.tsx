@@ -1,6 +1,5 @@
-import { QuoteDetailModal } from "@/components/quote-detail-modal";
+import { MODULE_THEMES, MODULE_ORDER } from "@/constants/module-themes";
 import { AppFonts } from "@/constants/theme";
-import { useOpenQuoteFromNotification } from "@/context/open-quote-from-notification";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_VIDEOS } from "@/data/module-videos";
 import { getQuoteOfTheDay } from "@/data/quotes";
@@ -16,18 +15,7 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
-import {
-  Apple,
-  Brain,
-  Dumbbell,
-  Flame,
-  Heart,
-  Moon,
-  Sparkles,
-  Sun,
-  Sunrise,
-  Zap,
-} from "lucide-react-native";
+import { Flame, Moon, Sparkles, Sun } from "lucide-react-native";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import Svg, { Circle } from "react-native-svg";
 import {
@@ -129,11 +117,9 @@ const CategoryCard = ({
 
 export default function HomeScreen() {
   const { isDark, toggleTheme } = useTheme();
-  const { consumeOpenQuote } = useOpenQuoteFromNotification();
 
   const [quoteDate, setQuoteDate] = useState(() => new Date());
   const dailyQuote = useMemo(() => getQuoteOfTheDay(quoteDate), [quoteDate]);
-  const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [progress, setProgress] = useState<Record<string, string[]>>({});
   const [dailyReminderOn, setDailyReminderOn] = useState(false);
   const [nextReminderTime, setNextReminderTime] = useState<string | null>(null);
@@ -160,9 +146,12 @@ export default function HomeScreen() {
       setQuoteDate(new Date());
       refreshReminderState();
       getAllProgress().then(setProgress);
-      if (consumeOpenQuote()) setShowQuoteModal(true);
-    }, [refreshReminderState, consumeOpenQuote]),
+    }, [refreshReminderState]),
   );
+
+  const openDailyQuote = useCallback(() => {
+    router.push("/daily-quote");
+  }, []);
 
   React.useEffect(() => {
     const now = new Date();
@@ -272,88 +261,45 @@ export default function HomeScreen() {
     setShowTimePicker(true);
   }, [scheduleAt]);
 
-  const categories = [
-    {
-      title: "Sleep",
-      slug: "sleep",
-      guideCount: 8,
-      icon: <Heart size={28} color="#8B7AB8" strokeWidth={2.5} />,
-      backgroundColor: "#E5D9F2",
-      textColor: "#6B5B8C",
-    },
-    {
-      title: "Morning\nRoutines",
-      slug: "morning-routines",
-      guideCount: 12,
-      icon: <Sunrise size={28} color="#D4A574" strokeWidth={2.5} />,
-      backgroundColor: "#FFF3DC",
-      textColor: "#B8884D",
-    },
-    {
-      title: "Energy\nManagement",
-      slug: "energy-management",
-      guideCount: 10,
-      icon: <Zap size={28} color="#5D9B8B" strokeWidth={2.5} />,
-      backgroundColor: "#D4F1E8",
-      textColor: "#4A7D6F",
-    },
-    {
-      title: "Mindfulness",
-      slug: "mindfulness",
-      guideCount: 10,
-      icon: <Brain size={28} color="#A87BC9" strokeWidth={2.5} />,
-      backgroundColor: "#EADBF7",
-      textColor: "#7B5299",
-    },
-    {
-      title: "Move 2\nPerform",
-      slug: "move-2-perform",
-      guideCount: 14,
-      icon: <Dumbbell size={28} color="#6B9BD1" strokeWidth={2.5} />,
-      backgroundColor: "#D9E9F7",
-      textColor: "#5278A8",
-    },
-    {
-      title: "Thinking 2\nPerform",
-      slug: "thinking-2-perform",
-      guideCount: 11,
-      icon: <Brain size={28} color="#C97BA8" strokeWidth={2.5} />,
-      backgroundColor: "#F7DBF0",
-      textColor: "#A35D85",
-    },
-    {
-      title: "Recovery",
-      slug: "recovery",
-      guideCount: 9,
-      icon: <Heart size={28} color="#7BA8C9" strokeWidth={2.5} />,
-      backgroundColor: "#DBE9F7",
-      textColor: "#5278A8",
-    },
-    {
-      title: "Fuel 2\nPerform",
-      slug: "fuel-2-perform",
-      guideCount: 15,
-      icon: <Apple size={28} color="#D97B7B" strokeWidth={2.5} />,
-      backgroundColor: "#FFDDD9",
-      textColor: "#B85D5D",
-    },
-    {
-      title: "Stress\nManagement",
-      slug: "stress-management",
-      guideCount: 12,
-      icon: <Zap size={28} color="#C9A87B" strokeWidth={2.5} />,
-      backgroundColor: "#F7EADB",
-      textColor: "#997D5C",
-    },
-    {
-      title: "Building\nHabits",
-      slug: "habits",
-      guideCount: 13,
-      icon: <Sunrise size={28} color="#7BC9A8" strokeWidth={2.5} />,
-      backgroundColor: "#DBF7EA",
-      textColor: "#52997D",
-    },
-  ];
+  // Card titles use \n line breaks to keep two-word names tidy on the grid.
+  // Icons + colors come from MODULE_THEMES so the home grid and the
+  // resources page stay in sync.
+  const CARD_TITLES: Record<(typeof MODULE_ORDER)[number], string> = {
+    sleep: "Sleep",
+    "morning-routines": "Morning\nRoutines",
+    "energy-management": "Energy\nManagement",
+    mindfulness: "Mindfulness",
+    "move-2-perform": "Move 2\nPerform",
+    "thinking-2-perform": "Thinking 2\nPerform",
+    recovery: "Recovery",
+    "fuel-2-perform": "Fuel 2\nPerform",
+    "stress-management": "Stress\nManagement",
+    habits: "Building\nHabits",
+  };
+  const GUIDE_COUNTS: Record<(typeof MODULE_ORDER)[number], number> = {
+    sleep: 8,
+    "morning-routines": 12,
+    "energy-management": 10,
+    mindfulness: 10,
+    "move-2-perform": 14,
+    "thinking-2-perform": 11,
+    recovery: 9,
+    "fuel-2-perform": 15,
+    "stress-management": 12,
+    habits: 13,
+  };
+  const categories = MODULE_ORDER.map((slug) => {
+    const theme = MODULE_THEMES[slug];
+    const Icon = theme.Icon;
+    return {
+      title: CARD_TITLES[slug],
+      slug,
+      guideCount: GUIDE_COUNTS[slug],
+      icon: <Icon size={28} color={theme.iconColor} strokeWidth={2.5} />,
+      backgroundColor: theme.backgroundColor,
+      textColor: theme.textColor,
+    };
+  });
 
   return (
     <ScrollView
@@ -404,7 +350,7 @@ export default function HomeScreen() {
       {/* Daily Diesel Quote Card */}
       <Pressable
         style={[styles.dieselCard, isDark && styles.dieselCardDark]}
-        onPress={() => setShowQuoteModal(true)}
+        onPress={openDailyQuote}
       >
         <View style={styles.dieselHeader}>
           <View style={styles.dieselIconWrap}>
@@ -424,7 +370,7 @@ export default function HomeScreen() {
           — {dailyQuote.author}
         </Text>
         <Pressable
-          onPress={() => setShowQuoteModal(true)}
+          onPress={openDailyQuote}
           style={({ pressed }) => [
             styles.readQuoteButton,
             isDark && styles.readQuoteButtonDark,
@@ -465,13 +411,6 @@ export default function HomeScreen() {
           </Pressable>
         )}
       </Pressable>
-
-      <QuoteDetailModal
-        visible={showQuoteModal}
-        quote={dailyQuote}
-        onClose={() => setShowQuoteModal(false)}
-        isDark={isDark}
-      />
 
       {/* iOS Time Picker Modal */}
       <Modal

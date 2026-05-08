@@ -1,4 +1,5 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
+import { setOnboardingComplete } from "@/services/onboarding-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Activity,
@@ -58,8 +59,7 @@ type SlideId =
   | "social"
   | "progress"
   | "goals"
-  | "match"
-  | "cta";
+  | "match";
 
 type Slide = {
   id: SlideId;
@@ -73,7 +73,6 @@ const SLIDES: Slide[] = [
   { id: "progress", key: "progress" },
   { id: "goals", key: "goals" },
   { id: "match", key: "match" },
-  { id: "cta", key: "cta" },
 ];
 
 type GoalOption = {
@@ -525,8 +524,15 @@ export default function OnboardingScreen() {
   const isNextDisabled =
     currentSlideId === "goals" && selectedGoals.length === 0;
 
-  const goPaywall = useCallback(() => {
-    router.push({
+  const goPaywall = useCallback(async () => {
+    if (!isPreview) {
+      // Mark onboarding done before showing the paywall. Under the soft-gate
+      // model, dismissing the paywall drops the user into /(tabs), and the
+      // entry router needs to know they've finished onboarding so it never
+      // sends them back through it on subsequent launches.
+      await setOnboardingComplete();
+    }
+    router.replace({
       pathname: "/paywall-placeholder",
       params: isPreview ? { preview: "1" } : {},
     });
@@ -760,22 +766,6 @@ export default function OnboardingScreen() {
             </Animated.View>
           </View>
         );
-      case "cta":
-        return (
-          <View style={styles.slide}>
-            <Text style={styles.slideTitle}>You&apos;re one step away</Text>
-            <Text style={styles.slideBody}>
-              Next, we&apos;ll show you how to unlock the full library and keep
-              your momentum going.
-            </Text>
-            <View style={styles.ctaCard}>
-              <Text style={styles.ctaCardTitle}>Inside the app</Text>
-              <Text style={styles.ctaBullet}>✓ 10 focused performance modules</Text>
-              <Text style={styles.ctaBullet}>✓ Video guides & digital workbooks</Text>
-              <Text style={styles.ctaBullet}>✓ Daily Diesel quotes & reminders</Text>
-            </View>
-          </View>
-        );
       default:
         return null;
     }
@@ -993,27 +983,6 @@ const styles = StyleSheet.create({
     fontFamily: AppFonts.bodyMedium,
     fontSize: 13,
     color: "#9CA3AF",
-  },
-  ctaCard: {
-    marginTop: 24,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  ctaCardTitle: {
-    fontFamily: AppFonts.headingSemiBold,
-    fontSize: 17,
-    color: "#111827",
-    marginBottom: 4,
-  },
-  ctaBullet: {
-    fontFamily: AppFonts.bodyRegular,
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#4B5563",
   },
   footer: {
     paddingHorizontal: H_PADDING,
