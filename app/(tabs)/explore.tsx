@@ -4,9 +4,11 @@ import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_PDFS, type PdfEntry } from "@/data/pdf-assets";
 import { MODULE_WORKBOOKS } from "@/data/module-workbooks";
+import { hrefModuleDigitalWorkbook } from "@/lib/module-workbook-route";
 import { requirePro } from "@/services/purchases";
 import { useRouter } from "expo-router";
 import {
+  BookOpen,
   FileText,
   Download,
   ExternalLink,
@@ -69,6 +71,11 @@ export default function ResourcesScreen() {
     });
   };
 
+  const openDigitalWorkbook = async (slug: string) => {
+    if (!(await requirePro())) return;
+    router.push(hrefModuleDigitalWorkbook(slug));
+  };
+
   return (
     <ScrollView
       style={[styles.container, isDark && styles.containerDark]}
@@ -82,7 +89,9 @@ export default function ResourcesScreen() {
       </Text>
 
       {/* Downloads & Links */}
-      <View style={[styles.card, isDark && styles.cardDark]}>
+      <View
+        style={[styles.card, isDark ? styles.cardDark : styles.downloadsCardLight]}
+      >
         <View style={styles.cardHeader}>
           <Download size={20} color={isDark ? "#818CF8" : MAIN_PURPLE} />
           <Text style={[styles.cardTitle, isDark && styles.textDark]}>
@@ -144,7 +153,9 @@ export default function ResourcesScreen() {
         Module Worksheets
       </Text>
       <Text style={[styles.sectionSubtitle, isDark && styles.subtextDark]}>
-        Tap to view the original formatted worksheets from each module.
+        Open your digital workbook (typed answers save on this device) or tap a
+        worksheet to view its PDF — each module uses one workbook document
+        everywhere in the app.
       </Text>
 
       {MODULE_ORDER.map((slug) => {
@@ -190,6 +201,49 @@ export default function ResourcesScreen() {
               </View>
             </View>
 
+            <TouchableOpacity
+              style={[
+                styles.pdfRow,
+                isDark && styles.pdfRowDark,
+                styles.digitalWorkbookRow,
+              ]}
+              activeOpacity={0.7}
+              onPress={() => openDigitalWorkbook(slug)}
+              accessibilityRole="button"
+              accessibilityLabel={`Open module ${def.moduleNumber} digital workbook for ${def.title}`}
+            >
+              <BookOpen
+                size={20}
+                color={isDark ? "#FFFFFF" : theme.iconColor}
+              />
+              <View style={styles.workbookRowText}>
+                <Text
+                  style={[
+                    styles.pdfTitle,
+                    { color: isDark ? "#FFFFFF" : theme.textColor },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {def.title} Workbook
+                </Text>
+                <Text
+                  style={[
+                    styles.workbookRowHint,
+                    { color: isDark ? "#A8A8BC" : theme.textColor },
+                  ]}
+                  numberOfLines={2}
+                >
+                  Module {def.moduleNumber} digital workbook
+                </Text>
+              </View>
+              <ChevronRight
+                size={18}
+                color={isDark ? "#9090A8" : theme.textColor}
+                opacity={isDark ? 1 : 0.55}
+                style={styles.workbookRowChevron}
+              />
+            </TouchableOpacity>
+
             {pdfs.map((pdf) => (
               <TouchableOpacity
                 key={pdf.id}
@@ -230,7 +284,8 @@ export default function ResourcesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E8ECF6",
+    /** Match Home tab (`app/(tabs)/index.tsx` container). */
+    backgroundColor: "#FFFFFF",
   },
   containerDark: {
     backgroundColor: "#121222",
@@ -265,6 +320,9 @@ const styles = StyleSheet.create({
   },
   cardDark: {
     backgroundColor: "#1E1E32",
+  },
+  downloadsCardLight: {
+    backgroundColor: "#F3F4F6",
   },
   cardHeader: {
     flexDirection: "row",
@@ -381,8 +439,27 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginBottom: 8,
   },
+  workbookRowText: {
+    flex: 1,
+    gap: 4,
+  },
+  workbookRowHint: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: AppFonts.bodyRegular,
+    opacity: 0.72,
+  },
   pdfRowDark: {
     backgroundColor: "#262940",
+  },
+  /** Taller row + top alignment so title + hint line up with the icon. */
+  digitalWorkbookRow: {
+    alignItems: "flex-start",
+    paddingVertical: 12,
+  },
+  workbookRowChevron: {
+    marginTop: 4,
+    alignSelf: "center",
   },
   pdfTitle: {
     flex: 1,

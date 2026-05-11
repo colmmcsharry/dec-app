@@ -1,28 +1,29 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
+import {
+  getDevPremiumUnlockForTesting,
+  setDevPremiumUnlockForTesting,
+} from "@/services/purchases";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { RotateCcw } from "lucide-react-native";
-import { useState } from "react";
-import { Alert, Platform, Pressable, StyleSheet, Text } from "react-native";
+import { Crown, RotateCcw } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Purchases from "react-native-purchases";
 
 /**
- * Floating "reset for testing" pill, rendered only when `__DEV__` is true.
- * Wipes local app state so we can re-walk the onboarding + paywall flow
- * without uninstalling the app.
- *
- * What it does:
- *   1. Clears AsyncStorage (onboarding flag, watched videos, journal entries…)
- *   2. Tells RevenueCat to log out the current anonymous user so a fresh
- *      Customer ID is generated — no entitlements carry over.
- *   3. Bounces the router back to "/" which then re-evaluates the entitlement.
- *
- * NOTE: this can NOT clear StoreKit transactions in the local .storekit
- * configuration file. To re-test a fresh purchase, also open Xcode →
- * Debug → StoreKit → Manage Transactions and delete the entry there.
+ * Floating dev-only controls (only when `__DEV__` is true):
+ * - **Unlock Pro** — sets a local flag so `hasProEntitlement()` / `requirePro()`
+ *   succeed without RevenueCat (Expo Go, web, or when paywalls error).
+ * - **Reset** — wipes AsyncStorage + RC logout and returns to `/`.
  */
 export function DevResetButton() {
   const [busy, setBusy] = useState(false);
+  const [devProOn, setDevProOn] = useState(false);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    void getDevPremiumUnlockForTesting().then(setDevProOn);
+  }, []);
 
   if (!__DEV__) return null;
 
@@ -62,41 +63,76 @@ export function DevResetButton() {
     );
   };
 
+  const toggleDevPro = async () => {
+    const next = !devProOn;
+    await setDevPremiumUnlockForTesting(next);
+    setDevProOn(next);
+  };
+
   return (
-    <Pressable
-      onPress={handleReset}
-      style={({ pressed }) => [
-        styles.pill,
-        { opacity: pressed || busy ? 0.7 : 0.92 },
-      ]}
-      hitSlop={8}
-      accessibilityRole="button"
-      accessibilityLabel="Reset app state for testing"
-    >
-      <RotateCcw size={12} color="#FFFFFF" strokeWidth={2.5} />
-      <Text style={styles.pillText}>Dev: reset</Text>
-    </Pressable>
+    <View style={styles.column} pointerEvents="box-none">
+      <Pressable
+        onPress={toggleDevPro}
+        style={({ pressed }) => [
+          styles.pill,
+          styles.pillPro,
+          { opacity: pressed ? 0.85 : 0.95 },
+        ]}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={
+          devProOn ? "Disable dev premium unlock" : "Enable dev premium unlock"
+        }
+      >
+        <Crown size={12} color="#FFFFFF" strokeWidth={2.5} />
+        <Text style={styles.pillText}>
+          {devProOn ? "Dev: Pro on" : "Dev: unlock Pro"}
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={handleReset}
+        style={({ pressed }) => [
+          styles.pill,
+          styles.pillReset,
+          { opacity: pressed || busy ? 0.7 : 0.92 },
+        ]}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Reset app state for testing"
+      >
+        <RotateCcw size={12} color="#FFFFFF" strokeWidth={2.5} />
+        <Text style={styles.pillText}>Dev: reset</Text>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  pill: {
+  column: {
     position: "absolute",
     bottom: 24,
     left: 12,
     zIndex: 1000,
+    gap: 8,
+  },
+  pill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: MAIN_PURPLE,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
     elevation: 4,
+  },
+  pillPro: {
+    backgroundColor: "#0D9488",
+  },
+  pillReset: {
+    backgroundColor: MAIN_PURPLE,
   },
   pillText: {
     color: "#FFFFFF",

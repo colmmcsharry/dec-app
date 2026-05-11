@@ -1,13 +1,14 @@
 import { setOnboardingComplete } from "@/services/onboarding-storage";
-import {
-  addCustomerInfoListener,
-  configurePurchases,
-  customerInfoHasPro,
-  hasProEntitlement,
-} from "@/services/purchases";
+import { configurePurchases, hasProEntitlement } from "@/services/purchases";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef } from "react";
-import { InteractionManager, Platform, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  InteractionManager,
+  Platform,
+  StyleSheet,
+  View,
+} from "react-native";
 import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 
 const log = (...args: unknown[]) => {
@@ -18,20 +19,15 @@ const log = (...args: unknown[]) => {
  * Renders the RevenueCat-hosted paywall.
  *
  * Navigation strategy:
- *   - We "navigate first, persist later". The moment we know the user has
- *     bought (or already has) the entitlement, we route synchronously to
- *     /welcome. Persisting the onboarding flag happens fire-and-forget.
- *     This avoids races where the RC paywall's auto-dismiss fires before
- *     our async work finishes.
+ *   - `/welcome` (post-purchase celebration) is reached from
+ *     `onPurchaseCompleted` / `onRestoreCompleted`, or from `onDismiss`
+ *     only when Pro became active **after** this screen opened (snapshot
+ *     taken before showing the paywall). That way TestFlight / sandbox
+ *     users who already have an active sub but tap X do not get the
+ *     “congrats” flow.
  *
- *   - A `routedRef` latches the first navigation so any later callback
- *     (onDismiss after onPurchaseCompleted, customer-info listener, etc.)
- *     becomes a no-op.
- *
- *   - onDismiss is treated as a *cancellation* by default and routes back
- *     to /onboarding. If the user actually purchased, onPurchaseCompleted
- *     OR the customer-info listener will have already latched routedRef
- *     and we never reach the onboarding fallback.
+ *   - `routedRef` latches the first navigation so duplicate callbacks are
+ *     ignored.
  */
 export default function PaywallScreen() {
   const router = useRouter();
@@ -39,6 +35,25 @@ export default function PaywallScreen() {
   const isPreview = preview === "1" || preview === "true";
 
   const routedRef = useRef(false);
+  /** Pro entitlement when this paywall instance became ready (before RC UI). */
+  const hadProAtOpenRef = useRef(false);
+  const [snapshotReady, setSnapshotReady] = useState(isPreview);
+  /** True while a native purchase/restore flow is in progress (started → completed/error/cancel). */
+  const billingFlowActiveRef = useRef(false);
+
+  useEffect(() => {
+    if (isPreview) return;
+    let cancelled = false;
+    void (async () => {
+      const pro = await hasProEntitlement();
+      if (cancelled) return;
+      hadProAtOpenRef.current = pro;
+      setSnapshotReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isPreview]);
 
   /**
    * Defer the navigation until *after* RC's paywall sheet has finished its
@@ -103,6 +118,7 @@ export default function PaywallScreen() {
 
   const onPurchaseCompleted = useCallback(() => {
     log("onPurchaseCompleted");
+    billingFlowActiveRef.current = false;
     if (isPreview) {
       if (routedRef.current) return;
       routedRef.current = true;
@@ -114,6 +130,7 @@ export default function PaywallScreen() {
 
   const onRestoreCompleted = useCallback(() => {
     log("onRestoreCompleted");
+    billingFlowActiveRef.current = false;
     if (isPreview) {
       if (routedRef.current) return;
       routedRef.current = true;
@@ -122,6 +139,31 @@ export default function PaywallScreen() {
     }
     goWelcome();
   }, [goWelcome, isPreview, router]);
+
+  const onPurchaseStarted = useCallback(() => {
+    log("onPurchaseStarted");
+    billingFlowActiveRef.current = true;
+  }, []);
+
+  const onPurchaseError = useCallback(() => {
+    log("onPurchaseError");
+    billingFlowActiveRef.current = false;
+  }, []);
+
+  const onPurchaseCancelled = useCallback(() => {
+    log("onPurchaseCancelled");
+    billingFlowActiveRef.current = false;
+  }, []);
+
+  const onRestoreStarted = useCallback(() => {
+    log("onRestoreStarted");
+    billingFlowActiveRef.current = true;
+  }, []);
+
+  const onRestoreError = useCallback(() => {
+    log("onRestoreError");
+    billingFlowActiveRef.current = false;
+  }, []);
 
   const onDismiss = useCallback(async () => {
     log("onDismiss fired (routed=", routedRef.current, ")");
@@ -132,45 +174,33 @@ export default function PaywallScreen() {
       return;
     }
 
-    // The user closed without purchasing — but RC sometimes dispatches
-    // onDismiss before onPurchaseCompleted lands, so do a single fast
-    // entitlement check before treating this as a real cancellation.
-    // We deliberately don't add a wall-clock delay here because the paywall
-    // sheet stays on screen until we navigate, and any delay makes the X
-    // feel broken (user re-taps, getting redundant onDismiss events).
-    // Race protection comes from:
-    //   1. onPurchaseCompleted firing first and latching routedRef.
-    //   2. The customer-info listener (above) catching late entitlements
-    //      while this route is still mounted.
-    const pro = await hasProEntitlement();
-    log("onDismiss settle check, pro=", pro);
+    // Give onPurchaseCompleted / onRestoreCompleted time to run first; RC
+    // can call onDismiss in the same frame ordering as those callbacks.
+    await new Promise<void>((resolve) => setTimeout(resolve, 500));
     if (routedRef.current) return;
-    if (pro) {
+
+    if (billingFlowActiveRef.current) {
+      log("onDismiss: billing flow active, waiting for completion");
+      for (let i = 0; i < 30; i++) {
+        await new Promise<void>((r) => setTimeout(r, 100));
+        if (routedRef.current) return;
+        if (!billingFlowActiveRef.current) break;
+      }
+    }
+    if (routedRef.current) return;
+
+    const proNow = await hasProEntitlement();
+    log("onDismiss after delay, proNow=", proNow, "hadProAtOpen=", hadProAtOpenRef.current);
+    if (routedRef.current) return;
+
+    // Already had Pro when they opened this paywall (e.g. sandbox sub) → X
+    // means "not buying again / close", not post-purchase celebration.
+    if (proNow && !hadProAtOpenRef.current) {
       goWelcome();
     } else {
-      // Real cancellation — drop them back wherever they came from
-      // (previous screen if there's a back stack, otherwise tabs).
       goBackOrTabs();
     }
   }, [goBackOrTabs, goWelcome, isPreview, router]);
-
-  // Defensive backup: if the entitlement flips active at any time while we're
-  // on the paywall (out-of-band purchase, deferred sandbox transaction, etc.)
-  // navigate to welcome immediately.
-  useEffect(() => {
-    if (isPreview) return;
-    if (Platform.OS === "web") return;
-    log("subscribing to customer info updates");
-    const unsubscribe = addCustomerInfoListener((info) => {
-      const hasPro = customerInfoHasPro(info);
-      log("customer info update, hasPro=", hasPro);
-      if (hasPro) goWelcome();
-    });
-    return () => {
-      log("unsubscribing customer info listener");
-      unsubscribe();
-    };
-  }, [goWelcome, isPreview]);
 
   if (Platform.OS === "web") {
     void goTabs();
@@ -179,12 +209,25 @@ export default function PaywallScreen() {
 
   configurePurchases();
 
+  if (!snapshotReady) {
+    return (
+      <View style={[styles.container, styles.loadingCenter]}>
+        <ActivityIndicator size="large" color="#6366F1" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <RevenueCatUI.Paywall
         options={{ displayCloseButton: true }}
+        onPurchaseStarted={onPurchaseStarted}
         onPurchaseCompleted={onPurchaseCompleted}
+        onPurchaseError={onPurchaseError}
+        onPurchaseCancelled={onPurchaseCancelled}
+        onRestoreStarted={onRestoreStarted}
         onRestoreCompleted={onRestoreCompleted}
+        onRestoreError={onRestoreError}
         onDismiss={onDismiss}
       />
     </View>
@@ -197,5 +240,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
+  },
+  loadingCenter: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

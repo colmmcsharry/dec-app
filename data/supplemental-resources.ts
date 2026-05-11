@@ -31,8 +31,8 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
   "sleep:1159439628": [
     {
       title: "KonMari Intro Video",
-      url: "https://www.youtube.com/watch?v=BH9T-AOvNfM",
-      description:
+      url: "https://www.youtube.com/watch?v=2T-DXav9PtQ",
+      description:  
         "A simple introduction to the KonMari method for creating a calmer, tidier space.",
     },
   ],

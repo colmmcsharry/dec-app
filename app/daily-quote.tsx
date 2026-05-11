@@ -144,9 +144,11 @@ export default function DailyQuoteScreen() {
             },
           ]}
         >
-          {/* Top bar */}
+          {/* Top bar — must stay above quote/CTA for hit-testing (later siblings paint on top). */}
           <View style={styles.topBar}>
-            <Text style={styles.brand}>Daily Diesel</Text>
+            <Text style={styles.brand} pointerEvents="none">
+              Daily Diesel
+            </Text>
             <View style={styles.topBarRight}>
               {__DEV__ && (
                 <Pressable
@@ -183,11 +185,13 @@ export default function DailyQuoteScreen() {
                   { opacity: pressed ? 0.6 : 1 },
                 ]}
                 onPress={close}
-                hitSlop={{ top: 12, bottom: 12, left: 4, right: 12 }}
+                hitSlop={20}
                 accessibilityRole="button"
                 accessibilityLabel="Close"
               >
-                <X size={22} color="#FFFFFF" strokeWidth={2.4} />
+                <View pointerEvents="none" style={styles.closeIconWrap}>
+                  <X size={26} color="#FFFFFF" strokeWidth={2.5} />
+                </View>
               </Pressable>
             </View>
           </View>
@@ -208,6 +212,7 @@ export default function DailyQuoteScreen() {
                 ],
               },
             ]}
+            pointerEvents="box-none"
           >
             <Text style={styles.label}>Today&apos;s Reflection</Text>
             <Text style={styles.quoteText}>“{quote.text}”</Text>
@@ -270,6 +275,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    zIndex: 30,
+    elevation: 30,
   },
   brand: {
     color: "#FFFFFF",
@@ -304,17 +311,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   closeBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    minWidth: 52,
+    minHeight: 52,
+    paddingHorizontal: 6,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.35)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.18)",
   },
+  closeIconWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   quoteBlock: {
     marginBottom: 24,
+    zIndex: 0,
   },
   label: {
     color: "rgba(255,255,255,0.85)",

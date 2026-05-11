@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import { Platform } from "react-native";
@@ -5,6 +6,41 @@ import Purchases, {
   CustomerInfo,
   LOG_LEVEL,
 } from "react-native-purchases";
+
+/**
+ * Dev-only local flag so Expo Go / web / environments where RC paywalls fail
+ * can still open gated content. Never honored when `__DEV__` is false.
+ */
+const DEV_PREMIUM_UNLOCK_KEY = "__dd_dev_premium_unlock";
+
+async function readDevPremiumUnlockFlag(): Promise<boolean> {
+  if (!__DEV__) return false;
+  try {
+    return (await AsyncStorage.getItem(DEV_PREMIUM_UNLOCK_KEY)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Toggle fake Pro for local testing (development builds only). */
+export async function setDevPremiumUnlockForTesting(
+  enabled: boolean,
+): Promise<void> {
+  if (!__DEV__) return;
+  try {
+    if (enabled) {
+      await AsyncStorage.setItem(DEV_PREMIUM_UNLOCK_KEY, "1");
+    } else {
+      await AsyncStorage.removeItem(DEV_PREMIUM_UNLOCK_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+export async function getDevPremiumUnlockForTesting(): Promise<boolean> {
+  return readDevPremiumUnlockFlag();
+}
 
 /**
  * The entitlement identifier configured in RevenueCat (Product catalog → Entitlements).
@@ -68,6 +104,7 @@ export function customerInfoHasPro(info: CustomerInfo | null | undefined): boole
  * Returns false on web or if the SDK isn't configured / network fails.
  */
 export async function hasProEntitlement(): Promise<boolean> {
+  if (await readDevPremiumUnlockFlag()) return true;
   if (Platform.OS === "web") return false;
   if (!configurePurchases()) return false;
   try {

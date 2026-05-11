@@ -1,4 +1,4 @@
-import { AppFonts } from "@/constants/theme";
+import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import {
   createInitialWorkbookData,
   mergeModuleWorkbookData,
@@ -10,9 +10,8 @@ import {
   getModuleWorkbook,
   saveModuleWorkbook,
 } from "@/services/module-workbooks";
-import { MODULE_PDFS } from "@/data/pdf-assets";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, FileText } from "lucide-react-native";
+import { ChevronLeft, Check } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -22,7 +21,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -110,22 +108,19 @@ export default function ModuleWorkbookScreen() {
     });
   };
 
-  const updatePlanDayNote = (
-    sectionId: string,
-    dayIndex: number,
-    value: string
-  ) => {
+  const togglePlanDayCompleted = (sectionId: string, dayIndex: number) => {
     setFormData((current) => {
       if (!current) return current;
-      const nextNotes = [...current.weeklyPlan[sectionId].dayNotes];
-      nextNotes[dayIndex] = value;
+      const section = current.weeklyPlan[sectionId];
+      const nextDays = [...section.daysCompleted];
+      nextDays[dayIndex] = !nextDays[dayIndex];
       return {
         ...current,
         weeklyPlan: {
           ...current.weeklyPlan,
           [sectionId]: {
-            ...current.weeklyPlan[sectionId],
-            dayNotes: nextNotes,
+            ...section,
+            daysCompleted: nextDays,
           },
         },
       };
@@ -194,67 +189,74 @@ export default function ModuleWorkbookScreen() {
       : saveState === "saving"
         ? "Saving..."
         : "Saved on this device";
-  const keyboardVerticalOffset = insets.top + 56;
+  /** Header tall enough for safe area + back row (see `customHeader` styles). */
+  const keyboardVerticalOffset = insets.top + 12 + 44;
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
-      <View
-        style={[
-          styles.customHeader,
-          {
-            paddingTop: insets.top,
-            backgroundColor: isDark ? "#1A1A2E" : definition.color,
-          },
-        ]}
-      >
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={16}
-          style={({ pressed }) => [
-            styles.customBackButton,
-            { opacity: pressed ? 0.6 : 1 },
+      <View style={styles.screenRoot}>
+        <View
+          style={[
+            styles.customHeader,
+            {
+              paddingTop: insets.top,
+              backgroundColor: isDark ? "#1A1A2E" : definition.color,
+            },
           ]}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
         >
-          <ChevronLeft
-            size={26}
-            color={isDark ? "#ECEDEE" : "#2C3E50"}
-            strokeWidth={2.5}
-          />
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={16}
+            style={({ pressed }) => [
+              styles.customBackButton,
+              { opacity: pressed ? 0.6 : 1 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <ChevronLeft
+              size={26}
+              color={isDark ? "#ECEDEE" : "#2C3E50"}
+              strokeWidth={2.5}
+            />
+            <Text
+              style={[
+                styles.customBackText,
+                { color: isDark ? "#ECEDEE" : "#2C3E50" },
+              ]}
+            >
+              Back
+            </Text>
+          </Pressable>
           <Text
             style={[
-              styles.customBackText,
+              styles.customHeaderTitle,
               { color: isDark ? "#ECEDEE" : "#2C3E50" },
             ]}
           >
-            Back
+            Module Workbook
           </Text>
-        </Pressable>
-        <Text
-          style={[
-            styles.customHeaderTitle,
-            { color: isDark ? "#ECEDEE" : "#2C3E50" },
-          ]}
-        >
-          Module Workbook
-        </Text>
-        <View style={styles.customHeaderSpacer} />
-      </View>
+          <View style={styles.customHeaderSpacer} />
+        </View>
 
-      <KeyboardAvoidingView
-        style={styles.keyboardWrap}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={keyboardVerticalOffset}
-      >
-        <ScrollView
-          style={[styles.container, isDark && styles.containerDark]}
-          contentContainerStyle={styles.contentContainer}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+        <KeyboardAvoidingView
+          style={styles.keyboardWrap}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={keyboardVerticalOffset}
         >
+          {/**
+           * Do NOT use `automaticallyAdjustKeyboardInsets` here: it fights
+           * KeyboardAvoidingView on iOS and can scroll the focused field under
+           * the header or yank content to the top of the screen.
+           */}
+          <ScrollView
+            style={[styles.container, isDark && styles.containerDark]}
+            contentContainerStyle={styles.contentContainer}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+            automaticallyAdjustKeyboardInsets={false}
+          >
           <View
             style={[
               styles.heroCard,
@@ -343,26 +345,53 @@ export default function ModuleWorkbookScreen() {
                   />
 
                   <View style={styles.dayRows}>
-                    {formData.weeklyPlan[section.id].dayNotes.map((note, index) => (
-                      <View key={`${section.id}-${index}`} style={styles.dayRow}>
-                        <Text style={[styles.dayLabel, isDark && styles.subtextDark]}>
-                          Day {index + 1}
-                        </Text>
-                        <TextInput
-                          value={note}
-                          onChangeText={(value) =>
-                            updatePlanDayNote(section.id, index, value)
-                          }
-                          placeholder="Done / note"
-                          placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
-                          style={[
-                            styles.dayInput,
-                            isDark && styles.inputDark,
-                            isDark && styles.textDark,
-                          ]}
-                        />
-                      </View>
-                    ))}
+                    {formData.weeklyPlan[section.id].daysCompleted.map(
+                      (done, index) => (
+                        <View
+                          key={`${section.id}-day-${index}`}
+                          style={styles.dayRow}
+                        >
+                          <Text
+                            style={[styles.dayLabel, isDark && styles.subtextDark]}
+                          >
+                            Day {index + 1}
+                          </Text>
+                          <Pressable
+                            onPress={() =>
+                              togglePlanDayCompleted(section.id, index)
+                            }
+                            style={({ pressed }) => [
+                              styles.dayCheckHit,
+                              { opacity: pressed ? 0.88 : 1 },
+                            ]}
+                            accessibilityRole="checkbox"
+                            accessibilityState={{ checked: done }}
+                            accessibilityLabel={`Day ${index + 1}${
+                              done ? ", marked done" : ", not marked done"
+                            }`}
+                            hitSlop={8}
+                          >
+                            <View
+                              style={[
+                                styles.dayCheckbox,
+                                isDark && styles.dayCheckboxDark,
+                                done && styles.dayCheckboxChecked,
+                              ]}
+                            >
+                              {done ? (
+                                <View pointerEvents="none">
+                                  <Check
+                                    size={18}
+                                    color="#FFFFFF"
+                                    strokeWidth={3}
+                                  />
+                                </View>
+                              ) : null}
+                            </View>
+                          </Pressable>
+                        </View>
+                      ),
+                    )}
                   </View>
                 </View>
               ))}
@@ -387,38 +416,70 @@ export default function ModuleWorkbookScreen() {
                   <Text style={[styles.planTitle, isDark && styles.textDark]}>
                     {definition.auditBlockLabel(auditIndex)}
                   </Text>
-                  {audit.rows.map((row, rowIndex) => (
-                    <View key={`audit-row-${auditIndex}-${rowIndex}`} style={styles.auditRow}>
-                      <TextInput
-                        value={row.time}
-                        onChangeText={(value) =>
-                          updateAuditRow(auditIndex, rowIndex, "time", value)
-                        }
-                        placeholder={rowIndex === 0 ? "Time" : "e.g. 7:30"}
-                        placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
-                        style={[
-                          styles.timeInput,
-                          isDark && styles.inputDark,
-                          isDark && styles.textDark,
-                        ]}
-                      />
-                      <TextInput
-                        value={row.activity}
-                        onChangeText={(value) =>
-                          updateAuditRow(auditIndex, rowIndex, "activity", value)
-                        }
-                        placeholder={
-                          rowIndex === 0 ? "Activity" : "What were you doing?"
-                        }
-                        placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
-                        style={[
-                          styles.activityInput,
-                          isDark && styles.inputDark,
-                          isDark && styles.textDark,
-                        ]}
-                      />
-                    </View>
-                  ))}
+                  {audit.rows.map((row, rowIndex) =>
+                    rowIndex === 0 ? (
+                      <View
+                        key={`audit-row-${auditIndex}-${rowIndex}`}
+                        style={styles.auditHeaderRow}
+                      >
+                        <Text
+                          style={[
+                            styles.auditColumnHeader,
+                            styles.auditColumnHeaderTime,
+                            isDark && styles.subtextDark,
+                          ]}
+                        >
+                          Time
+                        </Text>
+                        <Text
+                          style={[
+                            styles.auditColumnHeader,
+                            styles.auditColumnHeaderActivity,
+                            isDark && styles.subtextDark,
+                          ]}
+                        >
+                          Activity
+                        </Text>
+                      </View>
+                    ) : (
+                      <View
+                        key={`audit-row-${auditIndex}-${rowIndex}`}
+                        style={styles.auditRow}
+                      >
+                        <TextInput
+                          value={row.time}
+                          onChangeText={(value) =>
+                            updateAuditRow(auditIndex, rowIndex, "time", value)
+                          }
+                          placeholder="e.g. 7:30"
+                          placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
+                          style={[
+                            styles.timeInput,
+                            isDark && styles.inputDark,
+                            isDark && styles.textDark,
+                          ]}
+                        />
+                        <TextInput
+                          value={row.activity}
+                          onChangeText={(value) =>
+                            updateAuditRow(
+                              auditIndex,
+                              rowIndex,
+                              "activity",
+                              value,
+                            )
+                          }
+                          placeholder="What were you doing?"
+                          placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
+                          style={[
+                            styles.activityInput,
+                            isDark && styles.inputDark,
+                            isDark && styles.textDark,
+                          ]}
+                        />
+                      </View>
+                    ),
+                  )}
                 </View>
               ))}
             </View>
@@ -465,56 +526,6 @@ export default function ModuleWorkbookScreen() {
               </View>
             ))}
 
-            {/* ── PDF Resources ── */}
-            {(MODULE_PDFS[slug as string] ?? []).length > 0 && (
-              <View
-                style={[
-                  styles.sectionCard,
-                  isDark && styles.sectionCardDark,
-                ]}
-              >
-                <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
-                  Printable Resources
-                </Text>
-                <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
-                  Tap to view the original formatted worksheets.
-                </Text>
-                {(MODULE_PDFS[slug as string] ?? []).map((pdf) => (
-                  <TouchableOpacity
-                    key={pdf.id}
-                    style={[styles.pdfCard, isDark && styles.pdfCardDark]}
-                    activeOpacity={0.7}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/pdf-viewer",
-                        params: {
-                          slug: slug as string,
-                          pdfId: pdf.id,
-                          title: pdf.title,
-                        },
-                      })
-                    }
-                  >
-                    <FileText
-                      size={22}
-                      color={isDark ? "#818CF8" : "#6366F1"}
-                    />
-                    <Text
-                      style={[styles.pdfTitle, isDark && styles.textDark]}
-                      numberOfLines={2}
-                    >
-                      {pdf.title}
-                    </Text>
-                    <ChevronLeft
-                      size={18}
-                      color={isDark ? "#6B7280" : "#9CA3AF"}
-                      style={{ transform: [{ rotate: "180deg" }] }}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
             {/* ── Journal ── */}
             <View
               style={[
@@ -555,11 +566,15 @@ export default function ModuleWorkbookScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+  },
   keyboardWrap: {
     flex: 1,
   },
@@ -708,33 +723,64 @@ const styles = StyleSheet.create({
   },
   dayRows: {
     marginTop: 12,
-    gap: 10,
+    gap: 8,
   },
   dayRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    justifyContent: "space-between",
+    gap: 12,
+    paddingVertical: 4,
   },
   dayLabel: {
-    width: 46,
+    flex: 1,
     fontSize: 14,
     color: "#6B7280",
     fontFamily: AppFonts.bodyMedium,
   },
-  dayInput: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1,
+  dayCheckHit: {
+    padding: 4,
+  },
+  dayCheckbox: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    borderWidth: 2,
     borderColor: "#D1D5DB",
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    fontSize: 14,
-    color: "#2C3E50",
-    fontFamily: AppFonts.bodyRegular,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dayCheckboxDark: {
+    backgroundColor: "#141425",
+    borderColor: "#4B4D66",
+  },
+  dayCheckboxChecked: {
+    backgroundColor: MAIN_PURPLE,
+    borderColor: MAIN_PURPLE,
   },
   auditBlock: {
     marginTop: 18,
+  },
+  auditHeaderRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10,
+    alignItems: "center",
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+  },
+  auditColumnHeader: {
+    fontSize: 13,
+    fontFamily: AppFonts.bodyBold,
+    color: "#6B7280",
+    letterSpacing: 0.3,
+  },
+  auditColumnHeaderTime: {
+    width: 96,
+  },
+  auditColumnHeaderActivity: {
+    flex: 1,
   },
   auditRow: {
     flexDirection: "row",
@@ -779,25 +825,6 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     color: "#4B5563",
     fontFamily: AppFonts.bodyRegular,
-  },
-  pdfCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    marginTop: 10,
-  },
-  pdfCardDark: {
-    backgroundColor: "#262940",
-  },
-  pdfTitle: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: AppFonts.bodyMedium,
-    color: "#374151",
   },
   worksheetField: {
     marginTop: 14,

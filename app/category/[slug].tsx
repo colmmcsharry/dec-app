@@ -4,12 +4,14 @@ import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router, useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
-import { Check, ChevronLeft } from 'lucide-react-native';
+import { Check, ChevronLeft, ChevronRight, FileText } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
 import { requirePro } from '@/services/purchases';
 import { MODULE_VIDEOS, VideoEntry } from '@/data/module-videos';
 import { MODULE_WORKBOOKS } from '@/data/module-workbooks';
+import { MODULE_PDFS, type PdfEntry } from '@/data/pdf-assets';
+import { hrefModuleDigitalWorkbook } from '@/lib/module-workbook-route';
 import { AppFonts } from '@/constants/theme';
 
 function formatDuration(seconds: number): string {
@@ -40,6 +42,7 @@ export default function CategoryScreen() {
 
   const videos: VideoEntry[] = MODULE_VIDEOS[slug] || [];
   const workbookDef = slug ? MODULE_WORKBOOKS[slug] : undefined;
+  const modulePdfs: PdfEntry[] = slug ? (MODULE_PDFS[slug] ?? []) : [];
   const [watchedIds, setWatchedIds] = useState<string[]>([]);
 
   const isFocused = useIsFocused();
@@ -55,6 +58,15 @@ export default function CategoryScreen() {
   const watchedCount = watchedIds.length;
   const totalCount = videos.length;
   const progressPercent = totalCount > 0 ? watchedCount / totalCount : 0;
+
+  const openModulePdf = async (pdf: PdfEntry) => {
+    if (!slug) return;
+    if (!(await requirePro())) return;
+    router.push({
+      pathname: '/pdf-viewer',
+      params: { slug, pdfId: pdf.id, title: pdf.title },
+    });
+  };
 
   return (
     <>
@@ -122,102 +134,135 @@ export default function CategoryScreen() {
             <Text style={styles.emptySubtext}>Check back soon for new content!</Text>
           </View>
         ) : (
-          <>
-            <View style={styles.videoList}>
-              {videos.map((video, index) => {
-                const isWatched = watchedIds.includes(video.id);
-                return (
-                  <TouchableOpacity
-                    key={video.id}
-                    style={[styles.videoCard, isDark && styles.videoCardDark]}
-                    onPress={async () => {
-                      if (!(await requirePro())) return;
-                      router.push({
-                        pathname: '/video/[id]',
-                        params: {
-                          id: video.id,
-                          title: video.title,
-                          url: video.url,
-                          categoryColor: info.color,
-                          categorySlug: slug,
-                        },
-                      });
-                    }}
-                  >
-                    <View style={styles.thumbnailContainer}>
-                      {video.thumbnail ? (
-                        <Image
-                          source={{ uri: video.thumbnail }}
-                          style={styles.thumbnailImage}
-                          resizeMode="cover"
-                        />
-                      ) : null}
-                      <View style={styles.playIconCircle}>
-                        <Text style={styles.playIcon}>▶</Text>
-                      </View>
-                      {video.duration ? (
-                        <View style={styles.durationBadge}>
-                          <Text style={styles.durationText}>{formatDuration(video.duration)}</Text>
-                        </View>
-                      ) : null}
-                      {isWatched && (
-                        <View style={styles.watchedBadge}>
-                          <Text style={styles.watchedBadgeText}>✓ Watched</Text>
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.videoInfo}>
-                      <View style={styles.videoTitleRow}>
-                        <Text style={[styles.videoTitle, isDark && styles.textDark, { flex: 1 }]}>{index + 1}. {video.title}</Text>
-                        {isWatched && (
-                          <View style={styles.watchedTick}>
-                            <Check size={14} color="#fff" strokeWidth={3} />
-                          </View>
-                        )}
-                      </View>
-                      {video.description && (
-                        <Text style={[styles.videoDescription, isDark && styles.subtextDark]}>{video.description}</Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {workbookDef && (
-              <View style={styles.workbookWrap}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.workbookCard,
-                    isDark && styles.workbookCardDark,
-                    { opacity: pressed ? 0.8 : 1 },
-                  ]}
+          <View style={styles.videoList}>
+            {videos.map((video, index) => {
+              const isWatched = watchedIds.includes(video.id);
+              return (
+                <TouchableOpacity
+                  key={video.id}
+                  style={[styles.videoCard, isDark && styles.videoCardDark]}
                   onPress={async () => {
                     if (!(await requirePro())) return;
                     router.push({
-                      pathname: '/module-workbook/[slug]',
-                      params: { slug },
+                      pathname: '/video/[id]',
+                      params: {
+                        id: video.id,
+                        title: video.title,
+                        url: video.url,
+                        categoryColor: info.color,
+                        categorySlug: slug,
+                      },
                     });
                   }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open module ${workbookDef.moduleNumber} workbook`}
                 >
-                  <Text style={[styles.workbookEyebrow, isDark && styles.subtextDark]}>
-                    MODULE {workbookDef.moduleNumber} WORKBOOK
-                  </Text>
-                  <Text style={[styles.workbookTitle, isDark && styles.textDark]}>
-                    Digital {workbookDef.title} Workbook
-                  </Text>
-                  <Text style={[styles.workbookBody, isDark && styles.subtextDark]}>
-                    {workbookDef.workbookCardTeaser}
-                  </Text>
-                  <View style={styles.workbookButton}>
-                    <Text style={styles.workbookButtonText}>Open Workbook</Text>
+                  <View style={styles.thumbnailContainer}>
+                    {video.thumbnail ? (
+                      <Image
+                        source={{ uri: video.thumbnail }}
+                        style={styles.thumbnailImage}
+                        resizeMode="cover"
+                      />
+                    ) : null}
+                    <View style={styles.playIconCircle}>
+                      <Text style={styles.playIcon}>▶</Text>
+                    </View>
+                    {video.duration ? (
+                      <View style={styles.durationBadge}>
+                        <Text style={styles.durationText}>{formatDuration(video.duration)}</Text>
+                      </View>
+                    ) : null}
+                    {isWatched && (
+                      <View style={styles.watchedBadge}>
+                        <Text style={styles.watchedBadgeText}>✓ Watched</Text>
+                      </View>
+                    )}
                   </View>
-                </Pressable>
+                  <View style={styles.videoInfo}>
+                    <View style={styles.videoTitleRow}>
+                      <Text style={[styles.videoTitle, isDark && styles.textDark, { flex: 1 }]}>{index + 1}. {video.title}</Text>
+                      {isWatched && (
+                        <View style={styles.watchedTick}>
+                          <Check size={14} color="#fff" strokeWidth={3} />
+                        </View>
+                      )}
+                    </View>
+                    {video.description && (
+                      <Text style={[styles.videoDescription, isDark && styles.subtextDark]}>{video.description}</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {modulePdfs.length > 0 && (
+          <View style={styles.moduleResourcesWrap}>
+            <Text style={[styles.resourcesHeading, isDark && styles.textDark]}>
+              Additional resources
+            </Text>
+            <Text style={[styles.resourcesSub, isDark && styles.subtextDark]}>
+              Printable worksheets — same PDFs as in the Resources tab.
+            </Text>
+            {modulePdfs.map((pdf) => (
+              <TouchableOpacity
+                key={pdf.id}
+                style={[styles.pdfRow, isDark && styles.pdfRowDark]}
+                activeOpacity={0.7}
+                onPress={() => openModulePdf(pdf)}
+                accessibilityRole="button"
+                accessibilityLabel={`Open PDF: ${pdf.title}`}
+              >
+                <FileText
+                  size={20}
+                  color={isDark ? '#FFFFFF' : '#7187CE'}
+                />
+                <Text
+                  style={[styles.pdfRowTitle, isDark && styles.textDark]}
+                  numberOfLines={2}
+                >
+                  {pdf.title}
+                </Text>
+                <ChevronRight
+                  size={18}
+                  color={isDark ? '#9090A8' : '#2C3E50'}
+                  style={{ opacity: isDark ? 1 : 0.55 }}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {workbookDef && (
+          <View style={styles.workbookWrap}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.workbookCard,
+                isDark && styles.workbookCardDark,
+                { opacity: pressed ? 0.8 : 1 },
+              ]}
+              onPress={async () => {
+                if (!(await requirePro())) return;
+                router.push(hrefModuleDigitalWorkbook(slug));
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Open module ${workbookDef.moduleNumber} digital workbook`}
+            >
+              <Text style={[styles.workbookEyebrow, isDark && styles.subtextDark]}>
+                MODULE {workbookDef.moduleNumber} DIGITAL WORKBOOK
+              </Text>
+              <Text style={[styles.workbookTitle, isDark && styles.textDark]}>
+                {workbookDef.title} Workbook
+              </Text>
+              <Text style={[styles.workbookBody, isDark && styles.subtextDark]}>
+                Don&apos;t want to use pen and paper? Here is the digital workbook,
+                which saves on your phone.
+              </Text>
+              <View style={styles.workbookButton}>
+                <Text style={styles.workbookButtonText}>Open Workbook</Text>
               </View>
-            )}
-          </>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
     </>
@@ -348,6 +393,47 @@ const styles = StyleSheet.create({
   workbookWrap: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+    marginTop: 4,
+  },
+  moduleResourcesWrap: {
+    paddingHorizontal: 20,
+    marginTop: 8,
+    paddingBottom: 8,
+  },
+  resourcesHeading: {
+    fontSize: 18,
+    fontFamily: AppFonts.headingBold,
+    color: '#2C3E50',
+    marginBottom: 6,
+  },
+  resourcesSub: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#6B7280',
+    fontFamily: AppFonts.bodyRegular,
+    marginBottom: 12,
+  },
+  pdfRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E8E8EE',
+  },
+  pdfRowDark: {
+    backgroundColor: '#1E1E32',
+    borderColor: '#2D3044',
+  },
+  pdfRowTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: AppFonts.bodyMedium,
+    color: '#2C3E50',
   },
   workbookCard: {
     backgroundColor: '#FFFFFF',

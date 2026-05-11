@@ -524,18 +524,20 @@ export default function OnboardingScreen() {
   const isNextDisabled =
     currentSlideId === "goals" && selectedGoals.length === 0;
 
-  const goPaywall = useCallback(async () => {
-    if (!isPreview) {
-      // Mark onboarding done before showing the paywall. Under the soft-gate
-      // model, dismissing the paywall drops the user into /(tabs), and the
-      // entry router needs to know they've finished onboarding so it never
-      // sends them back through it on subsequent launches.
-      await setOnboardingComplete();
-    }
+  const goPaywall = useCallback(() => {
+    // Navigate first, persist later. AsyncStorage writes can take 500ms+ on
+    // real devices (especially fresh installs) and awaiting that before
+    // navigation makes the Continue button feel broken — users tap multiple
+    // times. The paywall route also calls setOnboardingComplete() defensively
+    // when its dismiss path runs, so this fire-and-forget is safe even if it
+    // hasn't finished by the time the paywall is dismissed.
     router.replace({
       pathname: "/paywall-placeholder",
       params: isPreview ? { preview: "1" } : {},
     });
+    if (!isPreview) {
+      void setOnboardingComplete();
+    }
   }, [router, isPreview]);
 
   const skip = useCallback(() => {

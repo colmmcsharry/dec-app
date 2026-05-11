@@ -11,7 +11,8 @@ export interface WorkbookAuditRow {
 
 export interface WorkbookPlanSectionData {
   action: string;
-  dayNotes: string[];
+  /** One flag per day — tap to tick off in the workbook UI. */
+  daysCompleted: boolean[];
 }
 
 /** A block of educational reading content from the course PDFs. */
@@ -90,7 +91,10 @@ export function createInitialWorkbookData(
     weeklyPlan: Object.fromEntries(
       definition.weeklyPlanSections.map((s) => [
         s.id,
-        { action: "", dayNotes: Array.from({ length: DAY_COUNT }, () => "") },
+        {
+          action: "",
+          daysCompleted: Array.from({ length: DAY_COUNT }, () => false),
+        },
       ])
     ),
     eveningAudits: Array.from({ length: auditBlocks }, () => ({
@@ -116,21 +120,22 @@ export function mergeModuleWorkbookData(
   for (const id of Object.keys(weeklyPlan)) {
     const s = stored.weeklyPlan?.[id];
     if (s) {
-      weeklyPlan[id] = {
-        action: s.action ?? "",
-        dayNotes: fallback.weeklyPlan[id].dayNotes.map(
-          (_, i) => s.dayNotes?.[i] ?? ""
-        ),
-      };
+      weeklyPlan[id] = mergePlanSection(s, fallback.weeklyPlan[id]);
     }
   }
 
   const eveningAudits = fallback.eveningAudits.map((block, bi) => ({
-    rows: block.rows.map((row, ri) => ({
-      time: stored.eveningAudits?.[bi]?.rows?.[ri]?.time ?? row.time,
-      activity:
-        stored.eveningAudits?.[bi]?.rows?.[ri]?.activity ?? row.activity,
-    })),
+    rows: block.rows.map((row, ri) => {
+      /** Row 0 is column headers in the UI — not user-editable. */
+      if (ri === 0) {
+        return { time: "", activity: "" };
+      }
+      return {
+        time: stored.eveningAudits?.[bi]?.rows?.[ri]?.time ?? row.time,
+        activity:
+          stored.eveningAudits?.[bi]?.rows?.[ri]?.activity ?? row.activity,
+      };
+    }),
   }));
 
   const worksheets: Record<string, Record<string, string>> = {};
@@ -151,6 +156,40 @@ export function mergeModuleWorkbookData(
     journalEntry: stored.journalEntry ?? "",
     worksheets,
   };
+}
+
+function mergePlanSection(
+  storedSection: unknown,
+  fallback: WorkbookPlanSectionData,
+): WorkbookPlanSectionData {
+  if (!storedSection || typeof storedSection !== "object") {
+    return { action: fallback.action, daysCompleted: [...fallback.daysCompleted] };
+  }
+  const s = storedSection as Record<string, unknown>;
+  const action =
+    typeof s.action === "string" ? s.action : fallback.action;
+
+  if (Array.isArray(s.daysCompleted)) {
+    const arr = s.daysCompleted;
+    return {
+      action,
+      daysCompleted: fallback.daysCompleted.map((_, i) => arr[i] === true),
+    };
+  }
+
+  /** Legacy: per-day free-text — non-empty note becomes checked. */
+  if (Array.isArray(s.dayNotes)) {
+    const notes = s.dayNotes;
+    return {
+      action,
+      daysCompleted: fallback.daysCompleted.map((_, i) => {
+        const note = notes[i];
+        return typeof note === "string" && note.trim().length > 0;
+      }),
+    };
+  }
+
+  return { action, daysCompleted: [...fallback.daysCompleted] };
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */

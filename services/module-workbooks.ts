@@ -2,6 +2,11 @@ import { File, Paths } from "expo-file-system";
 
 import type { ModuleWorkbookData } from "@/data/module-workbooks";
 
+/**
+ * All in-app workbook entry points must navigate with the same `slug` used
+ * here as the storage key — see `hrefModuleDigitalWorkbook` in
+ * `lib/module-workbook-route.ts`.
+ */
 const MODULE_WORKBOOKS_FILENAME = "module_workbooks.json";
 
 type StoredModuleWorkbooks = Record<string, ModuleWorkbookData>;

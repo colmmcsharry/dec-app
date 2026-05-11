@@ -15,8 +15,8 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
-import { Flame, Moon, Sparkles, Sun } from "lucide-react-native";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import { Flame, Moon, Sun } from "lucide-react-native";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import Svg, { Circle } from "react-native-svg";
 import {
   Alert,
@@ -41,7 +41,39 @@ interface CategoryCardProps {
   totalCount: number;
 }
 
-const CategoryCard = ({
+/** Static copy — lives outside HomeScreen so it isn't recreated every render. */
+const CARD_TITLES: Record<(typeof MODULE_ORDER)[number], string> = {
+  sleep: "Sleep",
+  "morning-routines": "Morning\nRoutines",
+  "energy-management": "Energy\nManagement",
+  mindfulness: "Mindfulness",
+  "move-2-perform": "Move 2\nPerform",
+  "thinking-2-perform": "Thinking 2\nPerform",
+  recovery: "Recovery",
+  "fuel-2-perform": "Fuel 2\nPerform",
+  "stress-management": "Stress\nManagement",
+  habits: "Building\nHabits",
+};
+
+const GUIDE_COUNTS: Record<(typeof MODULE_ORDER)[number], number> = {
+  sleep: 8,
+  "morning-routines": 12,
+  "energy-management": 10,
+  mindfulness: 10,
+  "move-2-perform": 14,
+  "thinking-2-perform": 11,
+  recovery: 9,
+  "fuel-2-perform": 15,
+  "stress-management": 12,
+  habits: 13,
+};
+
+/**
+ * Module cards never depend on light/dark theme — only on progress.
+ * Memoised so toggling theme does not re-render all 10 cards (that was
+ * causing multi-frame jank on device).
+ */
+const CategoryCard = memo(function CategoryCard({
   title,
   guideCount,
   icon,
@@ -50,7 +82,7 @@ const CategoryCard = ({
   slug,
   watchedCount,
   totalCount,
-}: CategoryCardProps) => {
+}: CategoryCardProps) {
   const handlePress = () => {
     router.push({
       pathname: "/category/[slug]",
@@ -113,7 +145,20 @@ const CategoryCard = ({
       </View>
     </TouchableOpacity>
   );
-};
+});
+
+const MODULE_CATEGORY_ROWS = MODULE_ORDER.map((slug) => {
+  const theme = MODULE_THEMES[slug];
+  const Icon = theme.Icon;
+  return {
+    title: CARD_TITLES[slug],
+    slug,
+    guideCount: GUIDE_COUNTS[slug],
+    icon: <Icon size={28} color={theme.iconColor} strokeWidth={2.5} />,
+    backgroundColor: theme.backgroundColor,
+    textColor: theme.textColor,
+  };
+});
 
 export default function HomeScreen() {
   const { isDark, toggleTheme } = useTheme();
@@ -261,46 +306,6 @@ export default function HomeScreen() {
     setShowTimePicker(true);
   }, [scheduleAt]);
 
-  // Card titles use \n line breaks to keep two-word names tidy on the grid.
-  // Icons + colors come from MODULE_THEMES so the home grid and the
-  // resources page stay in sync.
-  const CARD_TITLES: Record<(typeof MODULE_ORDER)[number], string> = {
-    sleep: "Sleep",
-    "morning-routines": "Morning\nRoutines",
-    "energy-management": "Energy\nManagement",
-    mindfulness: "Mindfulness",
-    "move-2-perform": "Move 2\nPerform",
-    "thinking-2-perform": "Thinking 2\nPerform",
-    recovery: "Recovery",
-    "fuel-2-perform": "Fuel 2\nPerform",
-    "stress-management": "Stress\nManagement",
-    habits: "Building\nHabits",
-  };
-  const GUIDE_COUNTS: Record<(typeof MODULE_ORDER)[number], number> = {
-    sleep: 8,
-    "morning-routines": 12,
-    "energy-management": 10,
-    mindfulness: 10,
-    "move-2-perform": 14,
-    "thinking-2-perform": 11,
-    recovery: 9,
-    "fuel-2-perform": 15,
-    "stress-management": 12,
-    habits: 13,
-  };
-  const categories = MODULE_ORDER.map((slug) => {
-    const theme = MODULE_THEMES[slug];
-    const Icon = theme.Icon;
-    return {
-      title: CARD_TITLES[slug],
-      slug,
-      guideCount: GUIDE_COUNTS[slug],
-      icon: <Icon size={28} color={theme.iconColor} strokeWidth={2.5} />,
-      backgroundColor: theme.backgroundColor,
-      textColor: theme.textColor,
-    };
-  });
-
   return (
     <ScrollView
       style={[styles.container, isDark && styles.containerDark]}
@@ -314,28 +319,22 @@ export default function HomeScreen() {
           </Text>
           <View style={styles.headerActions}>
             <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname: "/onboarding",
-                  params: { preview: "1" },
-                })
-              }
-              style={[styles.tourButton, isDark && styles.tourButtonDark]}
-              activeOpacity={0.7}
-              accessibilityLabel="Preview app onboarding"
-            >
-              <Sparkles size={20} color="#7187CE" strokeWidth={2.5} />
-            </TouchableOpacity>
-            <TouchableOpacity
               onPress={toggleTheme}
               style={[styles.themeToggle, isDark && styles.themeToggleDark]}
-              activeOpacity={0.7}
+              activeOpacity={0.65}
+              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isDark ? "Switch to light mode" : "Switch to dark mode"
+              }
             >
-              {isDark ? (
-                <Sun size={20} color="#FDB813" strokeWidth={2.5} />
-              ) : (
-                <Moon size={20} color="#6B5B8C" strokeWidth={2.5} />
-              )}
+              <View pointerEvents="none">
+                {isDark ? (
+                  <Sun size={20} color="#FDB813" strokeWidth={2.5} />
+                ) : (
+                  <Moon size={20} color="#6B5B8C" strokeWidth={2.5} />
+                )}
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -445,6 +444,8 @@ export default function HomeScreen() {
                 }
               }}
               display={Platform.OS === "ios" ? "spinner" : "default"}
+              themeVariant={isDark ? "dark" : "light"}
+              textColor={isDark ? "#FFFFFF" : "#2C3E50"}
             />
             <View style={styles.timePickerActions}>
               <TouchableOpacity
@@ -555,12 +556,12 @@ export default function HomeScreen() {
 
       {/* Categories Grid */}
       <View style={styles.grid}>
-        {categories.map((category, index) => {
+        {MODULE_CATEGORY_ROWS.map((category, index) => {
           const totalCount = (MODULE_VIDEOS[category.slug] || []).length;
           const watchedCount = (progress[category.slug] || []).length;
           return (
             <CategoryCard
-              key={index}
+              key={category.slug}
               {...category}
               totalCount={totalCount}
               watchedCount={watchedCount}

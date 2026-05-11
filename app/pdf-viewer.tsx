@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Pressable,
   Share,
   StyleSheet,
   Text,
@@ -19,6 +20,7 @@ import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft, Share2 } from "lucide-react-native";
 
+import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_PDFS } from "@/data/pdf-assets";
 
@@ -136,16 +138,36 @@ export default function PdfViewerScreen() {
           { paddingTop: insets.top },
         ]}
       >
-        <View style={[styles.header, isDark && styles.headerDark]}>
-          <TouchableOpacity
+        <View
+          style={[
+            styles.header,
+            isDark && styles.headerDark,
+            { zIndex: 10, elevation: 10 },
+          ]}
+        >
+          <Pressable
             onPress={() => router.back()}
-            style={styles.iconBtn}
-            hitSlop={12}
+            hitSlop={16}
+            style={({ pressed }) => [
+              styles.backRow,
+              { opacity: pressed ? 0.65 : 1 },
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <ChevronLeft size={24} color={isDark ? "#E5E7EB" : "#374151"} />
-          </TouchableOpacity>
+            <View pointerEvents="none">
+              <ChevronLeft
+                size={26}
+                color={isDark ? "#ECEDEE" : "#2C3E50"}
+                strokeWidth={2.5}
+              />
+            </View>
+            <Text
+              style={[styles.backLabel, { color: isDark ? "#ECEDEE" : "#2C3E50" }]}
+            >
+              Back
+            </Text>
+          </Pressable>
           <Text
             style={[styles.headerTitle, isDark && styles.headerTitleDark]}
             numberOfLines={1}
@@ -154,20 +176,29 @@ export default function PdfViewerScreen() {
           </Text>
           <TouchableOpacity
             onPress={handleShare}
-            style={[styles.iconBtn, (!localUri || sharing) && styles.iconBtnDisabled]}
-            hitSlop={12}
+            style={[
+              styles.shareHit,
+              (!localUri || sharing) && styles.iconBtnDisabled,
+            ]}
+            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
             disabled={!localUri || sharing}
             accessibilityRole="button"
             accessibilityLabel="Share or save PDF"
           >
-            <Share2
-              size={22}
-              color={
-                !localUri || sharing
-                  ? isDark ? "#4B5563" : "#9CA3AF"
-                  : isDark ? "#E5E7EB" : "#374151"
-              }
-            />
+            <View pointerEvents="none">
+              <Share2
+                size={22}
+                color={
+                  !localUri || sharing
+                    ? isDark
+                      ? "#4B5563"
+                      : "#9CA3AF"
+                    : isDark
+                      ? "#E5E7EB"
+                      : "#374151"
+                }
+              />
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -190,6 +221,7 @@ export default function PdfViewerScreen() {
             style={[styles.webview, isDark && { backgroundColor: "#1A1D2E" }]}
             originWhitelist={["*"]}
             startInLoadingState
+            androidLayerType="hardware"
             renderLoading={() => (
               <View style={[styles.center, StyleSheet.absoluteFill]}>
                 <ActivityIndicator size="large" color="#6366F1" />
@@ -213,19 +245,35 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E5E7EB",
   },
   headerDark: {
     borderBottomColor: "#2D3044",
   },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    justifyContent: "center",
+  /** Same tap target pattern as `app/video/[id].tsx` — wide row, not a tiny chevron-only hit area. */
+  backRow: {
+    minWidth: 72,
+    height: 44,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  backLabel: {
+    fontSize: 13,
+    fontFamily: AppFonts.bodyBold,
+    marginLeft: 2,
+  },
+  /** Mirrors back row width so the title stays visually centred. */
+  shareHit: {
+    minWidth: 72,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconBtnDisabled: {
     opacity: 0.6,
@@ -234,8 +282,9 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     fontSize: 17,
-    fontWeight: "600",
+    fontFamily: AppFonts.headingSemiBold,
     color: "#1F2937",
+    marginHorizontal: 4,
   },
   headerTitleDark: {
     color: "#F3F4F6",
@@ -257,6 +306,7 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+    zIndex: 0,
     backgroundColor: "#F9FAFB",
   },
 });
