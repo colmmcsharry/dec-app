@@ -1,6 +1,7 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import {
   createInitialWorkbookData,
+  EVENING_AUDIT_PRESET_TIMES,
   mergeModuleWorkbookData,
   MODULE_WORKBOOKS,
   type ModuleWorkbookData,
@@ -10,11 +11,22 @@ import {
   getModuleWorkbook,
   saveModuleWorkbook,
 } from "@/services/module-workbooks";
+import { Image } from "expo-image";
+import { Picker } from "@react-native-picker/picker";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, Check } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, Check } from "lucide-react-native";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   KeyboardAvoidingView,
+  type LayoutChangeEvent,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -25,6 +37,30 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+/** PDF-aligned strip colours (navy + app purple). */
+const WORKBOOK_BRAND_NAVY = "#2B2F4A";
+const WORKBOOK_TEXT = "#1E2430";
+const WORKBOOK_TEXT_BODY = "#363C48";
+
+const WORKBOOK_LOGO = require("@/assets/images/icon.png");
+
+const RATING_SCALE_1_10 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
+/** Picker uses a sentinel because some platforms treat "" oddly. */
+const RATING_PICKER_NONE = "__none__";
+const AUDIT_TIME_PICKER_NONE = "__audit_time_none__";
+
+const EVENING_AUDIT_PRESET_SET = new Set<string>([
+  ...EVENING_AUDIT_PRESET_TIMES,
+]);
+
+function normalizeStoredRating(raw: string): string {
+  const t = raw.trim();
+  const n = Number(t);
+  if (t === "" || !Number.isInteger(n) || n < 1 || n > 10) return "";
+  return String(n);
+}
+
 type SaveState = "loading" | "saving" | "saved";
 
 export default function ModuleWorkbookScreen() {
@@ -34,6 +70,20 @@ export default function ModuleWorkbookScreen() {
   const { isDark } = useTheme();
 
   const definition = slug ? MODULE_WORKBOOKS[slug] : undefined;
+  const digitalWorkbookPageTitles = useMemo(() => {
+    if (!definition) return [] as string[];
+    const labels: string[] = [];
+    for (const ws of definition.worksheetDefinitions) {
+      if (
+        ws.digitalPageLabel &&
+        labels[labels.length - 1] !== ws.digitalPageLabel
+      ) {
+        labels.push(ws.digitalPageLabel);
+      }
+    }
+    return labels;
+  }, [definition]);
+
   const initialData = useMemo(
     () => (definition ? createInitialWorkbookData(definition) : null),
     [definition]
@@ -41,7 +91,83 @@ export default function ModuleWorkbookScreen() {
 
   const [formData, setFormData] = useState<ModuleWorkbookData | null>(initialData);
   const [saveState, setSaveState] = useState<SaveState>("loading");
+  const [heroHeight, setHeroHeight] = useState(0);
   const hasHydratedRef = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionAnchorY = useRef<Record<string, number>>({});
+  const [ratingPickerTarget, setRatingPickerTarget] = useState<{
+    worksheetId: string;
+    fieldId: string;
+  } | null>(null);
+  const [auditTimePickerTarget, setAuditTimePickerTarget] = useState<{
+    auditIndex: number;
+    rowIndex: number;
+  } | null>(null);
+
+  const workbookIndexItems = useMemo(() => {
+    if (!definition) return [];
+    const items: { id: string; label: string }[] = [];
+    if (definition.contentSections.length > 0) {
+      items.push({ id: "section-content", label: "Course content" });
+    }
+    items.push({
+      id: "section-weekly",
+      label: definition.weeklyPlanCardTitle,
+    });
+    if (
+      definition.includeEveningAudit &&
+      (formData?.eveningAudits?.length ?? 0) > 0
+    ) {
+      items.push({
+        id: "section-audit",
+        label: definition.eveningAuditCardTitle,
+      });
+    }
+    digitalWorkbookPageTitles.forEach((label, i) => {
+      items.push({ id: `section-ws-${i}`, label });
+    });
+    items.push({
+      id: "section-journal",
+      label: definition.journalCardTitle,
+    });
+    return items;
+  }, [
+    definition,
+    digitalWorkbookPageTitles,
+    formData?.eveningAudits?.length,
+  ]);
+
+  const registerSectionAnchor = useCallback(
+    (id: string) => (event: LayoutChangeEvent) => {
+      sectionAnchorY.current[id] = event.nativeEvent.layout.y;
+    },
+    []
+  );
+
+  const scrollToSection = useCallback(
+    (id: string) => {
+      const yInStack = sectionAnchorY.current[id];
+      if (yInStack === undefined) return;
+      /** contentContainer.paddingTop + hero + sectionStack.marginTop + y within stack */
+      const contentPadTop = 16;
+      const stackMarginTop = 16;
+      const y =
+        contentPadTop +
+        heroHeight +
+        stackMarginTop +
+        yInStack -
+        12;
+      scrollRef.current?.scrollTo({ y: Math.max(0, y), animated: true });
+    },
+    [heroHeight]
+  );
+
+  const closeRatingPicker = useCallback(() => setRatingPickerTarget(null), []);
+
+  const closeAuditTimePicker = useCallback(
+    () => setAuditTimePickerTarget(null),
+    []
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -192,6 +318,34 @@ export default function ModuleWorkbookScreen() {
   /** Header tall enough for safe area + back row (see `customHeader` styles). */
   const keyboardVerticalOffset = insets.top + 12 + 44;
 
+  const ratingPickerSelectedNormalized =
+    ratingPickerTarget !== null
+      ? normalizeStoredRating(
+          formData.worksheets[ratingPickerTarget.worksheetId]?.[
+            ratingPickerTarget.fieldId
+          ] ?? ""
+        )
+      : "";
+  const ratingPickerSelectedValue =
+    ratingPickerSelectedNormalized === ""
+      ? RATING_PICKER_NONE
+      : ratingPickerSelectedNormalized;
+
+  const auditTimePickerRow =
+    auditTimePickerTarget !== null
+      ? formData.eveningAudits[auditTimePickerTarget.auditIndex]?.rows[
+          auditTimePickerTarget.rowIndex
+        ]
+      : undefined;
+  const auditTimePickerValueRaw = auditTimePickerRow?.time?.trim() ?? "";
+  const auditTimePickerSelectedValue =
+    auditTimePickerValueRaw === ""
+      ? AUDIT_TIME_PICKER_NONE
+      : auditTimePickerValueRaw;
+  const auditTimePickerHasLegacyValue =
+    auditTimePickerValueRaw !== "" &&
+    !EVENING_AUDIT_PRESET_SET.has(auditTimePickerValueRaw);
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
@@ -201,7 +355,7 @@ export default function ModuleWorkbookScreen() {
             styles.customHeader,
             {
               paddingTop: insets.top,
-              backgroundColor: isDark ? "#1A1A2E" : definition.color,
+              backgroundColor: isDark ? "#1A1A2E" : WORKBOOK_BRAND_NAVY,
             },
           ]}
         >
@@ -217,13 +371,13 @@ export default function ModuleWorkbookScreen() {
           >
             <ChevronLeft
               size={26}
-              color={isDark ? "#ECEDEE" : "#2C3E50"}
+              color={isDark ? "#ECEDEE" : "#FFFFFF"}
               strokeWidth={2.5}
             />
             <Text
               style={[
                 styles.customBackText,
-                { color: isDark ? "#ECEDEE" : "#2C3E50" },
+                { color: isDark ? "#ECEDEE" : "#FFFFFF" },
               ]}
             >
               Back
@@ -232,10 +386,13 @@ export default function ModuleWorkbookScreen() {
           <Text
             style={[
               styles.customHeaderTitle,
-              { color: isDark ? "#ECEDEE" : "#2C3E50" },
+              { color: isDark ? "#ECEDEE" : "#FFFFFF" },
             ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
           >
-            Module Workbook
+            Module {definition.moduleNumber} Workbook
           </Text>
           <View style={styles.customHeaderSpacer} />
         </View>
@@ -251,6 +408,7 @@ export default function ModuleWorkbookScreen() {
            * the header or yank content to the top of the screen.
            */}
           <ScrollView
+            ref={scrollRef}
             style={[styles.container, isDark && styles.containerDark]}
             contentContainerStyle={styles.contentContainer}
             keyboardShouldPersistTaps="handled"
@@ -258,26 +416,108 @@ export default function ModuleWorkbookScreen() {
             automaticallyAdjustKeyboardInsets={false}
           >
           <View
-            style={[
-              styles.heroCard,
-              { backgroundColor: isDark ? "#1E1E32" : "#FFFFFF" },
-            ]}
+            style={[styles.heroCard, isDark && styles.heroCardDarkShell]}
+            onLayout={(e) => setHeroHeight(e.nativeEvent.layout.height)}
+            collapsable={false}
           >
-            <Text style={[styles.moduleLabel, isDark && styles.subtextDark]}>
-              MODULE {definition.moduleNumber}
-            </Text>
-            <Text style={[styles.heroTitle, isDark && styles.textDark]}>
-              {definition.title}
-            </Text>
-            <Text style={[styles.heroBody, isDark && styles.subtextDark]}>
-              {definition.intro}
-            </Text>
-            <Text style={[styles.saveState, isDark && styles.subtextDark]}>
-              {saveStatusText}
-            </Text>
+            <View
+              style={[styles.heroBrandBand, isDark && styles.heroBrandBandDark]}
+            >
+              <View style={styles.heroBrandTopRow}>
+                <Image
+                  source={WORKBOOK_LOGO}
+                  style={styles.heroBrandLogo}
+                  contentFit="contain"
+                  accessibilityLabel="Course branding"
+                />
+                <View style={styles.heroBrandTitles}>
+                  <Text style={styles.heroModuleLabelOnBrand}>
+                    MODULE {definition.moduleNumber}
+                  </Text>
+                  <Text
+                    style={styles.heroTitleOnBrand}
+                    numberOfLines={4}
+                  >
+                    {definition.title}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.heroTagline}>Unlock your potential</Text>
+            </View>
+            <View
+              style={[styles.heroAccentBar, isDark && styles.heroAccentBarDark]}
+            />
+            <View
+              style={[
+                styles.heroIntroBlock,
+                isDark && styles.heroIntroBlockDark,
+              ]}
+            >
+              <Text
+                style={[styles.heroBody, isDark && styles.heroBodyDark]}
+              >
+                {definition.intro}
+              </Text>
+              <Text
+                style={[styles.saveState, isDark && styles.saveStateOnDark]}
+              >
+                {saveStatusText}
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.sectionStack}>
+          <View style={styles.sectionStack} collapsable={false}>
+            {/* ── Contents / index ── */}
+            <View
+              style={[
+                styles.sectionCard,
+                isDark && styles.sectionCardDark,
+              ]}
+            >
+              <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
+                In this workbook
+              </Text>
+              <Text
+                style={[styles.sectionBody, isDark && styles.sectionBodyDark]}
+              >
+                Jump to a section.
+              </Text>
+              <View
+                style={[
+                  styles.indexList,
+                  isDark && styles.indexListDark,
+                ]}
+              >
+                {workbookIndexItems.map((item, rowIndex) => (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => scrollToSection(item.id)}
+                    style={({ pressed }) => [
+                      styles.indexRow,
+                      isDark && styles.indexRowDark,
+                      rowIndex === workbookIndexItems.length - 1 &&
+                        styles.indexRowLast,
+                      { opacity: pressed ? 0.75 : 1 },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Go to ${item.label}`}
+                  >
+                    <Text
+                      style={[styles.indexRowLabel, isDark && styles.textDark]}
+                      numberOfLines={2}
+                    >
+                      {item.label}
+                    </Text>
+                    <ChevronRight
+                      size={20}
+                      color={isDark ? "#A8ACBF" : MAIN_PURPLE}
+                      strokeWidth={2}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
             {/* ── Educational Content ── */}
             {definition.contentSections.length > 0 && (
               <View
@@ -285,6 +525,8 @@ export default function ModuleWorkbookScreen() {
                   styles.sectionCard,
                   isDark && styles.sectionCardDark,
                 ]}
+                onLayout={registerSectionAnchor("section-content")}
+                collapsable={false}
               >
                 <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
                   Course Content
@@ -299,7 +541,7 @@ export default function ModuleWorkbookScreen() {
                     <Text
                       style={[
                         styles.contentBody,
-                        isDark && styles.subtextDark,
+                        isDark && styles.contentBodyDark,
                       ]}
                     >
                       {cs.body}
@@ -315,11 +557,13 @@ export default function ModuleWorkbookScreen() {
                 styles.sectionCard,
                 isDark && styles.sectionCardDark,
               ]}
+              onLayout={registerSectionAnchor("section-weekly")}
+              collapsable={false}
             >
               <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
                 {definition.weeklyPlanCardTitle}
               </Text>
-              <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
+              <Text style={[styles.sectionBody, isDark && styles.sectionBodyDark]}>
                 {definition.weeklyPlanCardDescription}
               </Text>
 
@@ -328,7 +572,7 @@ export default function ModuleWorkbookScreen() {
                   <Text style={[styles.planTitle, isDark && styles.textDark]}>
                     {section.title}
                   </Text>
-                  <Text style={[styles.planPrompt, isDark && styles.subtextDark]}>
+                  <Text style={[styles.planPrompt, isDark && styles.planPromptDark]}>
                     {section.prompt}
                   </Text>
                   <TextInput
@@ -347,49 +591,45 @@ export default function ModuleWorkbookScreen() {
                   <View style={styles.dayRows}>
                     {formData.weeklyPlan[section.id].daysCompleted.map(
                       (done, index) => (
-                        <View
+                        <Pressable
                           key={`${section.id}-day-${index}`}
-                          style={styles.dayRow}
+                          onPress={() =>
+                            togglePlanDayCompleted(section.id, index)
+                          }
+                          style={({ pressed }) => [
+                            styles.dayRow,
+                            { opacity: pressed ? 0.88 : 1 },
+                          ]}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: done }}
+                          accessibilityLabel={`Day ${index + 1}${
+                            done ? ", marked done" : ", not marked done"
+                          }`}
                         >
                           <Text
-                            style={[styles.dayLabel, isDark && styles.subtextDark]}
+                            style={[styles.dayLabel, isDark && styles.mutedDark]}
                           >
                             Day {index + 1}
                           </Text>
-                          <Pressable
-                            onPress={() =>
-                              togglePlanDayCompleted(section.id, index)
-                            }
-                            style={({ pressed }) => [
-                              styles.dayCheckHit,
-                              { opacity: pressed ? 0.88 : 1 },
+                          <View
+                            pointerEvents="none"
+                            style={[
+                              styles.dayCheckbox,
+                              isDark && styles.dayCheckboxDark,
+                              done && styles.dayCheckboxChecked,
                             ]}
-                            accessibilityRole="checkbox"
-                            accessibilityState={{ checked: done }}
-                            accessibilityLabel={`Day ${index + 1}${
-                              done ? ", marked done" : ", not marked done"
-                            }`}
-                            hitSlop={8}
                           >
-                            <View
-                              style={[
-                                styles.dayCheckbox,
-                                isDark && styles.dayCheckboxDark,
-                                done && styles.dayCheckboxChecked,
-                              ]}
-                            >
-                              {done ? (
-                                <View pointerEvents="none">
-                                  <Check
-                                    size={18}
-                                    color="#FFFFFF"
-                                    strokeWidth={3}
-                                  />
-                                </View>
-                              ) : null}
-                            </View>
-                          </Pressable>
-                        </View>
+                            {done ? (
+                              <View pointerEvents="none">
+                                <Check
+                                  size={18}
+                                  color="#FFFFFF"
+                                  strokeWidth={3}
+                                />
+                              </View>
+                            ) : null}
+                          </View>
+                        </Pressable>
                       ),
                     )}
                   </View>
@@ -403,11 +643,13 @@ export default function ModuleWorkbookScreen() {
                 styles.sectionCard,
                 isDark && styles.sectionCardDark,
               ]}
+              onLayout={registerSectionAnchor("section-audit")}
+              collapsable={false}
             >
               <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
                 {definition.eveningAuditCardTitle}
               </Text>
-              <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
+              <Text style={[styles.sectionBody, isDark && styles.sectionBodyDark]}>
                 {definition.eveningAuditCardDescription}
               </Text>
 
@@ -426,7 +668,7 @@ export default function ModuleWorkbookScreen() {
                           style={[
                             styles.auditColumnHeader,
                             styles.auditColumnHeaderTime,
-                            isDark && styles.subtextDark,
+                            isDark && styles.mutedDark,
                           ]}
                         >
                           Time
@@ -435,7 +677,7 @@ export default function ModuleWorkbookScreen() {
                           style={[
                             styles.auditColumnHeader,
                             styles.auditColumnHeaderActivity,
-                            isDark && styles.subtextDark,
+                            isDark && styles.mutedDark,
                           ]}
                         >
                           Activity
@@ -446,19 +688,49 @@ export default function ModuleWorkbookScreen() {
                         key={`audit-row-${auditIndex}-${rowIndex}`}
                         style={styles.auditRow}
                       >
-                        <TextInput
-                          value={row.time}
-                          onChangeText={(value) =>
-                            updateAuditRow(auditIndex, rowIndex, "time", value)
-                          }
-                          placeholder="e.g. 7:30"
-                          placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
-                          style={[
-                            styles.timeInput,
-                            isDark && styles.inputDark,
-                            isDark && styles.textDark,
+                        <Pressable
+                          onPress={() => {
+                            setRatingPickerTarget(null);
+                            setAuditTimePickerTarget({
+                              auditIndex,
+                              rowIndex,
+                            });
+                          }}
+                          style={({ pressed }) => [
+                            styles.ratingPickerTrigger,
+                            styles.auditTimePickerTrigger,
+                            isDark && styles.ratingPickerTriggerDark,
+                            { opacity: pressed ? 0.88 : 1 },
                           ]}
-                        />
+                          accessibilityRole="button"
+                          accessibilityLabel={
+                            row.time.trim()
+                              ? `Time ${row.time}, change`
+                              : "Choose time"
+                          }
+                        >
+                          <Text
+                            style={[
+                              styles.ratingPickerTriggerText,
+                              !row.time.trim() &&
+                                styles.ratingPickerTriggerPlaceholder,
+                              isDark &&
+                                !!row.time.trim() &&
+                                styles.textDark,
+                              isDark &&
+                                !row.time.trim() &&
+                                styles.ratingPickerTriggerPlaceholderDark,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {row.time.trim() ? row.time.trim() : "Choose time…"}
+                          </Text>
+                          <ChevronDown
+                            size={20}
+                            color={isDark ? "#A8ACBF" : MAIN_PURPLE}
+                            strokeWidth={2}
+                          />
+                        </Pressable>
                         <TextInput
                           value={row.activity}
                           onChangeText={(value) =>
@@ -485,46 +757,170 @@ export default function ModuleWorkbookScreen() {
             </View>
             )}
 
-            {/* ── Interactive Worksheets ── */}
-            {definition.worksheetDefinitions.map((ws) => (
-              <View
-                key={ws.id}
-                style={[
-                  styles.sectionCard,
-                  isDark && styles.sectionCardDark,
-                ]}
-              >
-                <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
-                  {ws.title}
-                </Text>
-                <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
-                  {ws.description}
-                </Text>
-                {ws.fields.map((field) => (
-                  <View key={field.id} style={styles.worksheetField}>
-                    <Text
-                      style={[styles.worksheetLabel, isDark && styles.textDark]}
-                    >
-                      {field.label}
-                    </Text>
-                    <TextInput
-                      value={formData.worksheets?.[ws.id]?.[field.id] ?? ""}
-                      onChangeText={(v) =>
-                        updateWorksheetField(ws.id, field.id, v)
-                      }
-                      placeholder={field.placeholder ?? "Type here"}
-                      placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
-                      multiline
+            {/* ── Interactive Worksheets (grouped into PDF-aligned pages) ── */}
+            {definition.worksheetDefinitions.map((ws, worksheetIndex) => {
+              const prevLabel =
+                definition.worksheetDefinitions[worksheetIndex - 1]
+                  ?.digitalPageLabel;
+              const showPageBreak =
+                !!ws.digitalPageLabel && ws.digitalPageLabel !== prevLabel;
+              const pageNum =
+                ws.digitalPageLabel &&
+                digitalWorkbookPageTitles.length > 0
+                  ? digitalWorkbookPageTitles.indexOf(ws.digitalPageLabel) + 1
+                  : 0;
+              const worksheetSectionId =
+                showPageBreak && ws.digitalPageLabel
+                  ? `section-ws-${digitalWorkbookPageTitles.indexOf(ws.digitalPageLabel)}`
+                  : null;
+
+              return (
+                <Fragment key={ws.id}>
+                  {showPageBreak ? (
+                    <View
                       style={[
-                        styles.textArea,
-                        isDark && styles.inputDark,
-                        isDark && styles.textDark,
+                        styles.workbookPageBreak,
+                        isDark && styles.workbookPageBreakDark,
                       ]}
-                    />
+                      onLayout={
+                        worksheetSectionId
+                          ? registerSectionAnchor(worksheetSectionId)
+                          : undefined
+                      }
+                      collapsable={false}
+                    >
+                      <Text
+                        style={[
+                          styles.workbookPageEyebrow,
+                          isDark
+                            ? styles.workbookPageEyebrowDark
+                            : styles.workbookPageEyebrowLight,
+                        ]}
+                      >
+                        Digital workbook
+                        {pageNum > 0
+                          ? ` · Page ${pageNum} of ${digitalWorkbookPageTitles.length}`
+                          : ""}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.workbookPageTitle,
+                          isDark && styles.textDark,
+                        ]}
+                      >
+                        {ws.digitalPageLabel}
+                      </Text>
+                    </View>
+                  ) : null}
+                  <View
+                    style={[
+                      styles.sectionCard,
+                      isDark && styles.sectionCardDark,
+                    ]}
+                  >
+                    <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
+                      {ws.title}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.sectionBody,
+                        isDark && styles.sectionBodyDark,
+                      ]}
+                    >
+                      {ws.description}
+                    </Text>
+                    {ws.fields.map((field) => {
+                      const storedValue =
+                        formData.worksheets?.[ws.id]?.[field.id] ?? "";
+
+                      if (field.inputKind === "rating1to10") {
+                        const display = normalizeStoredRating(storedValue);
+                        return (
+                          <View key={field.id} style={styles.worksheetField}>
+                            <Text
+                              style={[
+                                styles.worksheetLabel,
+                                isDark && styles.textDark,
+                              ]}
+                            >
+                              {field.label}
+                            </Text>
+                            <Pressable
+                              onPress={() => {
+                                setAuditTimePickerTarget(null);
+                                setRatingPickerTarget({
+                                  worksheetId: ws.id,
+                                  fieldId: field.id,
+                                });
+                              }}
+                              style={({ pressed }) => [
+                                styles.ratingPickerTrigger,
+                                isDark && styles.ratingPickerTriggerDark,
+                                { opacity: pressed ? 0.88 : 1 },
+                              ]}
+                              accessibilityRole="button"
+                              accessibilityLabel={
+                                display
+                                  ? `Energy rating ${display} out of 10, change`
+                                  : "Choose energy rating 1 to 10"
+                              }
+                            >
+                              <Text
+                                style={[
+                                  styles.ratingPickerTriggerText,
+                                  !display && styles.ratingPickerTriggerPlaceholder,
+                                  isDark && display && styles.textDark,
+                                  isDark && !display && styles.ratingPickerTriggerPlaceholderDark,
+                                ]}
+                              >
+                                {display ? `${display} / 10` : "Choose rating…"}
+                              </Text>
+                              <ChevronDown
+                                size={22}
+                                color={isDark ? "#A8ACBF" : MAIN_PURPLE}
+                                strokeWidth={2}
+                              />
+                            </Pressable>
+                          </View>
+                        );
+                      }
+
+                      const singleLine = field.multiline === false;
+                      return (
+                        <View key={field.id} style={styles.worksheetField}>
+                          <Text
+                            style={[
+                              styles.worksheetLabel,
+                              isDark && styles.textDark,
+                            ]}
+                          >
+                            {field.label}
+                          </Text>
+                          <TextInput
+                            value={storedValue}
+                            onChangeText={(v) =>
+                              updateWorksheetField(ws.id, field.id, v)
+                            }
+                            placeholder={field.placeholder ?? "Type here"}
+                            placeholderTextColor={
+                              isDark ? "#7B7E95" : "#9CA3AF"
+                            }
+                            multiline={!singleLine}
+                            style={[
+                              singleLine
+                                ? styles.textInputSingle
+                                : styles.textArea,
+                              isDark && styles.inputDark,
+                              isDark && styles.textDark,
+                            ]}
+                          />
+                        </View>
+                      );
+                    })}
                   </View>
-                ))}
-              </View>
-            ))}
+                </Fragment>
+              );
+            })}
 
             {/* ── Journal ── */}
             <View
@@ -532,18 +928,20 @@ export default function ModuleWorkbookScreen() {
                 styles.sectionCard,
                 isDark && styles.sectionCardDark,
               ]}
+              onLayout={registerSectionAnchor("section-journal")}
+              collapsable={false}
             >
               <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
                 {definition.journalCardTitle}
               </Text>
-              <Text style={[styles.sectionBody, isDark && styles.subtextDark]}>
+              <Text style={[styles.sectionBody, isDark && styles.sectionBodyDark]}>
                 {definition.journalCardDescription}
               </Text>
               <View style={styles.promptList}>
                 {definition.journalPrompts.map((prompt, index) => (
                   <Text
                     key={`prompt-${index}`}
-                    style={[styles.promptItem, isDark && styles.subtextDark]}
+                    style={[styles.promptItem, isDark && styles.promptItemDark]}
                   >
                     {index + 1}. {prompt}
                   </Text>
@@ -567,6 +965,176 @@ export default function ModuleWorkbookScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
       </View>
+
+      <Modal
+        visible={ratingPickerTarget !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={closeRatingPicker}
+      >
+        <View style={styles.ratingModalRoot}>
+          <Pressable
+            style={styles.ratingModalBackdrop}
+            onPress={closeRatingPicker}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss"
+          />
+          <View
+            style={[
+              styles.ratingModalSheet,
+              isDark && styles.ratingModalSheetDark,
+              { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+            ]}
+          >
+            <View style={styles.ratingModalHeader}>
+              <Text
+                style={[
+                  styles.ratingModalTitle,
+                  isDark && styles.textDark,
+                ]}
+              >
+                Energy (1–10)
+              </Text>
+              <Pressable
+                onPress={closeRatingPicker}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel="Done"
+              >
+                <Text style={styles.ratingModalDone}>Done</Text>
+              </Pressable>
+            </View>
+            <Picker
+              selectedValue={ratingPickerSelectedValue}
+              onValueChange={(itemValue) => {
+                if (!ratingPickerTarget) return;
+                const v =
+                  itemValue === RATING_PICKER_NONE ? "" : String(itemValue);
+                updateWorksheetField(
+                  ratingPickerTarget.worksheetId,
+                  ratingPickerTarget.fieldId,
+                  v
+                );
+              }}
+              style={styles.ratingPickerWheel}
+              {...(Platform.OS === "ios"
+                ? {
+                    itemStyle: {
+                      color: isDark ? "#ECEDEE" : WORKBOOK_TEXT,
+                    },
+                  }
+                : {})}
+            >
+              <Picker.Item
+                label="— Not set"
+                value={RATING_PICKER_NONE}
+                color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
+              />
+              {RATING_SCALE_1_10.map((n) => (
+                <Picker.Item
+                  key={n}
+                  label={
+                    n === 1
+                      ? "1 — very low"
+                      : n === 10
+                        ? "10 — tip-top"
+                        : String(n)
+                  }
+                  value={String(n)}
+                  color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
+                />
+              ))}
+            </Picker>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={auditTimePickerTarget !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={closeAuditTimePicker}
+      >
+        <View style={styles.ratingModalRoot}>
+          <Pressable
+            style={styles.ratingModalBackdrop}
+            onPress={closeAuditTimePicker}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss"
+          />
+          <View
+            style={[
+              styles.ratingModalSheet,
+              isDark && styles.ratingModalSheetDark,
+              { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+            ]}
+          >
+            <View style={styles.ratingModalHeader}>
+              <Text
+                style={[
+                  styles.ratingModalTitle,
+                  isDark && styles.textDark,
+                ]}
+              >
+                Time
+              </Text>
+              <Pressable
+                onPress={closeAuditTimePicker}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel="Done"
+              >
+                <Text style={styles.ratingModalDone}>Done</Text>
+              </Pressable>
+            </View>
+            <Picker
+              selectedValue={auditTimePickerSelectedValue}
+              onValueChange={(itemValue) => {
+                if (!auditTimePickerTarget) return;
+                const v =
+                  itemValue === AUDIT_TIME_PICKER_NONE
+                    ? ""
+                    : String(itemValue);
+                updateAuditRow(
+                  auditTimePickerTarget.auditIndex,
+                  auditTimePickerTarget.rowIndex,
+                  "time",
+                  v
+                );
+              }}
+              style={styles.ratingPickerWheel}
+              {...(Platform.OS === "ios"
+                ? {
+                    itemStyle: {
+                      color: isDark ? "#ECEDEE" : WORKBOOK_TEXT,
+                    },
+                  }
+                : {})}
+            >
+              <Picker.Item
+                label="— Not set"
+                value={AUDIT_TIME_PICKER_NONE}
+                color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
+              />
+              {auditTimePickerHasLegacyValue ? (
+                <Picker.Item
+                  label={`${auditTimePickerValueRaw} (saved)`}
+                  value={auditTimePickerValueRaw}
+                  color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
+                />
+              ) : null}
+              {EVENING_AUDIT_PRESET_TIMES.map((t) => (
+                <Picker.Item
+                  key={t}
+                  label={t}
+                  value={t}
+                  color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
+                />
+              ))}
+            </Picker>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -609,7 +1177,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F7",
+    backgroundColor: "#F3F2F7",
   },
   containerDark: {
     backgroundColor: "#121222",
@@ -621,47 +1189,157 @@ const styles = StyleSheet.create({
   textDark: {
     color: "#ECEDEE",
   },
-  subtextDark: {
-    color: "#9090A8",
+  mutedDark: {
+    color: "#AEB3C4",
+  },
+  contentBodyDark: {
+    color: "#D8DBE8",
+  },
+  sectionBodyDark: {
+    color: "#CFD2E0",
+  },
+  planPromptDark: {
+    color: "#C4C8D8",
+  },
+  promptItemDark: {
+    color: "#C8CBD8",
+  },
+  workbookPageEyebrowLight: {
+    color: MAIN_PURPLE,
+  },
+  workbookPageEyebrowDark: {
+    color: "#A8B4E8",
   },
   heroCard: {
     borderRadius: 20,
-    padding: 20,
+    overflow: "hidden",
+    padding: 0,
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
   },
-  moduleLabel: {
-    fontSize: 12,
-    fontFamily: AppFonts.headingBold,
-    color: "#8E8EA0",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    marginBottom: 6,
+  heroCardDarkShell: {
+    backgroundColor: "#1A1D30",
   },
-  heroTitle: {
-    fontSize: 24,
+  heroBrandBand: {
+    backgroundColor: WORKBOOK_BRAND_NAVY,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
+  },
+  heroBrandBandDark: {
+    backgroundColor: "#242742",
+  },
+  heroBrandTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  heroBrandLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.35)",
+  },
+  heroBrandTitles: {
+    flex: 1,
+  },
+  heroModuleLabelOnBrand: {
+    fontSize: 11,
     fontFamily: AppFonts.headingBold,
-    color: "#2C3E50",
+    color: "rgba(255,255,255,0.85)",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+  },
+  heroTitleOnBrand: {
+    marginTop: 4,
+    fontSize: 22,
+    fontFamily: AppFonts.headingBold,
+    color: "#FFFFFF",
+    lineHeight: 28,
+  },
+  heroTagline: {
+    marginTop: 14,
+    fontSize: 14,
+    fontFamily: AppFonts.bodyMedium,
+    fontStyle: "italic",
+    color: "rgba(255,255,255,0.9)",
+  },
+  heroAccentBar: {
+    height: 5,
+    backgroundColor: "#A8B4E8",
+  },
+  heroAccentBarDark: {
+    backgroundColor: MAIN_PURPLE,
+  },
+  heroIntroBlock: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 18,
+  },
+  heroIntroBlockDark: {
+    backgroundColor: "#1E1E32",
   },
   heroBody: {
-    marginTop: 10,
     fontSize: 15,
     lineHeight: 23,
-    color: "#6B7280",
+    color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyRegular,
+  },
+  heroBodyDark: {
+    color: "#D8DBE8",
   },
   saveState: {
     marginTop: 14,
     fontSize: 13,
-    color: "#5D9B8B",
+    color: "#3D8B7A",
     fontFamily: AppFonts.bodyBold,
+  },
+  saveStateOnDark: {
+    color: "#7DCEB8",
   },
   sectionStack: {
     marginTop: 16,
     gap: 16,
+  },
+  indexList: {
+    marginTop: 8,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#E8E8EF",
+  },
+  indexListDark: {
+    borderColor: "#2A2A3E",
+  },
+  indexRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    backgroundColor: "#F9FAFB",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E5E7EB",
+  },
+  indexRowDark: {
+    backgroundColor: "#141425",
+    borderBottomColor: "#2A2A3E",
+  },
+  indexRowLast: {
+    borderBottomWidth: 0,
+  },
+  indexRowLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: AppFonts.bodyMedium,
+    color: WORKBOOK_TEXT,
   },
   sectionCard: {
     backgroundColor: "#FFFFFF",
@@ -679,13 +1357,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontFamily: AppFonts.headingBold,
-    color: "#2C3E50",
+    color: WORKBOOK_TEXT,
   },
   sectionBody: {
     marginTop: 8,
     fontSize: 14,
     lineHeight: 21,
-    color: "#6B7280",
+    color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyRegular,
   },
   planSection: {
@@ -694,14 +1372,14 @@ const styles = StyleSheet.create({
   planTitle: {
     fontSize: 18,
     fontFamily: AppFonts.headingSemiBold,
-    color: "#2C3E50",
+    color: WORKBOOK_TEXT,
   },
   planPrompt: {
     marginTop: 6,
     marginBottom: 10,
     fontSize: 14,
     lineHeight: 21,
-    color: "#6B7280",
+    color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyRegular,
   },
   textArea: {
@@ -714,7 +1392,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     lineHeight: 22,
-    color: "#2C3E50",
+    color: WORKBOOK_TEXT,
     fontFamily: AppFonts.bodyRegular,
   },
   inputDark: {
@@ -730,16 +1408,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    paddingVertical: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    minHeight: 48,
   },
   dayLabel: {
     flex: 1,
     fontSize: 14,
-    color: "#6B7280",
+    color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyMedium,
-  },
-  dayCheckHit: {
-    padding: 4,
   },
   dayCheckbox: {
     width: 30,
@@ -773,11 +1450,11 @@ const styles = StyleSheet.create({
   auditColumnHeader: {
     fontSize: 13,
     fontFamily: AppFonts.bodyBold,
-    color: "#6B7280",
+    color: WORKBOOK_TEXT_BODY,
     letterSpacing: 0.3,
   },
   auditColumnHeaderTime: {
-    width: 96,
+    width: 112,
   },
   auditColumnHeaderActivity: {
     flex: 1,
@@ -786,18 +1463,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 10,
-  },
-  timeInput: {
-    width: 96,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    fontSize: 14,
-    color: "#2C3E50",
-    fontFamily: AppFonts.bodyRegular,
   },
   activityInput: {
     flex: 1,
@@ -808,7 +1473,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 11,
     fontSize: 14,
-    color: "#2C3E50",
+    color: WORKBOOK_TEXT,
     fontFamily: AppFonts.bodyRegular,
   },
   contentBlock: {
@@ -817,22 +1482,138 @@ const styles = StyleSheet.create({
   contentHeading: {
     fontSize: 18,
     fontFamily: AppFonts.headingSemiBold,
-    color: "#2C3E50",
+    color: WORKBOOK_TEXT,
     marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: MAIN_PURPLE,
+    paddingLeft: 12,
   },
   contentBody: {
     fontSize: 15,
     lineHeight: 23,
-    color: "#4B5563",
+    color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyRegular,
   },
   worksheetField: {
     marginTop: 14,
   },
+  ratingPickerTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  ratingPickerTriggerDark: {
+    backgroundColor: "#141425",
+    borderColor: "#34364A",
+  },
+  ratingPickerTriggerText: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: AppFonts.bodyMedium,
+    color: WORKBOOK_TEXT,
+  },
+  ratingPickerTriggerPlaceholder: {
+    color: "#9CA3AF",
+    fontFamily: AppFonts.bodyRegular,
+  },
+  ratingPickerTriggerPlaceholderDark: {
+    color: "#7B7E95",
+  },
+  auditTimePickerTrigger: {
+    width: 112,
+    flexGrow: 0,
+    flexShrink: 0,
+    paddingHorizontal: 10,
+    gap: 4,
+    minHeight: 44,
+  },
+  ratingModalRoot: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  ratingModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  ratingModalSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingTop: 8,
+    paddingHorizontal: 16,
+  },
+  ratingModalSheetDark: {
+    backgroundColor: "#252838",
+  },
+  ratingModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 0,
+    paddingBottom: 8,
+  },
+  ratingModalTitle: {
+    fontSize: 17,
+    fontFamily: AppFonts.headingSemiBold,
+    color: WORKBOOK_TEXT,
+  },
+  ratingModalDone: {
+    fontSize: 16,
+    fontFamily: AppFonts.bodyBold,
+    color: MAIN_PURPLE,
+  },
+  ratingPickerWheel: {
+    width: "100%",
+  },
+  workbookPageBreak: {
+    marginTop: 8,
+    marginBottom: 4,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: MAIN_PURPLE,
+    backgroundColor: "rgba(113, 135, 206, 0.1)",
+  },
+  workbookPageBreakDark: {
+    backgroundColor: "rgba(113, 135, 206, 0.14)",
+    borderLeftColor: "#A8B4E8",
+  },
+  workbookPageEyebrow: {
+    fontSize: 12,
+    fontFamily: AppFonts.bodyBold,
+    letterSpacing: 0.4,
+  },
+  workbookPageTitle: {
+    marginTop: 6,
+    fontSize: 20,
+    fontFamily: AppFonts.headingBold,
+    color: WORKBOOK_TEXT,
+  },
+  textInputSingle: {
+    minHeight: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: WORKBOOK_TEXT,
+    fontFamily: AppFonts.bodyRegular,
+  },
   worksheetLabel: {
     fontSize: 15,
     fontFamily: AppFonts.bodyMedium,
-    color: "#2C3E50",
+    color: WORKBOOK_TEXT,
     marginBottom: 8,
   },
   promptList: {
@@ -842,7 +1623,7 @@ const styles = StyleSheet.create({
   promptItem: {
     fontSize: 14,
     lineHeight: 21,
-    color: "#6B7280",
+    color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyRegular,
   },
   journalInput: {
@@ -856,7 +1637,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     lineHeight: 22,
-    color: "#2C3E50",
+    color: WORKBOOK_TEXT,
     fontFamily: AppFonts.bodyRegular,
   },
   missingState: {
@@ -867,7 +1648,7 @@ const styles = StyleSheet.create({
   },
   missingTitle: {
     fontSize: 20,
-    color: "#2C3E50",
+    color: WORKBOOK_TEXT,
     fontFamily: AppFonts.headingBold,
   },
 });

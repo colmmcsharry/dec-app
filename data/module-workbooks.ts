@@ -26,6 +26,10 @@ export interface WorksheetField {
   id: string;
   label: string;
   placeholder?: string;
+  /** Default true — use false for short single-line answers (e.g. 1–10 ratings). */
+  multiline?: boolean;
+  /** `rating1to10` shows a tap scale instead of a text box. */
+  inputKind?: "text" | "rating1to10";
 }
 
 /** An interactive worksheet card (free-text fields saved locally). */
@@ -34,6 +38,11 @@ export interface WorksheetDefinition {
   title: string;
   description: string;
   fields: WorksheetField[];
+  /**
+   * When set on the first worksheet of a PDF, the workbook shows a page divider.
+   * Leave unset on follow-on sheets that belong to the same PDF.
+   */
+  digitalPageLabel?: string;
 }
 
 export interface ModuleWorkbookData {
@@ -77,6 +86,42 @@ const DAY_COUNT = 7;
 const AUDIT_BLOCKS_SLEEP = 2;
 const AUDIT_ROWS_PER_BLOCK = 8;
 
+/**
+ * Evening audit presets: start 6:00 AM, ~every 3–4 hours, end 1:00 AM (7 rows).
+ * Gaps: +3h five times from 6am→9pm, then +4h to 1am.
+ * Row 1 defaults to index 0, … (row 0 is a non-editable header row in the UI).
+ */
+export const EVENING_AUDIT_PRESET_TIMES = [
+  "6:00 AM",
+  "9:00 AM",
+  "12:00 PM",
+  "3:00 PM",
+  "6:00 PM",
+  "9:00 PM",
+  "1:00 AM",
+] as const;
+
+function defaultEveningAuditTimeForRow(rowIndex: number): string {
+  if (rowIndex <= 0) return "";
+  const slot = rowIndex - 1;
+  const labels = EVENING_AUDIT_PRESET_TIMES;
+  return labels[slot % labels.length]!;
+}
+
+/**
+ * Previous default row times (2h from 6:00 AM). If stored data still matches
+ * these, we upgrade to {@link EVENING_AUDIT_PRESET_TIMES} on merge.
+ */
+const LEGACY_EVENING_AUDIT_ROW_DEFAULTS = [
+  "6:00 AM",
+  "8:00 AM",
+  "10:00 AM",
+  "12:00 PM",
+  "2:00 PM",
+  "4:00 PM",
+  "6:00 PM",
+] as const;
+
 export function createInitialWorkbookData(
   definition: ModuleWorkbookDefinition
 ): ModuleWorkbookData {
@@ -98,8 +143,8 @@ export function createInitialWorkbookData(
       ])
     ),
     eveningAudits: Array.from({ length: auditBlocks }, () => ({
-      rows: Array.from({ length: AUDIT_ROWS_PER_BLOCK }, () => ({
-        time: "",
+      rows: Array.from({ length: AUDIT_ROWS_PER_BLOCK }, (_, ri) => ({
+        time: defaultEveningAuditTimeForRow(ri),
         activity: "",
       })),
     })),
@@ -131,7 +176,24 @@ export function mergeModuleWorkbookData(
         return { time: "", activity: "" };
       }
       return {
-        time: stored.eveningAudits?.[bi]?.rows?.[ri]?.time ?? row.time,
+        time: (() => {
+          const st = stored.eveningAudits?.[bi]?.rows?.[ri]?.time;
+          const actRaw = stored.eveningAudits?.[bi]?.rows?.[ri]?.activity;
+          const sa = typeof actRaw === "string" ? actRaw : "";
+          const slot = ri - 1;
+          if (typeof st === "string" && st !== "") {
+            if (
+              slot >= 0 &&
+              slot < LEGACY_EVENING_AUDIT_ROW_DEFAULTS.length &&
+              st === LEGACY_EVENING_AUDIT_ROW_DEFAULTS[slot]
+            ) {
+              return row.time;
+            }
+            return st;
+          }
+          if (st === "" && sa.trim() !== "") return "";
+          return row.time;
+        })(),
         activity:
           stored.eveningAudits?.[bi]?.rows?.[ri]?.activity ?? row.activity,
       };
@@ -190,6 +252,34 @@ function mergePlanSection(
   }
 
   return { action, daysCompleted: [...fallback.daysCompleted] };
+}
+
+/** Times printed on the Module 3 “Track your energy” PDF (per work day). */
+const ENERGY_TRACKER_TIMES = [
+  "5:00am",
+  "6:30am",
+  "8:00am",
+  "9:30am",
+  "11:00am",
+  "12:30pm",
+  "2:00pm",
+  "3:30pm",
+  "5:00pm",
+  "6:30pm",
+  "8:00pm",
+  "9:30pm",
+  "11:00pm",
+  "12:30am",
+  "2:00am",
+  "3:30am",
+] as const;
+
+function energyTrackerFieldsForOneDay(): WorksheetField[] {
+  return ENERGY_TRACKER_TIMES.map((time, i) => ({
+    id: `t${String(i).padStart(2, "0")}`,
+    label: `${time} — energy (1–10)`,
+    inputKind: "rating1to10" as const,
+  }));
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -438,30 +528,304 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
 
     worksheetDefinitions: [
       {
-        id: "energyTracker",
-        title: "Track Your Energy",
+        id: "energyWorkDay1",
+        digitalPageLabel: "Track Your Energy",
+        title: "Work day 1 — energy check-ins",
         description:
-          "For three days, rank your energy between 1 (very low) and 10 (tip-top) at different times. This helps you identify whether you're an early bird, midday bear, or night owl.",
+          "Rank your energy from 1 (very low) to 10 (tip-top) at each time, matching the printed tracker.",
+        fields: energyTrackerFieldsForOneDay(),
+      },
+      {
+        id: "energyWorkDay2",
+        title: "Work day 2 — energy check-ins",
+        description: "Same times as day 1 — keep logging honestly, even if your schedule shifts.",
+        fields: energyTrackerFieldsForOneDay(),
+      },
+      {
+        id: "energyWorkDay3",
+        title: "Work day 3 — energy check-ins",
+        description: "Final day of the three-day sample. You can copy the grid again later in your journal if needed.",
+        fields: energyTrackerFieldsForOneDay(),
+      },
+      {
+        id: "energyPattern",
+        title: "Energy pattern",
+        description: "Step back and name what you saw across the three days.",
         fields: [
-          { id: "day1", label: "Day 1 — energy pattern notes", placeholder: "e.g. peaked at 10am, slumped at 2pm…" },
-          { id: "day2", label: "Day 2 — energy pattern notes", placeholder: "e.g. better after a walk at lunch…" },
-          { id: "day3", label: "Day 3 — energy pattern notes", placeholder: "e.g. low start, strong afternoon…" },
-          { id: "insight", label: "What pattern did you spot?", placeholder: "Am I an early bird, midday bear, or night owl?" },
+          {
+            id: "insight",
+            label: "What pattern did you spot? (early bird, midday bear, night owl, or something else?)",
+            placeholder: "e.g. strong 9–11am, crash after lunch unless I walk…",
+          },
+          {
+            id: "taskMatching",
+            label: "Which high-focus tasks will you place in your best windows next week?",
+            placeholder: "Match demanding work to your peaks",
+          },
+        ],
+      },
+      {
+        id: "emailCheatsheet",
+        digitalPageLabel: "Your Email Cheatsheet",
+        title: "Your inbox rules",
+        description:
+          "Personalise the cheatsheet: how you will treat mail this week so the inbox stays an action zone, not a curiosity trap.",
+        fields: [
+          {
+            id: "actionMindset",
+            label: "How I will enter my inbox (action, not curiosity)",
+            placeholder: "e.g. 2 focused passes per day, no scroll…",
+          },
+          {
+            id: "twoMinute",
+            label: "My two-minute reply rule in practice",
+            placeholder: "What counts as ‘under two minutes’ for me?",
+          },
+          {
+            id: "actionFolder",
+            label: "@Action folder — what goes here and when I process it",
+            placeholder: "e.g. needs thought; batch 20 minutes at 4pm…",
+          },
+          {
+            id: "waitingFolder",
+            label: "@WaitingFor folder — what I track and how I review it",
+            placeholder: "CC threads, outstanding replies I’m monitoring…",
+          },
+          {
+            id: "unsubscribe",
+            label: "Newsletters or senders I will unsubscribe / filter this week",
+            placeholder: "Be ruthless",
+          },
+          {
+            id: "boomerangOrPause",
+            label: "How I will pause or batch the inbox (e.g. Boomerang, scheduled focus)",
+            placeholder: "When I pause, when I unpause",
+          },
+          {
+            id: "signature",
+            label: "Signature or closing line I will reuse to save typing",
+            placeholder: "Paste or draft your default sign-off",
+          },
+        ],
+      },
+      {
+        id: "emailTemplates",
+        digitalPageLabel: "Time-Saving Email Templates",
+        title: "Reusable email drafts",
+        description:
+          "Capture a few templates you send often (intro, follow-up, decline politely, scheduling). Paste or paraphrase; edit on the fly in real email later.",
+        fields: [
+          {
+            id: "tpl1Name",
+            label: "Template 1 — when I use it",
+            placeholder: "e.g. Warm intro requesting a 20-min call",
+          },
+          {
+            id: "tpl1Body",
+            label: "Template 1 — draft",
+            placeholder: "Write the skeleton you can copy/paste",
+          },
+          {
+            id: "tpl2Name",
+            label: "Template 2 — when I use it",
+            placeholder: "e.g. Friendly ‘not this week’",
+          },
+          {
+            id: "tpl2Body",
+            label: "Template 2 — draft",
+            placeholder: "",
+          },
+          {
+            id: "tpl3Name",
+            label: "Template 3 — when I use it",
+            placeholder: "e.g. Chasing a reply after no response",
+          },
+          {
+            id: "tpl3Body",
+            label: "Template 3 — draft",
+            placeholder: "",
+          },
+        ],
+      },
+      {
+        id: "planTimeWisely",
+        digitalPageLabel: "Plan & Use Your Time Wisely",
+        title: "Calendar protection",
+        description:
+          "Turn the ‘protect your calendar’ ideas into concrete phrases and commitments (pairs with the printed planner if you have it).",
+        fields: [
+          {
+            id: "stockPhrase",
+            label: "Stock phrase I will use before saying yes to new commitments",
+            placeholder: "e.g. Let me check the calendar and get back to you…",
+          },
+          {
+            id: "meetingsFix",
+            label: "Meetings I will shorten, clarify, or decline — and how",
+            placeholder: "Goal, agenda, or polite exit",
+          },
+          {
+            id: "focusBlocks",
+            label: "High-potential hours I am blocking for deep work",
+            placeholder: "Days / times on the calendar",
+          },
+          {
+            id: "timeLeaks",
+            label: "Biggest calendar or commitment leak right now",
+            placeholder: "What steals focused time?",
+          },
+          {
+            id: "nextWeekBoundary",
+            label: "One boundary I will hold next week to protect those hours",
+            placeholder: "",
+          },
+        ],
+      },
+      {
+        id: "stayEnergized",
+        digitalPageLabel: "Stay Energized",
+        title: "Energy habits",
+        description:
+          "Exercise, breaks, fuel, and naps — note what you will actually do on busy weeks.",
+        fields: [
+          {
+            id: "movement",
+            label: "Movement or exercise I will schedule",
+            placeholder: "Walks, gym, stretch blocks…",
+          },
+          {
+            id: "fuel",
+            label: "Food and hydration choices that support steady energy",
+            placeholder: "",
+          },
+          {
+            id: "napOrReset",
+            label: "Nap or reset window that fits my day (if any)",
+            placeholder: "e.g. 20 min ~7h after waking",
+          },
+          {
+            id: "deskBreaks",
+            label: "Breaks away from the desk",
+            placeholder: "Frequency / ritual",
+          },
+          {
+            id: "drains",
+            label: "What drains me and the replacement habit",
+            placeholder: "",
+          },
+          {
+            id: "commitment",
+            label: "One non-negotiable recovery habit for the next 7 days",
+            placeholder: "",
+          },
+        ],
+      },
+      {
+        id: "procrastinationBuster",
+        digitalPageLabel: "Procrastination Buster",
+        title: "Break the stall",
+        description:
+          "Name the task, why you’re dodging it, and the smallest step — same structure as the paper exercise.",
+        fields: [
+          {
+            id: "task",
+            label: "Task or decision I am putting off",
+            placeholder: "",
+          },
+          {
+            id: "why",
+            label: "Why am I avoiding it? (scary, boring, unclear, or other)",
+            placeholder: "",
+          },
+          {
+            id: "clarify",
+            label: "What needs to be clearer before I can start?",
+            placeholder: "If ‘unclear’, outline the first question to answer",
+          },
+          {
+            id: "smallestStep",
+            label: "Smallest next action I will do in under 10 minutes",
+            placeholder: "",
+          },
+          {
+            id: "distanceTrick",
+            label: "‘Outsource to a friend’ trick — what would I tell them to do A–Z?",
+            placeholder: "Creates psychological distance",
+          },
+          {
+            id: "when",
+            label: "When I will do that smallest step (time / day)",
+            placeholder: "",
+          },
         ],
       },
       {
         id: "weeklyReview",
+        digitalPageLabel: "Weekly Review",
         title: "Weekly Review",
         description:
-          "Turn off all distractions and ensure peace and quiet for 30 minutes. Ideal time: Friday afternoon or Sunday.",
+          "Turn off distractions for ~30 minutes. Ideal time: Friday afternoon or Sunday — mirror the PDF checklist.",
         fields: [
-          { id: "complete", label: "Tasks completed this week", placeholder: "Tick off items from your capture list" },
-          { id: "carryForward", label: "Incomplete activities to carry forward", placeholder: "Transfer to next week or delete" },
-          { id: "priorities", label: "Key priorities for next week", placeholder: "Match high-focus tasks to high-potential hours" },
-          { id: "exercise", label: "Have you included time for exercise and breaks?", placeholder: "Yes / no — adjust calendar" },
-          { id: "threeWins", label: "3 things that went well this week", placeholder: "Celebrate them" },
-          { id: "learning", label: "Biggest learning this week", placeholder: "What would you do differently?" },
-          { id: "care", label: "How can I finish this week by showing somebody I care?", placeholder: "e.g. check in on a friend, charitable donation, message a loved one…" },
+          {
+            id: "complete",
+            label: "1. Tasks completed this week (tick off / list from your capture list)",
+            placeholder: "",
+          },
+          {
+            id: "carryForward",
+            label: "2. Incomplete activities to move forward or delete",
+            placeholder: "Transfer to next week or drop",
+          },
+          {
+            id: "clearEmails",
+            label: "3. Clear out emails — what you processed or filed",
+            placeholder: "Inbox zero or ‘good enough’ note",
+          },
+          {
+            id: "meetingNotes",
+            label: "4. Meeting notes — follow-ups captured and next actions",
+            placeholder: "",
+          },
+          {
+            id: "priorities",
+            label: "5. Key priorities in time slots (match task type to high-potential hours)",
+            placeholder: "",
+          },
+          {
+            id: "appointments",
+            label: "6. Appointments for next week — all in the calendar?",
+            placeholder: "Yes / fixes needed",
+          },
+          {
+            id: "dropIfOverwhelmed",
+            label: "7. If overwhelmed: what do I need to drop for balance?",
+            placeholder: "Health, wellness, productivity trade-offs",
+          },
+          {
+            id: "doubleBooked",
+            label: "8. If double-booked: how I resolve using my real priorities",
+            placeholder: "",
+          },
+          {
+            id: "exercise",
+            label: "9a. Time included for exercise and breaks?",
+            placeholder: "Yes / no — calendar tweaks",
+          },
+          {
+            id: "threeWins",
+            label: "9b. Three things that went well this week",
+            placeholder: "Celebrate them",
+          },
+          {
+            id: "learning",
+            label: "9c. Biggest learning this week",
+            placeholder: "What would you do differently?",
+          },
+          {
+            id: "care",
+            label: "10. How can I finish this week by showing somebody I care?",
+            placeholder: "e.g. donation, time, loved one, neighbour…",
+          },
         ],
       },
     ],
