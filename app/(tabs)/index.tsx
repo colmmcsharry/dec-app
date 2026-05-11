@@ -2,7 +2,7 @@ import { MODULE_THEMES, MODULE_ORDER } from "@/constants/module-themes";
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_VIDEOS } from "@/data/module-videos";
-import { getQuoteOfTheDay } from "@/data/quotes";
+import { getQuoteBackgroundOfTheDay, getQuoteOfTheDay } from "@/data/quotes";
 import { getAllProgress } from "@/services/progress";
 import {
   cancelDailyReminder,
@@ -14,12 +14,14 @@ import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Flame, Moon, Sun } from "lucide-react-native";
+import { Flame, Maximize2, Moon, Sun } from "lucide-react-native";
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import Svg, { Circle } from "react-native-svg";
 import {
   Alert,
+  ImageBackground,
   Modal,
   Platform,
   Pressable,
@@ -165,6 +167,10 @@ export default function HomeScreen() {
 
   const [quoteDate, setQuoteDate] = useState(() => new Date());
   const dailyQuote = useMemo(() => getQuoteOfTheDay(quoteDate), [quoteDate]);
+  const quoteBackground = useMemo(
+    () => getQuoteBackgroundOfTheDay(quoteDate),
+    [quoteDate],
+  );
   const [progress, setProgress] = useState<Record<string, string[]>>({});
   const [dailyReminderOn, setDailyReminderOn] = useState(false);
   const [nextReminderTime, setNextReminderTime] = useState<string | null>(null);
@@ -346,70 +352,86 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {/* Daily Diesel Quote Card */}
-      <Pressable
-        style={[styles.dieselCard, isDark && styles.dieselCardDark]}
-        onPress={openDailyQuote}
-      >
-        <View style={styles.dieselHeader}>
-          <View style={styles.dieselIconWrap}>
-            <Flame size={22} color="#fff" strokeWidth={2.5} />
-          </View>
-          <Text style={[styles.dieselLabel, isDark && styles.dieselLabelDark]}>
-            Daily Diesel
-          </Text>
-        </View>
-        <Text
-          style={[styles.dieselQuote, isDark && styles.dieselQuoteDark]}
-          numberOfLines={3}
+      {/* Daily Diesel Quote Card — scenic image (cover, no stretch), white text */}
+      <View style={styles.dieselCardOuter}>
+        <ImageBackground
+          source={quoteBackground}
+          style={styles.dieselImageBg}
+          resizeMode="cover"
         >
-          &ldquo;{dailyQuote.text}&rdquo;
-        </Text>
-        <Text style={[styles.dieselAuthor, isDark && styles.dieselAuthorDark]}>
-          — {dailyQuote.author}
-        </Text>
-        <Pressable
-          onPress={openDailyQuote}
-          style={({ pressed }) => [
-            styles.readQuoteButton,
-            isDark && styles.readQuoteButtonDark,
-            { opacity: pressed ? 0.85 : 1 },
-          ]}
-        >
-          <Text
-            style={[styles.readQuoteText, isDark && styles.readQuoteTextDark]}
-          >
-            Read full quote
-          </Text>
-        </Pressable>
-        {dailyReminderOn ? (
-          <View style={styles.reminderRow}>
-            <Text
-              style={[styles.reminderLabel, isDark && styles.reminderLabelDark]}
-            >
-              Daily reminder at {nextReminderTime ?? "…"}
-            </Text>
-            <Pressable
-              onPress={showChangeTimePicker}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-            >
-              <Text style={styles.reminderChange}>Change time</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <Pressable
-            onPress={enableDailyReminder}
-            style={({ pressed }) => [
-              styles.reminderCtaButton,
-              { opacity: pressed ? 0.85 : 1 },
+          <LinearGradient
+            colors={[
+              "rgba(0,0,0,0.57)",
+              "rgba(0,0,0,0.37)",
+              "rgba(0,0,0,0.63)",
             ]}
-          >
-            <Flame size={16} color="#fff" strokeWidth={2.5} />
-            <Text style={styles.reminderCtaText}>Remind me daily</Text>
-          </Pressable>
-        )}
-      </Pressable>
+            locations={[0, 0.45, 1]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          <View style={styles.dieselCardContent}>
+            <View style={styles.dieselTopBar}>
+              <View style={styles.dieselHeader}>
+                <View style={styles.dieselIconWrap}>
+                  <Flame size={22} color="#fff" strokeWidth={2.5} />
+                </View>
+                <Text style={styles.dieselLabel}>Daily Diesel</Text>
+              </View>
+              <Pressable
+                onPress={openDailyQuote}
+                style={({ pressed }) => [
+                  styles.dieselFullscreenBtn,
+                  { opacity: pressed ? 0.75 : 1 },
+                ]}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="View quote full screen"
+              >
+                <Maximize2 size={22} color="#FFFFFF" strokeWidth={2.2} />
+              </Pressable>
+            </View>
+            <View style={styles.dieselQuoteCenter}>
+              <Text
+                style={[
+                  styles.dieselQuote,
+                  dailyQuote.author === "Daily Diesel" && styles.dieselQuoteNoAuthor,
+                ]}
+                numberOfLines={3}
+              >
+                &ldquo;{dailyQuote.text}&rdquo;
+              </Text>
+              {dailyQuote.author !== "Daily Diesel" ? (
+                <Text style={styles.dieselAuthor}>— {dailyQuote.author}</Text>
+              ) : null}
+            </View>
+            {dailyReminderOn ? (
+              <View style={styles.reminderRow}>
+                <Text style={styles.reminderLabel}>
+                  Daily reminder at {nextReminderTime ?? "…"}
+                </Text>
+                <Pressable
+                  onPress={showChangeTimePicker}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+                >
+                  <Text style={styles.reminderChange}>Change time</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={enableDailyReminder}
+                style={({ pressed }) => [
+                  styles.reminderCtaButton,
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <Flame size={16} color="#fff" strokeWidth={2.5} />
+                <Text style={styles.reminderCtaText}>Remind me daily</Text>
+              </Pressable>
+            )}
+          </View>
+        </ImageBackground>
+      </View>
 
       {/* iOS Time Picker Modal */}
       <Modal
@@ -805,87 +827,78 @@ const styles = StyleSheet.create({
   overallProgressCountDark: {
     color: "#9090A8",
   },
-  dieselCard: {
+  dieselCardOuter: {
     width: "100%",
-    backgroundColor: "#D4F1E8",
     borderRadius: 20,
-    padding: 20,
     marginBottom: 30,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 3,
   },
-  dieselCardDark: {
-    backgroundColor: "#1E2E2A",
+  dieselImageBg: {
+    width: "100%",
+  },
+  dieselCardContent: {
+    padding: 20,
+    minHeight: 300,
+  },
+  dieselTopBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 4,
   },
   dieselHeader: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginBottom: 16,
+    minWidth: 0,
+  },
+  dieselFullscreenBtn: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  dieselQuoteCenter: {
+    minHeight: 152,
+    justifyContent: "center",
   },
   dieselIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: "#5D9B8B",
+    backgroundColor: "rgba(255,255,255,0.22)",
     justifyContent: "center",
     alignItems: "center",
   },
   dieselLabel: {
     fontSize: 18,
     fontFamily: AppFonts.headingBold,
-    color: "#4A7D6F",
+    color: "#FFFFFF",
     letterSpacing: 0.3,
   },
-  dieselLabelDark: {
-    color: "#7BC9A8",
-  },
   dieselQuote: {
-    fontSize: 17,
-    fontFamily: AppFonts.bodyMedium,
+    fontSize: 19,
+    fontFamily: AppFonts.bodyBold,
     fontStyle: "italic",
-    lineHeight: 25,
-    color: "#2C3E50",
+    lineHeight: 28,
+    color: "#FFFFFF",
     marginBottom: 8,
   },
-  dieselQuoteDark: {
-    color: "#ECEDEE",
+  dieselQuoteNoAuthor: {
+    marginBottom: 16,
   },
   dieselAuthor: {
     fontSize: 13,
     fontFamily: AppFonts.bodyMedium,
-    color: "#8E8EA0",
+    color: "rgba(255,255,255,0.88)",
     textAlign: "right",
-    marginBottom: 16,
-  },
-  dieselAuthorDark: {
-    color: "#9BA1A6",
-  },
-  readQuoteButton: {
-    alignSelf: "center",
-    paddingVertical: 10,
-    width: "100%",
-    paddingHorizontal: 22,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#5D9B8B",
-    backgroundColor: "transparent",
-    marginBottom: 4,
-  },
-  readQuoteButtonDark: {
-    borderColor: "#7BC9A8",
-  },
-  readQuoteText: {
-    fontSize: 14,
-    fontFamily: AppFonts.bodyBold,
-    color: "#5D9B8B",
-    textAlign: "center",
-  },
-  readQuoteTextDark: {
-    color: "#7BC9A8",
+    marginBottom: 0,
   },
   reminderRow: {
     marginTop: 10,
@@ -896,16 +909,13 @@ const styles = StyleSheet.create({
   },
   reminderLabel: {
     fontSize: 13,
-    color: "#8E8EA0",
+    color: "rgba(255,255,255,0.92)",
     textAlign: "center",
     fontFamily: AppFonts.bodyRegular,
   },
-  reminderLabelDark: {
-    color: "#9BA1A6",
-  },
   reminderChange: {
     fontSize: 13,
-    color: "#5D9B8B",
+    color: "#FFFFFF",
     textDecorationLine: "underline",
     fontFamily: AppFonts.bodyMedium,
   },

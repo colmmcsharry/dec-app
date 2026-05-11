@@ -5,7 +5,7 @@ import {
 } from "@/services/purchases";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { Crown, RotateCcw } from "lucide-react-native";
+import { Crown, Play, RotateCcw } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Purchases from "react-native-purchases";
@@ -15,8 +15,15 @@ import Purchases from "react-native-purchases";
  * - **Unlock Pro** — sets a local flag so `hasProEntitlement()` / `requirePro()`
  *   succeed without RevenueCat (Expo Go, web, or when paywalls error).
  * - **Reset** — wipes AsyncStorage + RC logout and returns to `/`.
+ *
+ * - **Preview onboarding** — (`variant="inline"` only) opens the full carousel
+ *   with `preview=1` so you can exit without marking onboarding complete.
  */
-export function DevResetButton() {
+export function DevResetButton({
+  variant = "floating",
+}: {
+  variant?: "floating" | "inline";
+}) {
   const [busy, setBusy] = useState(false);
   const [devProOn, setDevProOn] = useState(false);
 
@@ -70,7 +77,28 @@ export function DevResetButton() {
   };
 
   return (
-    <View style={styles.column} pointerEvents="box-none">
+    <View
+      style={variant === "inline" ? styles.columnInline : styles.columnFloating}
+      pointerEvents="box-none"
+    >
+      {variant === "inline" ? (
+        <Pressable
+          onPress={() =>
+            router.push({ pathname: "/onboarding", params: { preview: "1" } })
+          }
+          style={({ pressed }) => [
+            styles.pill,
+            styles.pillPreview,
+            { opacity: pressed ? 0.85 : 0.95 },
+          ]}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Preview full onboarding flow"
+        >
+          <Play size={12} color="#FFFFFF" strokeWidth={2.5} />
+          <Text style={styles.pillText}>Preview onboarding</Text>
+        </Pressable>
+      ) : null}
       <Pressable
         onPress={toggleDevPro}
         style={({ pressed }) => [
@@ -108,11 +136,16 @@ export function DevResetButton() {
 }
 
 const styles = StyleSheet.create({
-  column: {
+  columnFloating: {
     position: "absolute",
     bottom: 24,
     left: 12,
     zIndex: 1000,
+    gap: 8,
+  },
+  columnInline: {
+    marginTop: 8,
+    alignSelf: "flex-start",
     gap: 8,
   },
   pill: {
@@ -133,6 +166,9 @@ const styles = StyleSheet.create({
   },
   pillReset: {
     backgroundColor: MAIN_PURPLE,
+  },
+  pillPreview: {
+    backgroundColor: "#0284C7",
   },
   pillText: {
     color: "#FFFFFF",

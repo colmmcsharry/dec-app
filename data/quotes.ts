@@ -360,3 +360,19 @@ export function getQuoteOfTheDay(date: Date = new Date()): DailyQuote {
   );
   return DAILY_DIESEL_QUOTES[dayOfYear % DAILY_DIESEL_QUOTES.length];
 }
+
+/** Scenic images for daily quote (home teaser + full quote screen). Same rotation as quote-of-the-day. */
+export const QUOTE_SCENIC_BACKGROUNDS = [
+  require("@/assets/images/quotes/scenic-1.jpg"),
+  require("@/assets/images/quotes/scenic-2.jpg"),
+  require("@/assets/images/quotes/scenic-3.png"),
+  require("@/assets/images/quotes/scenic-4.png"),
+  require("@/assets/images/quotes/scenic-5.jpeg"),
+] as const;
+
+export function getQuoteBackgroundOfTheDay(date: Date = new Date()) {
+  const dayOfYear = Math.floor(
+    (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000
+  );
+  return QUOTE_SCENIC_BACKGROUNDS[dayOfYear % QUOTE_SCENIC_BACKGROUNDS.length];
+}

@@ -1,5 +1,10 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
-import { DAILY_DIESEL_QUOTES, getQuoteOfTheDay } from "@/data/quotes";
+import {
+  DAILY_DIESEL_QUOTES,
+  getQuoteOfTheDay,
+  getQuoteBackgroundOfTheDay,
+  QUOTE_SCENIC_BACKGROUNDS,
+} from "@/data/quotes";
 import { hasProEntitlement } from "@/services/purchases";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -16,26 +21,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-/**
- * Pool of full-bleed scenic backgrounds used behind the daily quote.
- * Add more images to assets/images/quotes/ and append to this array — the
- * screen will start rotating through them automatically (one per day).
- */
-const BACKGROUNDS = [
-  require("@/assets/images/quotes/scenic-1.jpg"),
-  require("@/assets/images/quotes/scenic-2.jpg"),
-  require("@/assets/images/quotes/scenic-3.png"),
-  require("@/assets/images/quotes/scenic-4.png"),
-  require("@/assets/images/quotes/scenic-5.jpeg"),
-];
-
-function getBackgroundOfTheDay(date: Date = new Date()) {
-  const dayOfYear = Math.floor(
-    (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000,
-  );
-  return BACKGROUNDS[dayOfYear % BACKGROUNDS.length];
-}
 
 /**
  * Standalone daily-quote screen — full-bleed scenic background, white text,
@@ -61,7 +46,7 @@ export default function DailyQuoteScreen() {
   const [devCycleIndex, setDevCycleIndex] = useState<number | null>(null);
 
   const totalCombinations =
-    DAILY_DIESEL_QUOTES.length * BACKGROUNDS.length;
+    DAILY_DIESEL_QUOTES.length * QUOTE_SCENIC_BACKGROUNDS.length;
 
   const quote =
     devCycleIndex == null
@@ -70,10 +55,10 @@ export default function DailyQuoteScreen() {
 
   const background =
     devCycleIndex == null
-      ? getBackgroundOfTheDay()
-      : BACKGROUNDS[
+      ? getQuoteBackgroundOfTheDay()
+      : QUOTE_SCENIC_BACKGROUNDS[
           Math.floor(devCycleIndex / DAILY_DIESEL_QUOTES.length) %
-            BACKGROUNDS.length
+            QUOTE_SCENIC_BACKGROUNDS.length
         ];
 
   useEffect(() => {
@@ -172,9 +157,9 @@ export default function DailyQuoteScreen() {
                           (Math.floor(
                             devCycleIndex / DAILY_DIESEL_QUOTES.length,
                           ) %
-                            BACKGROUNDS.length) +
+                            QUOTE_SCENIC_BACKGROUNDS.length) +
                           1
-                        }/${BACKGROUNDS.length}`}
+                        }/${QUOTE_SCENIC_BACKGROUNDS.length}`}
                   </Text>
                   <ChevronRight size={14} color="#FFFFFF" strokeWidth={2.4} />
                 </Pressable>

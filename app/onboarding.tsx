@@ -311,7 +311,7 @@ const floatingStyles = StyleSheet.create({
     position: "absolute",
     borderRadius: 14,
     padding: 10,
-    opacity: 0.65,
+    opacity: 0.52,
   },
   iconWrap: {
     width: 28,
@@ -1075,15 +1075,16 @@ const styles = StyleSheet.create({
     marginHorizontal: -H_PADDING,
     alignItems: "center",
     justifyContent: "center",
-    height: 540,
+    height: 432,
     position: "relative",
   },
   floatingLayer: {
     ...StyleSheet.absoluteFillObject,
   },
   collageImage: {
-    width: "100%",
-    height: 540,
+    width: "80%",
+    height: 432,
+    alignSelf: "center",
     zIndex: 2,
   },
 });

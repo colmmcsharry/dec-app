@@ -1,3 +1,4 @@
+import { DevResetButton } from "@/components/dev-reset-button";
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import {
@@ -177,6 +178,8 @@ export default function AboutScreen() {
         quote="Declan trained Belgium ladies Gaelic football team in the run up to their encounter with the UK champions in the Junior Club All-Ireland championship in 2016. The transition was a smooth one thanks to Declan being well prepared from the beginning but also because he showed he was open to learning from us also. He pushed the players to give their 100%, but never in a negative way — feedback was always very constructive. Having Declan with us for our preparations for that big match was a great bonus to us."
         isDark={isDark}
       />
+
+      <DevResetButton variant="inline" />
 
       <View style={{ height: 40 }} />
     </ScrollView>

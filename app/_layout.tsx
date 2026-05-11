@@ -9,7 +9,6 @@ import { ActivityIndicator, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-import { DevResetButton } from '@/components/dev-reset-button';
 import { NotificationResponseHandler } from '@/components/notification-response-handler';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { configurePurchases } from '@/services/purchases';
@@ -62,7 +61,6 @@ function AppContent() {
         />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
-      <DevResetButton />
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </NavThemeProvider>
   );

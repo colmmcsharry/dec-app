@@ -153,9 +153,9 @@ export default function ResourcesScreen() {
         Module Worksheets
       </Text>
       <Text style={[styles.sectionSubtitle, isDark && styles.subtextDark]}>
-        Open your digital workbook (typed answers save on this device) or tap a
-        worksheet to view its PDF — each module uses one workbook document
-        everywhere in the app.
+        Tap a worksheet to view its PDF, then open your digital workbook if you
+        prefer typed answers — they save on this device. Each module uses one
+        workbook document everywhere in the app.
       </Text>
 
       {MODULE_ORDER.map((slug) => {
@@ -201,6 +201,37 @@ export default function ResourcesScreen() {
               </View>
             </View>
 
+            {pdfs.map((pdf) => (
+              <TouchableOpacity
+                key={pdf.id}
+                style={[
+                  styles.pdfRow,
+                  isDark && styles.pdfRowDark,
+                ]}
+                activeOpacity={0.7}
+                onPress={() => openPdf(slug, pdf)}
+              >
+                <FileText
+                  size={20}
+                  color={isDark ? "#FFFFFF" : theme.iconColor}
+                />
+                <Text
+                  style={[
+                    styles.pdfTitle,
+                    { color: isDark ? "#FFFFFF" : theme.textColor },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {pdf.title}
+                </Text>
+                <ChevronRight
+                  size={18}
+                  color={isDark ? "#9090A8" : theme.textColor}
+                  opacity={isDark ? 1 : 0.55}
+                />
+              </TouchableOpacity>
+            ))}
+
             <TouchableOpacity
               style={[
                 styles.pdfRow,
@@ -243,37 +274,6 @@ export default function ResourcesScreen() {
                 style={styles.workbookRowChevron}
               />
             </TouchableOpacity>
-
-            {pdfs.map((pdf) => (
-              <TouchableOpacity
-                key={pdf.id}
-                style={[
-                  styles.pdfRow,
-                  isDark && styles.pdfRowDark,
-                ]}
-                activeOpacity={0.7}
-                onPress={() => openPdf(slug, pdf)}
-              >
-                <FileText
-                  size={20}
-                  color={isDark ? "#FFFFFF" : theme.iconColor}
-                />
-                <Text
-                  style={[
-                    styles.pdfTitle,
-                    { color: isDark ? "#FFFFFF" : theme.textColor },
-                  ]}
-                  numberOfLines={2}
-                >
-                  {pdf.title}
-                </Text>
-                <ChevronRight
-                  size={18}
-                  color={isDark ? "#9090A8" : theme.textColor}
-                  opacity={isDark ? 1 : 0.55}
-                />
-              </TouchableOpacity>
-            ))}
           </View>
         );
       })}
