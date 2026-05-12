@@ -354,14 +354,18 @@ export const DAILY_DIESEL_QUOTES: DailyQuote[] = [
   },
 ];
 
-export function getQuoteOfTheDay(date: Date = new Date()): DailyQuote {
-  const dayOfYear = Math.floor(
+function getDayOfYear(date: Date): number {
+  return Math.floor(
     (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000
   );
+}
+
+export function getQuoteOfTheDay(date: Date = new Date()): DailyQuote {
+  const dayOfYear = getDayOfYear(date);
   return DAILY_DIESEL_QUOTES[dayOfYear % DAILY_DIESEL_QUOTES.length];
 }
 
-/** Scenic images for daily quote (home teaser + full quote screen). Same rotation as quote-of-the-day. */
+/** Scenic images for daily quote (home teaser + full quote screen). */
 export const QUOTE_SCENIC_BACKGROUNDS = [
   require("@/assets/images/quotes/scenic-1.jpg"),
   require("@/assets/images/quotes/scenic-2.jpg"),
@@ -370,9 +374,29 @@ export const QUOTE_SCENIC_BACKGROUNDS = [
   require("@/assets/images/quotes/scenic-5.jpeg"),
 ] as const;
 
+/**
+ * Picks a scenic background from a daily rotation, but never the same asset
+ * as the previous **calendar** day (e.g. leap-year Dec 31 vs Jan 1 can collide
+ * on plain `dayOfYear % n`).
+ */
 export function getQuoteBackgroundOfTheDay(date: Date = new Date()) {
-  const dayOfYear = Math.floor(
-    (date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000
+  const n = QUOTE_SCENIC_BACKGROUNDS.length;
+  if (n <= 1) {
+    return QUOTE_SCENIC_BACKGROUNDS[0];
+  }
+
+  const today = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
   );
-  return QUOTE_SCENIC_BACKGROUNDS[dayOfYear % QUOTE_SCENIC_BACKGROUNDS.length];
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  let i = getDayOfYear(today) % n;
+  const prevI = getDayOfYear(yesterday) % n;
+  if (i === prevI) {
+    i = (i + 1) % n;
+  }
+  return QUOTE_SCENIC_BACKGROUNDS[i];
 }

@@ -1,5 +1,5 @@
 import { MODULE_THEMES, MODULE_ORDER } from "@/constants/module-themes";
-import { AppFonts } from "@/constants/theme";
+import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_VIDEOS } from "@/data/module-videos";
 import { getQuoteBackgroundOfTheDay, getQuoteOfTheDay } from "@/data/quotes";
@@ -926,7 +926,7 @@ const styles = StyleSheet.create({
     gap: 8,
     width: "100%",
     marginTop: 12,
-    backgroundColor: "#5D9B8B",
+    backgroundColor: MAIN_PURPLE,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,

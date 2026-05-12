@@ -29,8 +29,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
  * push notification, or it can be navigated to manually.
  *
  * For non-paying users, a "Want access to the whole course?" CTA at the
- * bottom routes them to the paywall. Paying users see a "Continue to app"
- * button instead.
+ * bottom routes them to the paywall. Paying users dismiss via the close (X)
+ * control only.
  */
 export default function DailyQuoteScreen() {
   const router = useRouter();
@@ -91,10 +91,6 @@ export default function DailyQuoteScreen() {
 
   const goPaywall = () => {
     router.push("/paywall-placeholder");
-  };
-
-  const goApp = () => {
-    router.replace("/(tabs)");
   };
 
   return (
@@ -181,43 +177,34 @@ export default function DailyQuoteScreen() {
             </View>
           </View>
 
-          {/* Quote, anchored toward the bottom */}
-          <Animated.View
-            style={[
-              styles.quoteBlock,
-              {
-                opacity: fade,
-                transform: [
-                  {
-                    translateY: fade.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [16, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-            pointerEvents="box-none"
-          >
-            <Text style={styles.label}>Today&apos;s Reflection</Text>
-            <Text style={styles.quoteText}>“{quote.text}”</Text>
-            <Text style={styles.author}>— {quote.author}</Text>
-          </Animated.View>
+          <View style={styles.quoteMiddle}>
+            {/* Vertically centred in the space between top bar and optional bottom CTA */}
+            <Animated.View
+              style={[
+                styles.quoteBlock,
+                {
+                  opacity: fade,
+                  transform: [
+                    {
+                      translateY: fade.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [16, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+              pointerEvents="box-none"
+            >
+              <Text style={styles.label}>Today&apos;s Reflection</Text>
+              <Text style={styles.quoteText}>“{quote.text}”</Text>
+              <Text style={styles.author}>— {quote.author}</Text>
+            </Animated.View>
+          </View>
 
-          {/* Bottom CTA */}
-          <View style={styles.cta}>
-            {hasPro === null ? null : hasPro ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.primaryBtn,
-                  { opacity: pressed ? 0.85 : 1 },
-                ]}
-                onPress={goApp}
-                accessibilityRole="button"
-              >
-                <Text style={styles.primaryBtnText}>Continue to app</Text>
-              </Pressable>
-            ) : (
+          {/* Bottom CTA — subscribers use the X to return home */}
+          {hasPro === false ? (
+            <View style={styles.cta}>
               <View style={styles.upgradeWrap}>
                 <Text style={styles.upgradeLead}>
                   Want access to the whole Daily Diesel course? 10 Modules, 300+ Videos, Plus Additional Resources.
@@ -235,8 +222,8 @@ export default function DailyQuoteScreen() {
                   <Text style={styles.primaryBtnText}>See plans</Text>
                 </Pressable>
               </View>
-            )}
-          </View>
+            </View>
+          ) : null}
         </View>
       </ImageBackground>
     </View>
@@ -254,7 +241,10 @@ const styles = StyleSheet.create({
   contentWrap: {
     flex: 1,
     paddingHorizontal: 24,
-    justifyContent: "space-between",
+  },
+  quoteMiddle: {
+    flex: 1,
+    justifyContent: "center",
   },
   topBar: {
     flexDirection: "row",
@@ -311,7 +301,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   quoteBlock: {
-    marginBottom: 24,
     zIndex: 0,
   },
   label: {

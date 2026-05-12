@@ -5,6 +5,8 @@ import {
   mergeModuleWorkbookData,
   MODULE_WORKBOOKS,
   type ModuleWorkbookData,
+  type WorkbookPlanSection,
+  type WorkbookPlanSectionData,
 } from "@/data/module-workbooks";
 import { useTheme } from "@/context/theme-context";
 import {
@@ -17,6 +19,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronDown, ChevronLeft, ChevronRight, Check } from "lucide-react-native";
 import {
   Fragment,
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -44,21 +47,25 @@ const WORKBOOK_TEXT_BODY = "#363C48";
 
 const WORKBOOK_LOGO = require("@/assets/images/icon.png");
 
-const RATING_SCALE_1_10 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+const RATING_SCALE_1_5 = [1, 2, 3, 4, 5] as const;
 
-/** Picker uses a sentinel because some platforms treat "" oddly. */
-const RATING_PICKER_NONE = "__none__";
 const AUDIT_TIME_PICKER_NONE = "__audit_time_none__";
 
 const EVENING_AUDIT_PRESET_SET = new Set<string>([
   ...EVENING_AUDIT_PRESET_TIMES,
 ]);
 
-function normalizeStoredRating(raw: string): string {
+/** Maps stored values to 1–5 for display; migrates legacy 6–10 from the old 1–10 scale. */
+function normalizeStoredEnergyRating1to5(raw: string): string {
   const t = raw.trim();
+  if (t === "") return "";
   const n = Number(t);
-  if (t === "" || !Number.isInteger(n) || n < 1 || n > 10) return "";
-  return String(n);
+  if (!Number.isFinite(n) || !Number.isInteger(n)) return "";
+  if (n >= 1 && n <= 5) return String(n);
+  if (n >= 6 && n <= 10) {
+    return String(Math.min(5, Math.max(1, Math.round((n / 10) * 5))));
+  }
+  return "";
 }
 
 type SaveState = "loading" | "saving" | "saved";
@@ -95,10 +102,6 @@ export default function ModuleWorkbookScreen() {
   const hasHydratedRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   const sectionAnchorY = useRef<Record<string, number>>({});
-  const [ratingPickerTarget, setRatingPickerTarget] = useState<{
-    worksheetId: string;
-    fieldId: string;
-  } | null>(null);
   const [auditTimePickerTarget, setAuditTimePickerTarget] = useState<{
     auditIndex: number;
     rowIndex: number;
@@ -162,10 +165,47 @@ export default function ModuleWorkbookScreen() {
     [heroHeight]
   );
 
-  const closeRatingPicker = useCallback(() => setRatingPickerTarget(null), []);
-
   const closeAuditTimePicker = useCallback(
     () => setAuditTimePickerTarget(null),
+    []
+  );
+
+  const updatePlanAction = useCallback((sectionId: string, value: string) => {
+    setFormData((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        weeklyPlan: {
+          ...current.weeklyPlan,
+          [sectionId]: {
+            ...current.weeklyPlan[sectionId],
+            action: value,
+          },
+        },
+      };
+    });
+  }, []);
+
+  const togglePlanDayCompleted = useCallback(
+    (sectionId: string, dayIndex: number) => {
+      setFormData((current) => {
+        if (!current) return current;
+        const section = current.weeklyPlan[sectionId];
+        if (!section) return current;
+        const nextDays = [...section.daysCompleted];
+        nextDays[dayIndex] = !nextDays[dayIndex];
+        return {
+          ...current,
+          weeklyPlan: {
+            ...current.weeklyPlan,
+            [sectionId]: {
+              ...section,
+              daysCompleted: nextDays,
+            },
+          },
+        };
+      });
+    },
     []
   );
 
@@ -191,10 +231,13 @@ export default function ModuleWorkbookScreen() {
   useEffect(() => {
     if (!slug || !formData || !hasHydratedRef.current) return;
 
-    setSaveState("saving");
     const timeout = setTimeout(async () => {
-      await saveModuleWorkbook(slug, formData);
-      setSaveState("saved");
+      setSaveState("saving");
+      try {
+        await saveModuleWorkbook(slug, formData);
+      } finally {
+        setSaveState("saved");
+      }
     }, 350);
 
     return () => clearTimeout(timeout);
@@ -217,41 +260,6 @@ export default function ModuleWorkbookScreen() {
       </>
     );
   }
-
-  const updatePlanAction = (sectionId: string, value: string) => {
-    setFormData((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        weeklyPlan: {
-          ...current.weeklyPlan,
-          [sectionId]: {
-            ...current.weeklyPlan[sectionId],
-            action: value,
-          },
-        },
-      };
-    });
-  };
-
-  const togglePlanDayCompleted = (sectionId: string, dayIndex: number) => {
-    setFormData((current) => {
-      if (!current) return current;
-      const section = current.weeklyPlan[sectionId];
-      const nextDays = [...section.daysCompleted];
-      nextDays[dayIndex] = !nextDays[dayIndex];
-      return {
-        ...current,
-        weeklyPlan: {
-          ...current.weeklyPlan,
-          [sectionId]: {
-            ...section,
-            daysCompleted: nextDays,
-          },
-        },
-      };
-    });
-  };
 
   const updateAuditRow = (
     auditIndex: number,
@@ -315,21 +323,13 @@ export default function ModuleWorkbookScreen() {
       : saveState === "saving"
         ? "Saving..."
         : "Saved on this device";
-  /** Header tall enough for safe area + back row (see `customHeader` styles). */
-  const keyboardVerticalOffset = insets.top + 12 + 44;
-
-  const ratingPickerSelectedNormalized =
-    ratingPickerTarget !== null
-      ? normalizeStoredRating(
-          formData.worksheets[ratingPickerTarget.worksheetId]?.[
-            ratingPickerTarget.fieldId
-          ] ?? ""
-        )
-      : "";
-  const ratingPickerSelectedValue =
-    ratingPickerSelectedNormalized === ""
-      ? RATING_PICKER_NONE
-      : ratingPickerSelectedNormalized;
+  /**
+   * `KeyboardAvoidingView` only wraps the scroll area — the custom header is a
+   * sibling above it. Do NOT pass the header height as `keyboardVerticalOffset`
+   * (that was inflating bottom padding on iOS and showing a large empty band
+   * above the keyboard). Use 0; the KAV’s frame already starts below the header.
+   */
+  const keyboardVerticalOffset = 0;
 
   const auditTimePickerRow =
     auditTimePickerTarget !== null
@@ -568,72 +568,14 @@ export default function ModuleWorkbookScreen() {
               </Text>
 
               {definition.weeklyPlanSections.map((section) => (
-                <View key={section.id} style={styles.planSection}>
-                  <Text style={[styles.planTitle, isDark && styles.textDark]}>
-                    {section.title}
-                  </Text>
-                  <Text style={[styles.planPrompt, isDark && styles.planPromptDark]}>
-                    {section.prompt}
-                  </Text>
-                  <TextInput
-                    value={formData.weeklyPlan[section.id].action}
-                    onChangeText={(value) => updatePlanAction(section.id, value)}
-                    placeholder="Type your plan here"
-                    placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
-                    multiline
-                    style={[
-                      styles.textArea,
-                      isDark && styles.inputDark,
-                      isDark && styles.textDark,
-                    ]}
-                  />
-
-                  <View style={styles.dayRows}>
-                    {formData.weeklyPlan[section.id].daysCompleted.map(
-                      (done, index) => (
-                        <Pressable
-                          key={`${section.id}-day-${index}`}
-                          onPress={() =>
-                            togglePlanDayCompleted(section.id, index)
-                          }
-                          style={({ pressed }) => [
-                            styles.dayRow,
-                            { opacity: pressed ? 0.88 : 1 },
-                          ]}
-                          accessibilityRole="checkbox"
-                          accessibilityState={{ checked: done }}
-                          accessibilityLabel={`Day ${index + 1}${
-                            done ? ", marked done" : ", not marked done"
-                          }`}
-                        >
-                          <Text
-                            style={[styles.dayLabel, isDark && styles.mutedDark]}
-                          >
-                            Day {index + 1}
-                          </Text>
-                          <View
-                            pointerEvents="none"
-                            style={[
-                              styles.dayCheckbox,
-                              isDark && styles.dayCheckboxDark,
-                              done && styles.dayCheckboxChecked,
-                            ]}
-                          >
-                            {done ? (
-                              <View pointerEvents="none">
-                                <Check
-                                  size={18}
-                                  color="#FFFFFF"
-                                  strokeWidth={3}
-                                />
-                              </View>
-                            ) : null}
-                          </View>
-                        </Pressable>
-                      ),
-                    )}
-                  </View>
-                </View>
+                <WeeklyPlanSectionView
+                  key={section.id}
+                  section={section}
+                  plan={formData.weeklyPlan[section.id]}
+                  isDark={isDark}
+                  onToggleDay={togglePlanDayCompleted}
+                  onPlanAction={updatePlanAction}
+                />
               ))}
             </View>
 
@@ -690,7 +632,6 @@ export default function ModuleWorkbookScreen() {
                       >
                         <Pressable
                           onPress={() => {
-                            setRatingPickerTarget(null);
                             setAuditTimePickerTarget({
                               auditIndex,
                               rowIndex,
@@ -743,6 +684,8 @@ export default function ModuleWorkbookScreen() {
                           }
                           placeholder="What were you doing?"
                           placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
+                          multiline
+                          textAlignVertical="top"
                           style={[
                             styles.activityInput,
                             isDark && styles.inputDark,
@@ -833,8 +776,9 @@ export default function ModuleWorkbookScreen() {
                       const storedValue =
                         formData.worksheets?.[ws.id]?.[field.id] ?? "";
 
-                      if (field.inputKind === "rating1to10") {
-                        const display = normalizeStoredRating(storedValue);
+                      if (field.inputKind === "rating1to5") {
+                        const display =
+                          normalizeStoredEnergyRating1to5(storedValue);
                         return (
                           <View key={field.id} style={styles.worksheetField}>
                             <Text
@@ -845,42 +789,49 @@ export default function ModuleWorkbookScreen() {
                             >
                               {field.label}
                             </Text>
-                            <Pressable
-                              onPress={() => {
-                                setAuditTimePickerTarget(null);
-                                setRatingPickerTarget({
-                                  worksheetId: ws.id,
-                                  fieldId: field.id,
-                                });
-                              }}
-                              style={({ pressed }) => [
-                                styles.ratingPickerTrigger,
-                                isDark && styles.ratingPickerTriggerDark,
-                                { opacity: pressed ? 0.88 : 1 },
-                              ]}
-                              accessibilityRole="button"
-                              accessibilityLabel={
-                                display
-                                  ? `Energy rating ${display} out of 10, change`
-                                  : "Choose energy rating 1 to 10"
-                              }
-                            >
-                              <Text
-                                style={[
-                                  styles.ratingPickerTriggerText,
-                                  !display && styles.ratingPickerTriggerPlaceholder,
-                                  isDark && display && styles.textDark,
-                                  isDark && !display && styles.ratingPickerTriggerPlaceholderDark,
-                                ]}
-                              >
-                                {display ? `${display} / 10` : "Choose rating…"}
-                              </Text>
-                              <ChevronDown
-                                size={22}
-                                color={isDark ? "#A8ACBF" : MAIN_PURPLE}
-                                strokeWidth={2}
-                              />
-                            </Pressable>
+                            <View style={styles.ratingChipRow}>
+                              {RATING_SCALE_1_5.map((n) => {
+                                const selected = display === String(n);
+                                return (
+                                  <Pressable
+                                    key={n}
+                                    delayPressIn={0}
+                                    onPress={() =>
+                                      updateWorksheetField(
+                                        ws.id,
+                                        field.id,
+                                        String(n),
+                                      )
+                                    }
+                                    style={[
+                                      styles.ratingChip,
+                                      isDark && styles.ratingChipDark,
+                                      selected && styles.ratingChipSelected,
+                                      selected &&
+                                        isDark &&
+                                        styles.ratingChipSelectedDark,
+                                    ]}
+                                    accessibilityRole="button"
+                                    accessibilityState={{ selected }}
+                                    accessibilityLabel={`Energy rating ${n} of 5`}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.ratingChipText,
+                                        isDark && styles.ratingChipTextDark,
+                                        selected &&
+                                          styles.ratingChipTextSelected,
+                                        selected &&
+                                          isDark &&
+                                          styles.ratingChipTextSelectedDark,
+                                      ]}
+                                    >
+                                      {n}
+                                    </Text>
+                                  </Pressable>
+                                );
+                              })}
+                            </View>
                           </View>
                         );
                       }
@@ -965,89 +916,6 @@ export default function ModuleWorkbookScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
       </View>
-
-      <Modal
-        visible={ratingPickerTarget !== null}
-        animationType="slide"
-        transparent
-        onRequestClose={closeRatingPicker}
-      >
-        <View style={styles.ratingModalRoot}>
-          <Pressable
-            style={styles.ratingModalBackdrop}
-            onPress={closeRatingPicker}
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss"
-          />
-          <View
-            style={[
-              styles.ratingModalSheet,
-              isDark && styles.ratingModalSheetDark,
-              { paddingBottom: Math.max(insets.bottom, 12) + 8 },
-            ]}
-          >
-            <View style={styles.ratingModalHeader}>
-              <Text
-                style={[
-                  styles.ratingModalTitle,
-                  isDark && styles.textDark,
-                ]}
-              >
-                Energy (1–10)
-              </Text>
-              <Pressable
-                onPress={closeRatingPicker}
-                hitSlop={12}
-                accessibilityRole="button"
-                accessibilityLabel="Done"
-              >
-                <Text style={styles.ratingModalDone}>Done</Text>
-              </Pressable>
-            </View>
-            <Picker
-              selectedValue={ratingPickerSelectedValue}
-              onValueChange={(itemValue) => {
-                if (!ratingPickerTarget) return;
-                const v =
-                  itemValue === RATING_PICKER_NONE ? "" : String(itemValue);
-                updateWorksheetField(
-                  ratingPickerTarget.worksheetId,
-                  ratingPickerTarget.fieldId,
-                  v
-                );
-              }}
-              style={styles.ratingPickerWheel}
-              {...(Platform.OS === "ios"
-                ? {
-                    itemStyle: {
-                      color: isDark ? "#ECEDEE" : WORKBOOK_TEXT,
-                    },
-                  }
-                : {})}
-            >
-              <Picker.Item
-                label="— Not set"
-                value={RATING_PICKER_NONE}
-                color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
-              />
-              {RATING_SCALE_1_10.map((n) => (
-                <Picker.Item
-                  key={n}
-                  label={
-                    n === 1
-                      ? "1 — very low"
-                      : n === 10
-                        ? "10 — tip-top"
-                        : String(n)
-                  }
-                  value={String(n)}
-                  color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
-                />
-              ))}
-            </Picker>
-          </View>
-        </View>
-      </Modal>
 
       <Modal
         visible={auditTimePickerTarget !== null}
@@ -1454,7 +1322,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   auditColumnHeaderTime: {
-    width: 112,
+    /** Narrow column — compact labels (“6 AM”) + chevron; frees width for Activity. */
+    width: 84,
   },
   auditColumnHeaderActivity: {
     flex: 1,
@@ -1463,16 +1332,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 10,
+    alignItems: "flex-start",
   },
   activityInput: {
     flex: 1,
+    minHeight: 96,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#D1D5DB",
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingVertical: 12,
     fontSize: 14,
+    lineHeight: 20,
     color: WORKBOOK_TEXT,
     fontFamily: AppFonts.bodyRegular,
   },
@@ -1496,6 +1368,47 @@ const styles = StyleSheet.create({
   },
   worksheetField: {
     marginTop: 14,
+  },
+  ratingChipRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 6,
+  },
+  ratingChip: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ratingChipDark: {
+    backgroundColor: "#141425",
+    borderColor: "#34364A",
+  },
+  ratingChipSelected: {
+    borderColor: MAIN_PURPLE,
+    backgroundColor: "#F4F0FB",
+  },
+  ratingChipSelectedDark: {
+    borderColor: MAIN_PURPLE,
+    backgroundColor: "#2A2540",
+  },
+  ratingChipText: {
+    fontSize: 16,
+    fontFamily: AppFonts.headingSemiBold,
+    color: WORKBOOK_TEXT,
+  },
+  ratingChipTextDark: {
+    color: "#D8DBE8",
+  },
+  ratingChipTextSelected: {
+    color: MAIN_PURPLE,
+  },
+  ratingChipTextSelectedDark: {
+    color: "#E9E4FA",
   },
   ratingPickerTrigger: {
     flexDirection: "row",
@@ -1528,10 +1441,10 @@ const styles = StyleSheet.create({
     color: "#7B7E95",
   },
   auditTimePickerTrigger: {
-    width: 112,
+    width: 84,
     flexGrow: 0,
     flexShrink: 0,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     gap: 4,
     minHeight: 44,
   },
@@ -1651,4 +1564,102 @@ const styles = StyleSheet.create({
     color: WORKBOOK_TEXT,
     fontFamily: AppFonts.headingBold,
   },
+});
+
+type PlanDayRowProps = {
+  sectionId: string;
+  dayIndex: number;
+  done: boolean;
+  isDark: boolean;
+  onToggle: (sectionId: string, dayIndex: number) => void;
+};
+
+const PlanDayRow = memo(function PlanDayRow({
+  sectionId,
+  dayIndex,
+  done,
+  isDark,
+  onToggle,
+}: PlanDayRowProps) {
+  return (
+    <Pressable
+      delayPressIn={0}
+      onPress={() => onToggle(sectionId, dayIndex)}
+      style={styles.dayRow}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: done }}
+      accessibilityLabel={`Day ${dayIndex + 1}${
+        done ? ", marked done" : ", not marked done"
+      }`}
+    >
+      <Text style={[styles.dayLabel, isDark && styles.mutedDark]}>
+        Day {dayIndex + 1}
+      </Text>
+      <View
+        pointerEvents="none"
+        style={[
+          styles.dayCheckbox,
+          isDark && styles.dayCheckboxDark,
+          done && styles.dayCheckboxChecked,
+        ]}
+      >
+        {done ? (
+          <View pointerEvents="none">
+            <Check size={18} color="#FFFFFF" strokeWidth={3} />
+          </View>
+        ) : null}
+      </View>
+    </Pressable>
+  );
+});
+
+type WeeklyPlanSectionViewProps = {
+  section: WorkbookPlanSection;
+  plan: WorkbookPlanSectionData;
+  isDark: boolean;
+  onToggleDay: (sectionId: string, dayIndex: number) => void;
+  onPlanAction: (sectionId: string, value: string) => void;
+};
+
+const WeeklyPlanSectionView = memo(function WeeklyPlanSectionView({
+  section,
+  plan,
+  isDark,
+  onToggleDay,
+  onPlanAction,
+}: WeeklyPlanSectionViewProps) {
+  return (
+    <View style={styles.planSection}>
+      <Text style={[styles.planTitle, isDark && styles.textDark]}>
+        {section.title}
+      </Text>
+      <Text style={[styles.planPrompt, isDark && styles.planPromptDark]}>
+        {section.prompt}
+      </Text>
+      <TextInput
+        value={plan.action}
+        onChangeText={(value) => onPlanAction(section.id, value)}
+        placeholder="Type your plan here"
+        placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
+        multiline
+        style={[
+          styles.textArea,
+          isDark && styles.inputDark,
+          isDark && styles.textDark,
+        ]}
+      />
+      <View style={styles.dayRows}>
+        {plan.daysCompleted.map((done, index) => (
+          <PlanDayRow
+            key={`${section.id}-day-${index}`}
+            sectionId={section.id}
+            dayIndex={index}
+            done={done}
+            isDark={isDark}
+            onToggle={onToggleDay}
+          />
+        ))}
+      </View>
+    </View>
+  );
 });

@@ -32,6 +32,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const COURSE_LEAFLET = require("@/assets/documents/course-leaflet.pdf");
 
+/** Module worksheet cards: neutral ink (pastel card bg only; no theme-coloured type). */
+const MODULE_INK_LIGHT = "#1E2430";
+const MODULE_MUTED_LIGHT = "#5C6370";
+const MODULE_ICON_LIGHT = "#374151";
+const MODULE_CHEVRON_LIGHT = "#6B7280";
+const MODULE_INK_DARK = "#ECEDEE";
+const MODULE_MUTED_DARK = "#AEB3C4";
+const MODULE_ICON_DARK = "#E5E7EB";
+const MODULE_CHEVRON_DARK = "#9090A8";
+
 export default function ResourcesScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -176,15 +186,18 @@ export default function ResourcesScreen() {
           >
             <View style={styles.moduleCardHeader}>
               <View style={styles.moduleIconCircle}>
-                <Icon size={26} color={theme.iconColor} strokeWidth={2.5} />
+                <Icon
+                  size={26}
+                  color={isDark ? MODULE_ICON_DARK : MODULE_ICON_LIGHT}
+                  strokeWidth={2.5}
+                />
               </View>
               <View style={styles.moduleHeaderText}>
                 <Text
                   style={[
                     styles.moduleLabel,
                     {
-                      color: isDark ? "#D8D8E5" : theme.textColor,
-                      opacity: 0.75,
+                      color: isDark ? MODULE_MUTED_DARK : MODULE_MUTED_LIGHT,
                     },
                   ]}
                 >
@@ -193,7 +206,7 @@ export default function ResourcesScreen() {
                 <Text
                   style={[
                     styles.moduleTitle,
-                    { color: isDark ? "#FFFFFF" : theme.textColor },
+                    { color: isDark ? MODULE_INK_DARK : MODULE_INK_LIGHT },
                   ]}
                 >
                   {def.title}
@@ -213,12 +226,12 @@ export default function ResourcesScreen() {
               >
                 <FileText
                   size={20}
-                  color={isDark ? "#FFFFFF" : theme.iconColor}
+                  color={isDark ? MODULE_ICON_DARK : MODULE_ICON_LIGHT}
                 />
                 <Text
                   style={[
                     styles.pdfTitle,
-                    { color: isDark ? "#FFFFFF" : theme.textColor },
+                    { color: isDark ? MODULE_INK_DARK : MODULE_INK_LIGHT },
                   ]}
                   numberOfLines={2}
                 >
@@ -226,8 +239,7 @@ export default function ResourcesScreen() {
                 </Text>
                 <ChevronRight
                   size={18}
-                  color={isDark ? "#9090A8" : theme.textColor}
-                  opacity={isDark ? 1 : 0.55}
+                  color={isDark ? MODULE_CHEVRON_DARK : MODULE_CHEVRON_LIGHT}
                 />
               </TouchableOpacity>
             ))}
@@ -245,13 +257,13 @@ export default function ResourcesScreen() {
             >
               <BookOpen
                 size={20}
-                color={isDark ? "#FFFFFF" : theme.iconColor}
+                color={isDark ? MODULE_ICON_DARK : MODULE_ICON_LIGHT}
               />
               <View style={styles.workbookRowText}>
                 <Text
                   style={[
                     styles.pdfTitle,
-                    { color: isDark ? "#FFFFFF" : theme.textColor },
+                    { color: isDark ? MODULE_INK_DARK : MODULE_INK_LIGHT },
                   ]}
                   numberOfLines={2}
                 >
@@ -260,7 +272,7 @@ export default function ResourcesScreen() {
                 <Text
                   style={[
                     styles.workbookRowHint,
-                    { color: isDark ? "#A8A8BC" : theme.textColor },
+                    { color: isDark ? MODULE_MUTED_DARK : MODULE_MUTED_LIGHT },
                   ]}
                   numberOfLines={2}
                 >
@@ -269,8 +281,7 @@ export default function ResourcesScreen() {
               </View>
               <ChevronRight
                 size={18}
-                color={isDark ? "#9090A8" : theme.textColor}
-                opacity={isDark ? 1 : 0.55}
+                color={isDark ? MODULE_CHEVRON_DARK : MODULE_CHEVRON_LIGHT}
                 style={styles.workbookRowChevron}
               />
             </TouchableOpacity>
@@ -447,7 +458,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontFamily: AppFonts.bodyRegular,
-    opacity: 0.72,
   },
   pdfRowDark: {
     backgroundColor: "#262940",

@@ -26,10 +26,10 @@ export interface WorksheetField {
   id: string;
   label: string;
   placeholder?: string;
-  /** Default true — use false for short single-line answers (e.g. 1–10 ratings). */
+  /** Default true — use false for short single-line answers (e.g. 1–5 rating chips). */
   multiline?: boolean;
-  /** `rating1to10` shows a tap scale instead of a text box. */
-  inputKind?: "text" | "rating1to10";
+  /** `rating1to5` shows five horizontal tap chips (Module 3 energy check-ins). */
+  inputKind?: "text" | "rating1to5";
 }
 
 /** An interactive worksheet card (free-text fields saved locally). */
@@ -87,19 +87,34 @@ const AUDIT_BLOCKS_SLEEP = 2;
 const AUDIT_ROWS_PER_BLOCK = 8;
 
 /**
- * Evening audit presets: start 6:00 AM, ~every 3–4 hours, end 1:00 AM (7 rows).
- * Gaps: +3h five times from 6am→9pm, then +4h to 1am.
- * Row 1 defaults to index 0, … (row 0 is a non-editable header row in the UI).
+ * Evening audit presets: start 6 AM, ~every 3–4 hours, end 1 AM (7 rows).
+ * Shown without “:00” to save horizontal space in the time column.
  */
 export const EVENING_AUDIT_PRESET_TIMES = [
-  "6:00 AM",
-  "9:00 AM",
-  "12:00 PM",
-  "3:00 PM",
-  "6:00 PM",
-  "9:00 PM",
-  "1:00 AM",
+  "6 AM",
+  "9 AM",
+  "12 PM",
+  "3 PM",
+  "6 PM",
+  "9 PM",
+  "1 AM",
 ] as const;
+
+/** Older stored workbooks used “6:00 AM” style labels — map to compact presets. */
+const EVENING_AUDIT_LEGACY_TIME_TO_COMPACT: Record<string, string> = {
+  "6:00 AM": "6 AM",
+  "9:00 AM": "9 AM",
+  "12:00 PM": "12 PM",
+  "3:00 PM": "3 PM",
+  "6:00 PM": "6 PM",
+  "9:00 PM": "9 PM",
+  "1:00 AM": "1 AM",
+};
+
+function compactEveningAuditTimeLabel(raw: string): string {
+  const t = raw.trim();
+  return EVENING_AUDIT_LEGACY_TIME_TO_COMPACT[t] ?? t;
+}
 
 function defaultEveningAuditTimeForRow(rowIndex: number): string {
   if (rowIndex <= 0) return "";
@@ -123,14 +138,12 @@ const LEGACY_EVENING_AUDIT_ROW_DEFAULTS = [
 ] as const;
 
 export function createInitialWorkbookData(
-  definition: ModuleWorkbookDefinition
+  definition: ModuleWorkbookDefinition,
 ): ModuleWorkbookData {
   const auditBlocks = definition.includeEveningAudit ? AUDIT_BLOCKS_SLEEP : 0;
   const worksheets: Record<string, Record<string, string>> = {};
   for (const ws of definition.worksheetDefinitions) {
-    worksheets[ws.id] = Object.fromEntries(
-      ws.fields.map((f) => [f.id, ""])
-    );
+    worksheets[ws.id] = Object.fromEntries(ws.fields.map((f) => [f.id, ""]));
   }
   return {
     weeklyPlan: Object.fromEntries(
@@ -140,7 +153,7 @@ export function createInitialWorkbookData(
           action: "",
           daysCompleted: Array.from({ length: DAY_COUNT }, () => false),
         },
-      ])
+      ]),
     ),
     eveningAudits: Array.from({ length: auditBlocks }, () => ({
       rows: Array.from({ length: AUDIT_ROWS_PER_BLOCK }, (_, ri) => ({
@@ -155,7 +168,7 @@ export function createInitialWorkbookData(
 
 export function mergeModuleWorkbookData(
   stored: ModuleWorkbookData | undefined,
-  fallback: ModuleWorkbookData
+  fallback: ModuleWorkbookData,
 ): ModuleWorkbookData {
   if (!stored) return fallback;
 
@@ -189,7 +202,7 @@ export function mergeModuleWorkbookData(
             ) {
               return row.time;
             }
-            return st;
+            return compactEveningAuditTimeLabel(st);
           }
           if (st === "" && sa.trim() !== "") return "";
           return row.time;
@@ -225,11 +238,13 @@ function mergePlanSection(
   fallback: WorkbookPlanSectionData,
 ): WorkbookPlanSectionData {
   if (!storedSection || typeof storedSection !== "object") {
-    return { action: fallback.action, daysCompleted: [...fallback.daysCompleted] };
+    return {
+      action: fallback.action,
+      daysCompleted: [...fallback.daysCompleted],
+    };
   }
   const s = storedSection as Record<string, unknown>;
-  const action =
-    typeof s.action === "string" ? s.action : fallback.action;
+  const action = typeof s.action === "string" ? s.action : fallback.action;
 
   if (Array.isArray(s.daysCompleted)) {
     const arr = s.daysCompleted;
@@ -277,8 +292,8 @@ const ENERGY_TRACKER_TIMES = [
 function energyTrackerFieldsForOneDay(): WorksheetField[] {
   return ENERGY_TRACKER_TIMES.map((time, i) => ({
     id: `t${String(i).padStart(2, "0")}`,
-    label: `${time} — energy (1–10)`,
-    inputKind: "rating1to10" as const,
+    label: time,
+    inputKind: "rating1to5" as const,
   }));
 }
 
@@ -294,7 +309,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     moduleNumber: 1,
     color: "#E5D9F2",
     intro:
-      "This digital workbook replaces the printed sleep leaflet. Read the key ideas, complete the exercises, and your answers save automatically on your device.",
+      "This digital workbook can be used instead of the printed worksheets. Read the key ideas, complete the exercises, and your answers save automatically on your device.",
     workbookCardTeaser:
       "Read the course content, complete your sleep plan, evening audit, and journal—no printing required.",
 
@@ -532,19 +547,21 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         digitalPageLabel: "Track Your Energy",
         title: "Work day 1 — energy check-ins",
         description:
-          "Rank your energy from 1 (very low) to 10 (tip-top) at each time, matching the printed tracker.",
+          "For each time, tap how your energy felt from 1 (very low) to 5 (high). Only tap a rating when you were awake at that time.",
         fields: energyTrackerFieldsForOneDay(),
       },
       {
         id: "energyWorkDay2",
         title: "Work day 2 — energy check-ins",
-        description: "Same times as day 1 — keep logging honestly, even if your schedule shifts.",
+        description:
+          "Same times as day 1 — tap 1–5 at each slot when you were awake; keep logging honestly.",
         fields: energyTrackerFieldsForOneDay(),
       },
       {
         id: "energyWorkDay3",
         title: "Work day 3 — energy check-ins",
-        description: "Final day of the three-day sample. You can copy the grid again later in your journal if needed.",
+        description:
+          "Final day of the three-day sample — same 1–5 chips; only rate times you were actually awake.",
         fields: energyTrackerFieldsForOneDay(),
       },
       {
@@ -554,12 +571,14 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         fields: [
           {
             id: "insight",
-            label: "What pattern did you spot? (early bird, midday bear, night owl, or something else?)",
+            label:
+              "What pattern did you spot? (early bird, midday bear, night owl, or something else?)",
             placeholder: "e.g. strong 9–11am, crash after lunch unless I walk…",
           },
           {
             id: "taskMatching",
-            label: "Which high-focus tasks will you place in your best windows next week?",
+            label:
+              "Which high-focus tasks will you place in your best windows next week?",
             placeholder: "Match demanding work to your peaks",
           },
         ],
@@ -593,12 +612,14 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
           },
           {
             id: "unsubscribe",
-            label: "Newsletters or senders I will unsubscribe / filter this week",
+            label:
+              "Newsletters or senders I will unsubscribe / filter this week",
             placeholder: "Be ruthless",
           },
           {
             id: "boomerangOrPause",
-            label: "How I will pause or batch the inbox (e.g. Boomerang, scheduled focus)",
+            label:
+              "How I will pause or batch the inbox (e.g. Boomerang, scheduled focus)",
             placeholder: "When I pause, when I unpause",
           },
           {
@@ -656,7 +677,8 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         fields: [
           {
             id: "stockPhrase",
-            label: "Stock phrase I will use before saying yes to new commitments",
+            label:
+              "Stock phrase I will use before saying yes to new commitments",
             placeholder: "e.g. Let me check the calendar and get back to you…",
           },
           {
@@ -749,7 +771,8 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
           },
           {
             id: "distanceTrick",
-            label: "‘Outsource to a friend’ trick — what would I tell them to do A–Z?",
+            label:
+              "‘Outsource to a friend’ trick — what would I tell them to do A–Z?",
             placeholder: "Creates psychological distance",
           },
           {
@@ -768,7 +791,8 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         fields: [
           {
             id: "complete",
-            label: "1. Tasks completed this week (tick off / list from your capture list)",
+            label:
+              "1. Tasks completed this week (tick off / list from your capture list)",
             placeholder: "",
           },
           {
@@ -788,7 +812,8 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
           },
           {
             id: "priorities",
-            label: "5. Key priorities in time slots (match task type to high-potential hours)",
+            label:
+              "5. Key priorities in time slots (match task type to high-potential hours)",
             placeholder: "",
           },
           {
@@ -803,7 +828,8 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
           },
           {
             id: "doubleBooked",
-            label: "8. If double-booked: how I resolve using my real priorities",
+            label:
+              "8. If double-booked: how I resolve using my real priorities",
             placeholder: "",
           },
           {
@@ -875,7 +901,8 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
       {
         id: "reframe",
         title: "See Differently",
-        prompt: "This week I will practise looking at problems from a new angle by:",
+        prompt:
+          "This week I will practise looking at problems from a new angle by:",
       },
       {
         id: "ideas",
@@ -901,8 +928,16 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         description:
           "Connect 9 dots by drawing no more than 4 lines without lifting your pen. What did you learn about assumptions?",
         fields: [
-          { id: "attempt", label: "What approach did you try?", placeholder: "Describe your attempt" },
-          { id: "learning", label: "What did this teach you about thinking beyond constraints?", placeholder: "Reflect on the experience" },
+          {
+            id: "attempt",
+            label: "What approach did you try?",
+            placeholder: "Describe your attempt",
+          },
+          {
+            id: "learning",
+            label: "What did this teach you about thinking beyond constraints?",
+            placeholder: "Reflect on the experience",
+          },
         ],
       },
       {
@@ -911,9 +946,21 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         description:
           "Capture and refine creative solutions you've come up with.",
         fields: [
-          { id: "problem", label: "The problem or challenge", placeholder: "What were you trying to solve?" },
-          { id: "solution", label: "Your creative solution", placeholder: "What did you come up with?" },
-          { id: "next", label: "Next step to act on it", placeholder: "How will you move this forward?" },
+          {
+            id: "problem",
+            label: "The problem or challenge",
+            placeholder: "What were you trying to solve?",
+          },
+          {
+            id: "solution",
+            label: "Your creative solution",
+            placeholder: "What did you come up with?",
+          },
+          {
+            id: "next",
+            label: "Next step to act on it",
+            placeholder: "How will you move this forward?",
+          },
         ],
       },
       {
@@ -922,10 +969,26 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         description:
           "Use the 10-10-10 framework and friend test to work through a tough call.",
         fields: [
-          { id: "decision", label: "The decision I'm facing", placeholder: "Describe the choice" },
-          { id: "friendAdvice", label: "What would I advise a friend?", placeholder: "Step outside yourself" },
-          { id: "ten10", label: "How will I feel in 10 minutes, 10 months, 10 years?", placeholder: "Short vs long-term perspective" },
-          { id: "thirdOption", label: "Is there a creative third option?", placeholder: "Look beyond the obvious two" },
+          {
+            id: "decision",
+            label: "The decision I'm facing",
+            placeholder: "Describe the choice",
+          },
+          {
+            id: "friendAdvice",
+            label: "What would I advise a friend?",
+            placeholder: "Step outside yourself",
+          },
+          {
+            id: "ten10",
+            label: "How will I feel in 10 minutes, 10 months, 10 years?",
+            placeholder: "Short vs long-term perspective",
+          },
+          {
+            id: "thirdOption",
+            label: "Is there a creative third option?",
+            placeholder: "Look beyond the obvious two",
+          },
         ],
       },
     ],
@@ -989,7 +1052,8 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
       {
         id: "movement",
         title: "Movement",
-        prompt: "To support performance, I will move on these days / in this way:",
+        prompt:
+          "To support performance, I will move on these days / in this way:",
       },
     ],
 
@@ -1005,10 +1069,27 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         description:
           "When on holiday, reflect from afar on the trajectory of your life and where you want to go on return.",
         fields: [
-          { id: "achievement", label: "Biggest achievement since my last holiday", placeholder: "What am I proud of?" },
-          { id: "direction", label: "Am I happy with my direction professionally and personally?", placeholder: "Honest assessment" },
-          { id: "nextGoal", label: "Next meaningful goal in the next 6–12 months", placeholder: "What am I aiming for?" },
-          { id: "threeActions", label: "Three things I can do immediately on return to get started", placeholder: "Action 1, Action 2, Action 3" },
+          {
+            id: "achievement",
+            label: "Biggest achievement since my last holiday",
+            placeholder: "What am I proud of?",
+          },
+          {
+            id: "direction",
+            label:
+              "Am I happy with my direction professionally and personally?",
+            placeholder: "Honest assessment",
+          },
+          {
+            id: "nextGoal",
+            label: "Next meaningful goal in the next 6–12 months",
+            placeholder: "What am I aiming for?",
+          },
+          {
+            id: "threeActions",
+            label: "Three things I can do immediately on return to get started",
+            placeholder: "Action 1, Action 2, Action 3",
+          },
         ],
       },
     ],
@@ -1088,11 +1169,31 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         description:
           "Identify a distorted thought, challenge it, and replace it with something healthier.",
         fields: [
-          { id: "situation", label: "The situation", placeholder: "What happened?" },
-          { id: "thought", label: "The automatic thought", placeholder: "What did I tell myself?" },
-          { id: "distortion", label: "Which distortion is this?", placeholder: "e.g. all-or-nothing, catastrophising, labelling…" },
-          { id: "challenge", label: "Evidence against this thought", placeholder: "What facts contradict it?" },
-          { id: "healthier", label: "A healthier replacement thought", placeholder: "What's a more balanced way to see this?" },
+          {
+            id: "situation",
+            label: "The situation",
+            placeholder: "What happened?",
+          },
+          {
+            id: "thought",
+            label: "The automatic thought",
+            placeholder: "What did I tell myself?",
+          },
+          {
+            id: "distortion",
+            label: "Which distortion is this?",
+            placeholder: "e.g. all-or-nothing, catastrophising, labelling…",
+          },
+          {
+            id: "challenge",
+            label: "Evidence against this thought",
+            placeholder: "What facts contradict it?",
+          },
+          {
+            id: "healthier",
+            label: "A healthier replacement thought",
+            placeholder: "What's a more balanced way to see this?",
+          },
         ],
       },
     ],
@@ -1170,13 +1271,30 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
       {
         id: "makeHabit",
         title: "Make Exercise A Habit",
-        description:
-          "Set up your own 3 R's for movement this week.",
+        description: "Set up your own 3 R's for movement this week.",
         fields: [
-          { id: "reminder", label: "My reminder", placeholder: "e.g. phone alarm at 10:55, yoga mat in the sitting room…" },
-          { id: "routine", label: "My routine", placeholder: "e.g. 5-min stretch, walk around the block…" },
-          { id: "reward", label: "My reward / the benefit I notice", placeholder: "e.g. less stiffness, better energy…" },
-          { id: "miniHabit", label: "My mini habit to start with", placeholder: "e.g. one push-up a day, get off the bus one stop early…" },
+          {
+            id: "reminder",
+            label: "My reminder",
+            placeholder:
+              "e.g. phone alarm at 10:55, yoga mat in the sitting room…",
+          },
+          {
+            id: "routine",
+            label: "My routine",
+            placeholder: "e.g. 5-min stretch, walk around the block…",
+          },
+          {
+            id: "reward",
+            label: "My reward / the benefit I notice",
+            placeholder: "e.g. less stiffness, better energy…",
+          },
+          {
+            id: "miniHabit",
+            label: "My mini habit to start with",
+            placeholder:
+              "e.g. one push-up a day, get off the bus one stop early…",
+          },
         ],
       },
     ],
@@ -1256,10 +1374,27 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         description:
           "Follow on from three days of journaling and reflect on patterns.",
         fields: [
-          { id: "zapping", label: "What foods appear to be zapping your energy?", placeholder: "Foods that left you sluggish" },
-          { id: "reduceUnhealthy", label: "How will you make less healthy options harder to reach?", placeholder: "Out of sight, out of mind" },
-          { id: "energising", label: "Which meals and snacks are having a more energising effect?", placeholder: "Foods that gave you steady energy" },
-          { id: "moreAvailable", label: "How will you make energising foods more available?", placeholder: "Staple foods to keep stocked" },
+          {
+            id: "zapping",
+            label: "What foods appear to be zapping your energy?",
+            placeholder: "Foods that left you sluggish",
+          },
+          {
+            id: "reduceUnhealthy",
+            label: "How will you make less healthy options harder to reach?",
+            placeholder: "Out of sight, out of mind",
+          },
+          {
+            id: "energising",
+            label:
+              "Which meals and snacks are having a more energising effect?",
+            placeholder: "Foods that gave you steady energy",
+          },
+          {
+            id: "moreAvailable",
+            label: "How will you make energising foods more available?",
+            placeholder: "Staple foods to keep stocked",
+          },
         ],
       },
     ],
@@ -1313,8 +1448,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
       {
         id: "situations",
         title: "Situations",
-        prompt:
-          "This week I want to handle these situations more clearly:",
+        prompt: "This week I want to handle these situations more clearly:",
       },
       {
         id: "assert",
@@ -1341,11 +1475,31 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         description:
           "Identify areas where you want to be more assertive. Rate each 0–10 for difficulty and start with the easiest.",
         fields: [
-          { id: "step1", label: "Step 1 (easiest)", placeholder: "e.g. Invite the neighbour round for a drink — 2/10" },
-          { id: "step2", label: "Step 2", placeholder: "e.g. Say no to extra hours at work — 4/10" },
-          { id: "step3", label: "Step 3", placeholder: "e.g. Return something to a shop — 5/10" },
-          { id: "step4", label: "Step 4", placeholder: "e.g. Send food back in a restaurant — 7/10" },
-          { id: "step5", label: "Step 5 (hardest)", placeholder: "e.g. Ask boss for a pay rise — 9/10" },
+          {
+            id: "step1",
+            label: "Step 1 (easiest)",
+            placeholder: "e.g. Invite the neighbour round for a drink — 2/10",
+          },
+          {
+            id: "step2",
+            label: "Step 2",
+            placeholder: "e.g. Say no to extra hours at work — 4/10",
+          },
+          {
+            id: "step3",
+            label: "Step 3",
+            placeholder: "e.g. Return something to a shop — 5/10",
+          },
+          {
+            id: "step4",
+            label: "Step 4",
+            placeholder: "e.g. Send food back in a restaurant — 7/10",
+          },
+          {
+            id: "step5",
+            label: "Step 5 (hardest)",
+            placeholder: "e.g. Ask boss for a pay rise — 9/10",
+          },
         ],
       },
       {
@@ -1354,10 +1508,26 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         description:
           "Baby steps from very afraid to confidently presenting. Adapt these to your situation.",
         fields: [
-          { id: "current", label: "Where I am now", placeholder: "e.g. I avoid speaking up in meetings" },
-          { id: "nextSmall", label: "My next small step", placeholder: "e.g. Initiate small talk with my manager" },
-          { id: "medium", label: "A medium challenge to aim for", placeholder: "e.g. Speak up in a larger meeting" },
-          { id: "stretch", label: "My stretch goal", placeholder: "e.g. Present at a team event or join toastmasters" },
+          {
+            id: "current",
+            label: "Where I am now",
+            placeholder: "e.g. I avoid speaking up in meetings",
+          },
+          {
+            id: "nextSmall",
+            label: "My next small step",
+            placeholder: "e.g. Initiate small talk with my manager",
+          },
+          {
+            id: "medium",
+            label: "A medium challenge to aim for",
+            placeholder: "e.g. Speak up in a larger meeting",
+          },
+          {
+            id: "stretch",
+            label: "My stretch goal",
+            placeholder: "e.g. Present at a team event or join toastmasters",
+          },
         ],
       },
     ],
@@ -1433,15 +1603,51 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         description:
           "Keep your personal ambitions and your team's goals in mind as you choose your three priorities.",
         fields: [
-          { id: "key1what", label: "Key 1 — What?", placeholder: "The outcome" },
-          { id: "key1why", label: "Key 1 — Why?", placeholder: "Why does this matter?" },
-          { id: "key1how", label: "Key 1 — How & When?", placeholder: "Steps and timeline" },
-          { id: "key2what", label: "Key 2 — What?", placeholder: "The outcome" },
-          { id: "key2why", label: "Key 2 — Why?", placeholder: "Why does this matter?" },
-          { id: "key2how", label: "Key 2 — How & When?", placeholder: "Steps and timeline" },
-          { id: "key3what", label: "Key 3 — What?", placeholder: "The outcome" },
-          { id: "key3why", label: "Key 3 — Why?", placeholder: "Why does this matter?" },
-          { id: "key3how", label: "Key 3 — How & When?", placeholder: "Steps and timeline" },
+          {
+            id: "key1what",
+            label: "Key 1 — What?",
+            placeholder: "The outcome",
+          },
+          {
+            id: "key1why",
+            label: "Key 1 — Why?",
+            placeholder: "Why does this matter?",
+          },
+          {
+            id: "key1how",
+            label: "Key 1 — How & When?",
+            placeholder: "Steps and timeline",
+          },
+          {
+            id: "key2what",
+            label: "Key 2 — What?",
+            placeholder: "The outcome",
+          },
+          {
+            id: "key2why",
+            label: "Key 2 — Why?",
+            placeholder: "Why does this matter?",
+          },
+          {
+            id: "key2how",
+            label: "Key 2 — How & When?",
+            placeholder: "Steps and timeline",
+          },
+          {
+            id: "key3what",
+            label: "Key 3 — What?",
+            placeholder: "The outcome",
+          },
+          {
+            id: "key3why",
+            label: "Key 3 — Why?",
+            placeholder: "Why does this matter?",
+          },
+          {
+            id: "key3how",
+            label: "Key 3 — How & When?",
+            placeholder: "Steps and timeline",
+          },
         ],
       },
       {
@@ -1450,10 +1656,26 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         description:
           "Work through the four questions that begin every goal-setting journey.",
         fields: [
-          { id: "q1", label: "What do I really want from my life?", placeholder: "What ties in with your values?" },
-          { id: "q2", label: "What am I willing to give up to get there?", placeholder: "What's the trade-off?" },
-          { id: "q3", label: "How will I set my mind to this?", placeholder: "Your mental strategy" },
-          { id: "q4", label: "What's my next action?", placeholder: "The very next step" },
+          {
+            id: "q1",
+            label: "What do I really want from my life?",
+            placeholder: "What ties in with your values?",
+          },
+          {
+            id: "q2",
+            label: "What am I willing to give up to get there?",
+            placeholder: "What's the trade-off?",
+          },
+          {
+            id: "q3",
+            label: "How will I set my mind to this?",
+            placeholder: "Your mental strategy",
+          },
+          {
+            id: "q4",
+            label: "What's my next action?",
+            placeholder: "The very next step",
+          },
         ],
       },
     ],
