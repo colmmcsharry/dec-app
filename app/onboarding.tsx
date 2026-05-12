@@ -39,7 +39,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withRepeat,
   withSpring,
   withTiming,
   type SharedValue,
@@ -49,7 +48,9 @@ import Svg, { Line, Polyline } from "react-native-svg";
 
 const AnimatedPolyline = Animated.createAnimatedComponent(Polyline);
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+/** Pushes slide content down from the status bar / dots for a calmer layout */
+const SLIDE_TOP_OFFSET = Math.round(SCREEN_HEIGHT * 0.15);
 const H_PADDING = 24;
 const SLIDE_INNER = SCREEN_WIDTH - H_PADDING * 2;
 
@@ -59,7 +60,9 @@ type SlideId =
   | "social"
   | "progress"
   | "goals"
-  | "match";
+  | "match"
+  | "videos"
+  | "workbooks";
 
 type Slide = {
   id: SlideId;
@@ -73,6 +76,8 @@ const SLIDES: Slide[] = [
   { id: "progress", key: "progress" },
   { id: "goals", key: "goals" },
   { id: "match", key: "match" },
+  { id: "videos", key: "videos" },
+  { id: "workbooks", key: "workbooks" },
 ];
 
 type GoalOption = {
@@ -84,254 +89,67 @@ type GoalOption = {
 };
 
 const GOALS: GoalOption[] = [
-  { id: "sleep", label: "Sleep better", icon: Moon, iconColor: "#7C3AED", moduleSlug: "sleep" },
-  { id: "mornings", label: "Better mornings", icon: Sunrise, iconColor: "#F59E0B", moduleSlug: "morning-routines" },
-  { id: "energy", label: "More energy", icon: Zap, iconColor: "#10B981", moduleSlug: "energy-management" },
-  { id: "focus", label: "Sharper focus", icon: Brain, iconColor: "#8B5CF6", moduleSlug: "mindfulness" },
-  { id: "stress", label: "Less stress", icon: Heart, iconColor: "#EC4899", moduleSlug: "stress-management" },
-  { id: "eat", label: "Eat better", icon: Apple, iconColor: "#EF4444", moduleSlug: "fuel-2-perform" },
-  { id: "move", label: "Move more", icon: Activity, iconColor: "#0EA5E9", moduleSlug: "move-2-perform" },
-  { id: "habits", label: "Build habits", icon: Target, iconColor: "#14B8A6", moduleSlug: "habits" },
-];
-
-const COLLAGE_IMAGE = require("@/assets/images/onboarding/modules-collage.png");
-
-type FloatingCardData = {
-  title: string;
-  videoCount: number;
-  guideCount: number;
-  background: string;
-  textColor: string;
-  iconBg: string;
-  icon: LucideIcon;
-  iconColor: string;
-  // Position as percentages of the parent container.
-  top?: string;
-  left?: string;
-  right?: string;
-  bottom?: string;
-  width: number;
-  duration: number;
-  delay: number;
-  amplitude: number;
-};
-
-const FLOATING_CARDS: FloatingCardData[] = [
   {
-    title: "Sleep",
-    videoCount: 26,
-    guideCount: 8,
-    background: "#E5D9F2",
-    textColor: "#6B5B8C",
-    iconBg: "#FFFFFF",
-    icon: Heart,
-    iconColor: "#8B7AB8",
-    top: "0%",
-    left: "4%",
-    width: 130,
-    duration: 4000,
-    delay: 0,
-    amplitude: 6.4,
+    id: "sleep",
+    label: "Sleep better",
+    icon: Moon,
+    iconColor: "#7C3AED",
+    moduleSlug: "sleep",
   },
   {
-    title: "Fuel 2 Perform",
-    videoCount: 31,
-    guideCount: 16,
-    background: "#FFDDD9",
-    textColor: "#B85D5D",
-    iconBg: "#FFFFFF",
-    icon: Apple,
-    iconColor: "#D97B7B",
-    top: "-2%",
-    left: "32%",
-    width: 130,
-    duration: 4500,
-    delay: 250,
-    amplitude: 7.2,
+    id: "mornings",
+    label: "Better mornings",
+    icon: Sunrise,
+    iconColor: "#F59E0B",
+    moduleSlug: "morning-routines",
   },
   {
-    title: "Recovery",
-    videoCount: 19,
-    guideCount: 9,
-    background: "#DBE9F7",
-    textColor: "#5278A8",
-    iconBg: "#FFFFFF",
-    icon: Heart,
-    iconColor: "#7BA8C9",
-    top: "2%",
-    right: "4%",
-    width: 130,
-    duration: 3700,
-    delay: 500,
-    amplitude: 5.6,
-  },
-  {
-    title: "Energy Management",
-    videoCount: 17,
-    guideCount: 10,
-    background: "#D4F1E8",
-    textColor: "#4A7D6F",
-    iconBg: "#FFFFFF",
+    id: "energy",
+    label: "More energy",
     icon: Zap,
-    iconColor: "#5D9B8B",
-    top: "44%",
-    left: "2%",
-    width: 132,
-    duration: 4800,
-    delay: 350,
-    amplitude: 8,
+    iconColor: "#10B981",
+    moduleSlug: "energy-management",
   },
   {
-    title: "Building Habits",
-    videoCount: 28,
-    guideCount: 13,
-    background: "#DBF7EA",
-    textColor: "#52997D",
-    iconBg: "#FFFFFF",
-    icon: Sunrise,
-    iconColor: "#7BC9A8",
-    top: "46%",
-    right: "2%",
-    width: 132,
-    duration: 4200,
-    delay: 150,
-    amplitude: 6.4,
-  },
-  {
-    title: "Morning Routines",
-    videoCount: 13,
-    guideCount: 12,
-    background: "#FFF3DC",
-    textColor: "#B8884D",
-    iconBg: "#FFFFFF",
-    icon: Sunrise,
-    iconColor: "#D4A574",
-    bottom: "1%",
-    left: "4%",
-    width: 130,
-    duration: 4300,
-    delay: 600,
-    amplitude: 7.2,
-  },
-  {
-    title: "Thinking 2 Perform",
-    videoCount: 27,
-    guideCount: 11,
-    background: "#F7DBF0",
-    textColor: "#A35D85",
-    iconBg: "#FFFFFF",
+    id: "focus",
+    label: "Sharper focus",
     icon: Brain,
-    iconColor: "#C97BA8",
-    bottom: "-3%",
-    left: "32%",
-    width: 132,
-    duration: 3800,
-    delay: 100,
-    amplitude: 5.6,
+    iconColor: "#8B5CF6",
+    moduleSlug: "mindfulness",
   },
   {
-    title: "Stress Management",
-    videoCount: 21,
-    guideCount: 12,
-    background: "#F7EADB",
-    textColor: "#997D5C",
-    iconBg: "#FFFFFF",
-    icon: Zap,
-    iconColor: "#C9A87B",
-    bottom: "2%",
-    right: "4%",
-    width: 132,
-    duration: 4700,
-    delay: 450,
-    amplitude: 7.2,
+    id: "stress",
+    label: "Less stress",
+    icon: Heart,
+    iconColor: "#EC4899",
+    moduleSlug: "stress-management",
+  },
+  {
+    id: "eat",
+    label: "Eat better",
+    icon: Apple,
+    iconColor: "#EF4444",
+    moduleSlug: "fuel-2-perform",
+  },
+  {
+    id: "move",
+    label: "Move more",
+    icon: Activity,
+    iconColor: "#0EA5E9",
+    moduleSlug: "move-2-perform",
+  },
+  {
+    id: "habits",
+    label: "Build habits",
+    icon: Target,
+    iconColor: "#14B8A6",
+    moduleSlug: "habits",
   },
 ];
 
-function FloatingMiniCard({ data }: { data: FloatingCardData }) {
-  const drift = useSharedValue(-data.amplitude);
-
-  React.useEffect(() => {
-    drift.value = withDelay(
-      data.delay,
-      withRepeat(
-        withTiming(data.amplitude, {
-          duration: data.duration,
-          easing: Easing.inOut(Easing.quad),
-        }),
-        -1,
-        true
-      )
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: drift.value }],
-  }));
-
-  const Icon = data.icon;
-  const positionStyle = {
-    top: data.top as `${number}%` | undefined,
-    left: data.left as `${number}%` | undefined,
-    right: data.right as `${number}%` | undefined,
-    bottom: data.bottom as `${number}%` | undefined,
-    width: data.width,
-  };
-
-  return (
-    <Animated.View
-      style={[
-        floatingStyles.card,
-        positionStyle,
-        { backgroundColor: data.background },
-        animatedStyle,
-      ]}
-    >
-      <View style={[floatingStyles.iconWrap, { backgroundColor: data.iconBg }]}>
-        <Icon size={16} color={data.iconColor} strokeWidth={2.5} />
-      </View>
-      <Text
-        style={[floatingStyles.title, { color: data.textColor }]}
-        numberOfLines={2}
-      >
-        {data.title}
-      </Text>
-      <Text
-        style={[floatingStyles.sub, { color: data.textColor, opacity: 0.55 }]}
-        numberOfLines={1}
-      >
-        {data.videoCount} videos · {data.guideCount} guides
-      </Text>
-    </Animated.View>
-  );
-}
-
-const floatingStyles = StyleSheet.create({
-  card: {
-    position: "absolute",
-    borderRadius: 14,
-    padding: 10,
-    opacity: 0.52,
-  },
-  iconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  title: {
-    fontFamily: AppFonts.headingBold,
-    fontSize: 12,
-    lineHeight: 14,
-    marginBottom: 6,
-  },
-  sub: {
-    fontFamily: AppFonts.bodyRegular,
-    fontSize: 9,
-  },
-});
+const ONBOARDING_MODULES_IMAGE = require("@/assets/images/onboarding/modules.png");
+const ONBOARDING_VIDEOS_IMAGE = require("@/assets/images/onboarding/videos.png");
+const ONBOARDING_WORKBOOKS_IMAGE = require("@/assets/images/onboarding/workbooks.png");
 
 const WAVE_POINTS: [number, number][] = [
   [0, 80],
@@ -362,10 +180,10 @@ function ProgressWave({ active }: { active: boolean }) {
     captionOpacity.value = 0;
     draw.value = withDelay(
       200,
-      withTiming(0, { duration: 1400, easing: Easing.out(Easing.cubic) })
+      withTiming(0, { duration: 1400, easing: Easing.out(Easing.cubic) }),
     );
     captionOpacity.value = withDelay(1500, withTiming(1, { duration: 400 }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- shared values are stable refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shared values are stable refs
   }, [active]);
 
   const polylineProps = useAnimatedProps(() => ({
@@ -411,7 +229,7 @@ const waveStyles = StyleSheet.create({
   caption: {
     fontFamily: AppFonts.bodyMedium,
     fontSize: 15,
-    color: "#6B7280",
+    color: "#374151",
   },
 });
 
@@ -435,7 +253,7 @@ function GrowthBars({ active }: { active: boolean }) {
         withSpring(target, { damping: 14, stiffness: 120 }),
       );
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- h0–h5 are stable SharedValues
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- h0–h5 are stable SharedValues
   }, [active]);
 
   return (
@@ -516,7 +334,7 @@ export default function OnboardingScreen() {
 
   const toggleGoal = useCallback((id: string) => {
     setSelectedGoals((prev) =>
-      prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id],
     );
   }, []);
 
@@ -591,7 +409,7 @@ export default function OnboardingScreen() {
     switch (item.id) {
       case "welcome":
         return (
-          <View style={styles.slide}>
+          <View style={[styles.slide, styles.slideWelcome]}>
             <Animated.View
               entering={FadeInDown.duration(500).springify()}
               style={styles.heroIcon}
@@ -627,145 +445,225 @@ export default function OnboardingScreen() {
       case "growth":
         return (
           <View style={styles.slide}>
-            <Text style={styles.slideTitle}>Momentum builds over time</Text>
-            <Text style={styles.slideBody}>
-              Users who stack small wins week after week report the biggest
-              shifts in energy and focus — here&apos;s what that can look like.
-            </Text>
-            <GrowthBars active={growthActive} />
-            <Text style={styles.chartFoot}>
-              Illustrative — your path is personal
-            </Text>
+            <View style={styles.slideCopy}>
+              <Text style={styles.slideTitle}>Momentum builds over time</Text>
+              <Text style={styles.slideBody}>
+                Users who stack small wins week after week report the biggest
+                shifts in energy and focus — here&apos;s what that can look
+                like.
+              </Text>
+            </View>
+            <View style={styles.slideVisual}>
+              <GrowthBars active={growthActive} />
+              <Text style={styles.chartFoot}>
+                Illustrative — your path is personal
+              </Text>
+            </View>
           </View>
         );
       case "social":
         return (
           <View style={styles.slide}>
-            <Quote size={28} color={MAIN_PURPLE} strokeWidth={2} />
-            <Text style={[styles.slideTitle, { marginTop: 12 }]}>
-              Trusted by people who want more from their day
-            </Text>
-            <View style={styles.testimonialList}>
-              {TESTIMONIALS.map((t, i) => (
-                <Animated.View
-                  key={t.name}
-                  entering={FadeInUp.delay(i * 100).duration(400)}
-                  style={styles.testimonialCard}
+            <View style={styles.slideCopy}>
+              <View style={styles.slideTitleWithIcon}>
+                <Quote size={28} color={MAIN_PURPLE} strokeWidth={2} />
+                <Text
+                  style={[styles.slideTitle, styles.slideTitleBesideIcon]}
+                  numberOfLines={4}
                 >
-                  <Text style={styles.stars}>★★★★★</Text>
-                  <Text style={styles.quoteText}>&ldquo;{t.quote}&rdquo;</Text>
-                  <Text style={styles.quoteMeta}>
-                    {t.name} · {t.role}
-                  </Text>
-                </Animated.View>
-              ))}
+                  Trusted by people who want more from their day
+                </Text>
+              </View>
+            </View>
+            <View style={styles.slideVisual}>
+              <View style={styles.testimonialList}>
+                {TESTIMONIALS.map((t, i) => (
+                  <Animated.View
+                    key={t.name}
+                    entering={FadeInUp.delay(i * 100).duration(400)}
+                    style={styles.testimonialCard}
+                  >
+                    <Text style={styles.stars}>★★★★★</Text>
+                    <Text style={styles.quoteText}>
+                      &ldquo;{t.quote}&rdquo;
+                    </Text>
+                    <Text style={styles.quoteMeta}>
+                      {t.name} · {t.role}
+                    </Text>
+                  </Animated.View>
+                ))}
+              </View>
             </View>
           </View>
         );
       case "progress":
         return (
           <View style={styles.slide}>
-            <Text style={styles.slideTitle}>See your progress add up</Text>
-            <Text style={styles.slideBody}>
-              Track modules completed, celebrate streaks, and spot where to
-              double down next.
-            </Text>
-            <ProgressWave active={progressActive} />
+            <View style={styles.slideCopy}>
+              <Text style={styles.slideTitle}>See your progress add up</Text>
+              <Text style={styles.slideBody}>
+                Track modules completed, celebrate streaks, and spot where to
+                double down next.
+              </Text>
+            </View>
+            <View style={styles.slideVisual}>
+              <ProgressWave active={progressActive} />
+            </View>
           </View>
         );
       case "goals":
         return (
           <View style={styles.slide}>
-            <Text style={styles.slideTitle}>What do you want to improve?</Text>
-            <Text style={styles.slideBody}>
-              Pick everything that matters to you — we&apos;ll show which
-              modules will help most.
-            </Text>
-            <View style={styles.goalsGrid}>
-              {GOALS.map((g, i) => {
-                const selected = selectedGoals.includes(g.id);
-                const Icon = g.icon;
-                return (
-                  <Animated.View
-                    key={g.id}
-                    entering={FadeInUp.delay(i * 40).duration(320)}
-                    style={styles.goalCellWrap}
-                  >
-                    <Pressable
-                      onPress={() => toggleGoal(g.id)}
-                      style={({ pressed }) => [
-                        styles.goalCell,
-                        selected && styles.goalCellSelected,
-                        { opacity: pressed ? 0.85 : 1 },
-                      ]}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: selected }}
-                      accessibilityLabel={g.label}
+            <View style={styles.slideCopy}>
+              <Text style={styles.slideTitle}>
+                What do you want to improve?
+              </Text>
+              <Text style={styles.slideBody}>
+                Pick everything that matters to you — we&apos;ll show which
+                modules will help most.
+              </Text>
+            </View>
+            <View style={[styles.slideVisual, styles.slideVisualGoals]}>
+              <View style={styles.goalsGrid}>
+                {GOALS.map((g, i) => {
+                  const selected = selectedGoals.includes(g.id);
+                  const Icon = g.icon;
+                  return (
+                    <Animated.View
+                      key={g.id}
+                      entering={FadeInUp.delay(i * 40).duration(320)}
+                      style={styles.goalCellWrap}
                     >
-                      <View
-                        style={[
-                          styles.goalIconWrap,
-                          { backgroundColor: g.iconColor + "1F" },
+                      <Pressable
+                        onPress={() => toggleGoal(g.id)}
+                        style={({ pressed }) => [
+                          styles.goalCell,
+                          selected && styles.goalCellSelected,
+                          { opacity: pressed ? 0.85 : 1 },
                         ]}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected }}
+                        accessibilityLabel={g.label}
                       >
-                        <Icon size={20} color={g.iconColor} strokeWidth={2.2} />
-                      </View>
-                      <Text
-                        style={[
-                          styles.goalLabel,
-                          selected && styles.goalLabelSelected,
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {g.label}
-                      </Text>
-                      {selected && (
-                        <View style={styles.goalCheck}>
-                          <Check size={12} color="#FFFFFF" strokeWidth={3.5} />
+                        <View
+                          style={[
+                            styles.goalIconWrap,
+                            { backgroundColor: g.iconColor + "1F" },
+                          ]}
+                        >
+                          <Icon
+                            size={20}
+                            color={g.iconColor}
+                            strokeWidth={2.2}
+                          />
                         </View>
-                      )}
-                    </Pressable>
-                  </Animated.View>
-                );
-              })}
+                        <Text
+                          style={[
+                            styles.goalLabel,
+                            selected && styles.goalLabelSelected,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {g.label}
+                        </Text>
+                        {selected && (
+                          <View style={styles.goalCheck}>
+                            <Check
+                              size={12}
+                              color="#FFFFFF"
+                              strokeWidth={3.5}
+                            />
+                          </View>
+                        )}
+                      </Pressable>
+                    </Animated.View>
+                  );
+                })}
+              </View>
             </View>
           </View>
         );
       case "match":
         return (
           <View style={styles.slide}>
-            <Sparkles size={28} color={MAIN_PURPLE} strokeWidth={2} />
-            <Text style={[styles.slideTitle, { marginTop: 12 }]}>
-              {selectedGoals.length > 0
-                ? "We've got you covered"
-                : "10 focused modules inside"}
-            </Text>
-            <Text style={styles.slideBody}>
-              {selectedGoals.length > 0
-                ? `We have modules to help with ${selectedGoals.length === 1 ? "that area" : "all of your main problem areas"}.`
-                : "Explore the full library — there's something here for every part of your day."}
-            </Text>
-            <Animated.View
-              entering={FadeInUp.duration(450)}
-              style={styles.collageImageWrap}
-            >
-              <View
-                style={styles.floatingLayer}
-                pointerEvents="none"
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-              >
-                {FLOATING_CARDS.map((card) => (
-                  <FloatingMiniCard key={card.title} data={card} />
-                ))}
+            <View style={styles.slideCopy}>
+              <View style={styles.slideTitleWithIcon}>
+                <Sparkles size={28} color={MAIN_PURPLE} strokeWidth={2} />
+                <Text style={[styles.slideTitle, styles.slideTitleBesideIcon]}>
+                  {selectedGoals.length > 0
+                    ? "We've got you covered"
+                    : "10 focused modules inside"}
+                </Text>
               </View>
-              <Image
-                source={COLLAGE_IMAGE}
-                style={styles.collageImage}
-                resizeMode="contain"
-                accessibilityLabel="Preview of modules, sleep videos, and now playing screens"
-              />
-            </Animated.View>
+              <Text style={styles.slideBody}>
+                {selectedGoals.length > 0
+                  ? `We have modules to help with ${selectedGoals.length === 1 ? "that area" : "all of your main problem areas"}.`
+                  : "Explore the full library — there's something here for every part of your day."}
+              </Text>
+            </View>
+            <View style={styles.slideVisual}>
+              <Animated.View
+                entering={FadeInUp.duration(450)}
+                style={styles.collageImageWrap}
+              >
+                <Image
+                  source={ONBOARDING_MODULES_IMAGE}
+                  style={styles.collageImage}
+                  resizeMode="contain"
+                  accessibilityLabel="Preview of the modules grid"
+                />
+              </Animated.View>
+            </View>
+          </View>
+        );
+      case "videos":
+        return (
+          <View style={styles.slide}>
+            <View style={styles.slideCopy}>
+              <Text style={styles.slideTitle}>Video lessons</Text>
+              <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
+                Each module contains dozens of bite-sized educational videos,
+                easy to digest and implement.
+              </Text>
+            </View>
+            <View style={styles.slideVisual}>
+              <Animated.View
+                entering={FadeInUp.duration(450)}
+                style={styles.collageImageWrap}
+              >
+                <Image
+                  source={ONBOARDING_VIDEOS_IMAGE}
+                  style={styles.collageImage}
+                  resizeMode="contain"
+                  accessibilityLabel="Preview of module video lessons"
+                />
+              </Animated.View>
+            </View>
+          </View>
+        );
+      case "workbooks":
+        return (
+          <View style={styles.slide}>
+            <View style={styles.slideCopy}>
+              <Text style={styles.slideTitle}>Workbooks</Text>
+              <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
+                Each module contains a workbook to solidify your learnings and
+                keep you accountable, available in paper or on your phone.
+              </Text>
+            </View>
+            <View style={styles.slideVisual}>
+              <Animated.View
+                entering={FadeInUp.duration(450)}
+                style={styles.collageImageWrap}
+              >
+                <Image
+                  source={ONBOARDING_WORKBOOKS_IMAGE}
+                  style={styles.collageImage}
+                  resizeMode="contain"
+                  accessibilityLabel="Preview of a module workbook"
+                />
+              </Animated.View>
+            </View>
           </View>
         );
       default:
@@ -872,7 +770,7 @@ const styles = StyleSheet.create({
   skip: {
     fontFamily: AppFonts.bodyMedium,
     fontSize: 16,
-    color: "#6B7280",
+    color: "#4B5563",
   },
   list: {
     flex: 1,
@@ -881,10 +779,36 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     flex: 1,
     paddingHorizontal: H_PADDING,
-    paddingTop: 12,
+    paddingTop: 12 + SLIDE_TOP_OFFSET,
     paddingBottom: 24,
-    justifyContent: "center",
+    justifyContent: "flex-start",
     overflow: "hidden",
+  },
+  slideWelcome: {
+    justifyContent: "center",
+  },
+  slideCopy: {
+    width: "100%",
+  },
+  slideVisual: {
+    flex: 1,
+    minHeight: 0,
+    justifyContent: "center",
+    width: "100%",
+    paddingTop: 8,
+  },
+  slideVisualGoals: {
+    justifyContent: "flex-start",
+  },
+  slideTitleWithIcon: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    width: "100%",
+  },
+  slideTitleBesideIcon: {
+    flex: 1,
+    marginBottom: 12,
   },
   heroIcon: {
     width: 96,
@@ -906,7 +830,7 @@ const styles = StyleSheet.create({
     fontFamily: AppFonts.bodyRegular,
     fontSize: 17,
     lineHeight: 26,
-    color: "#4B5563",
+    color: "#374151",
     marginBottom: 24,
   },
   pillRow: {
@@ -944,19 +868,22 @@ const styles = StyleSheet.create({
     fontFamily: AppFonts.bodyRegular,
     fontSize: 16,
     lineHeight: 24,
-    color: "#6B7280",
+    color: "#374151",
     marginBottom: 8,
+  },
+  slideBodyBeforeVisual: {
+    marginBottom: 16,
   },
   chartFoot: {
     fontFamily: AppFonts.bodyRegular,
     fontSize: 13,
-    color: "#9CA3AF",
+    color: "#4B5563",
     marginTop: 12,
     textAlign: "center",
   },
   testimonialList: {
     gap: 12,
-    marginTop: 16,
+    width: "100%",
   },
   testimonialCard: {
     backgroundColor: "#FFFFFF",
@@ -984,7 +911,7 @@ const styles = StyleSheet.create({
   quoteMeta: {
     fontFamily: AppFonts.bodyMedium,
     fontSize: 13,
-    color: "#9CA3AF",
+    color: "#4B5563",
   },
   footer: {
     paddingHorizontal: H_PADDING,
@@ -1016,7 +943,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
-    marginTop: 20,
+    width: "100%",
   },
   goalCellWrap: {
     width: "48%",
@@ -1071,20 +998,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   collageImageWrap: {
-    marginTop: 16,
+    marginTop: 0,
     marginHorizontal: -H_PADDING,
     alignItems: "center",
     justifyContent: "center",
     height: 432,
     position: "relative",
   },
-  floatingLayer: {
-    ...StyleSheet.absoluteFillObject,
-  },
   collageImage: {
     width: "80%",
     height: 432,
     alignSelf: "center",
-    zIndex: 2,
   },
 });

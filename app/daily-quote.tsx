@@ -1,8 +1,8 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import {
   DAILY_DIESEL_QUOTES,
-  getQuoteOfTheDay,
   getQuoteBackgroundOfTheDay,
+  getQuoteOfTheDay,
   QUOTE_SCENIC_BACKGROUNDS,
 } from "@/data/quotes";
 import { hasProEntitlement } from "@/services/purchases";
@@ -207,7 +207,8 @@ export default function DailyQuoteScreen() {
             <View style={styles.cta}>
               <View style={styles.upgradeWrap}>
                 <Text style={styles.upgradeLead}>
-                  Want access to the whole Daily Diesel course? 10 Modules, 300+ Videos, Plus Additional Resources.
+                  Want access to the whole Daily Diesel course? 10 Modules, 300+
+                  Videos, Plus Additional Resources.
                 </Text>
                 <Pressable
                   style={({ pressed }) => [

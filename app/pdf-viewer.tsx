@@ -18,7 +18,9 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronLeft, Share2 } from "lucide-react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { SymbolView } from "expo-symbols";
+import { ChevronLeft } from "lucide-react-native";
 
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -186,9 +188,10 @@ export default function PdfViewerScreen() {
             accessibilityLabel="Share or save PDF"
           >
             <View pointerEvents="none">
-              <Share2
+              <SymbolView
+                name="square.and.arrow.up"
                 size={22}
-                color={
+                tintColor={
                   !localUri || sharing
                     ? isDark
                       ? "#4B5563"
@@ -196,6 +199,21 @@ export default function PdfViewerScreen() {
                     : isDark
                       ? "#E5E7EB"
                       : "#374151"
+                }
+                fallback={
+                  <Ionicons
+                    name="share-outline"
+                    size={22}
+                    color={
+                      !localUri || sharing
+                        ? isDark
+                          ? "#4B5563"
+                          : "#9CA3AF"
+                        : isDark
+                          ? "#E5E7EB"
+                          : "#374151"
+                    }
+                  />
                 }
               />
             </View>

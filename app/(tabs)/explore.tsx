@@ -1,28 +1,23 @@
-import { Asset } from "expo-asset";
-import { MODULE_THEMES, MODULE_ORDER } from "@/constants/module-themes";
+import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
-import { MODULE_PDFS, type PdfEntry } from "@/data/pdf-assets";
 import { MODULE_WORKBOOKS } from "@/data/module-workbooks";
+import { MODULE_PDFS, type PdfEntry } from "@/data/pdf-assets";
 import { hrefModuleDigitalWorkbook } from "@/lib/module-workbook-route";
 import { requirePro } from "@/services/purchases";
 import { useRouter } from "expo-router";
 import {
   BookOpen,
-  FileText,
+  ChevronRight,
   Download,
   ExternalLink,
-  ChevronRight,
+  FileText,
 } from "lucide-react-native";
-import { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   Linking,
   Platform,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -46,31 +41,15 @@ export default function ResourcesScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [isPreparingLeaflet, setIsPreparingLeaflet] = useState(false);
-
-  const handleDownloadLeaflet = async () => {
-    if (isPreparingLeaflet) return;
-    try {
-      setIsPreparingLeaflet(true);
-      const asset = Asset.fromModule(COURSE_LEAFLET);
-      if (!asset.localUri) await asset.downloadAsync();
-      const leafletUri = asset.localUri ?? asset.uri;
-      if (!leafletUri) throw new Error("URI unavailable");
-
-      if (Platform.OS === "web") {
-        await Linking.openURL(asset.uri);
-        return;
-      }
-      await Share.share({
-        title: "Daily Diesel Course Leaflet",
-        message: "Daily Diesel Course Leaflet",
-        url: leafletUri,
-      });
-    } catch {
-      Alert.alert("Unable to open leaflet", "Please try again in a moment.");
-    } finally {
-      setIsPreparingLeaflet(false);
-    }
+  const openCourseLeaflet = async () => {
+    if (!(await requirePro())) return;
+    router.push({
+      pathname: "/pdf-viewer",
+      params: {
+        assetId: String(COURSE_LEAFLET),
+        title: "Course Book",
+      },
+    });
   };
 
   const openPdf = async (slug: string, pdf: PdfEntry) => {
@@ -100,7 +79,10 @@ export default function ResourcesScreen() {
 
       {/* Downloads & Links */}
       <View
-        style={[styles.card, isDark ? styles.cardDark : styles.downloadsCardLight]}
+        style={[
+          styles.card,
+          isDark ? styles.cardDark : styles.downloadsCardLight,
+        ]}
       >
         <View style={styles.cardHeader}>
           <Download size={20} color={isDark ? "#818CF8" : MAIN_PURPLE} />
@@ -109,33 +91,21 @@ export default function ResourcesScreen() {
           </Text>
         </View>
         <Text style={[styles.cardBody, isDark && styles.subtextDark]}>
-          Download the course leaflet to keep a copy on your device.
+          View or download the full course book
         </Text>
 
         <Pressable
           style={({ pressed }) => [
             styles.actionButton,
             styles.primaryButton,
-            { opacity: pressed || isPreparingLeaflet ? 0.7 : 1 },
+            { opacity: pressed ? 0.7 : 1 },
           ]}
-          onPress={handleDownloadLeaflet}
-          disabled={isPreparingLeaflet}
+          onPress={openCourseLeaflet}
           accessibilityRole="button"
-          accessibilityLabel="Download course leaflet PDF"
+          accessibilityLabel="Open course book PDF"
         >
           <View style={styles.actionButtonContent}>
-            {isPreparingLeaflet && (
-              <ActivityIndicator
-                size="small"
-                color="#FFFFFF"
-                style={{ marginRight: 10 }}
-              />
-            )}
-            <Text style={styles.actionButtonText}>
-              {isPreparingLeaflet
-                ? "Preparing…"
-                : "Download Course Leaflet (PDF)"}
-            </Text>
+            <Text style={styles.actionButtonText}>Open Course Book</Text>
           </View>
         </Pressable>
 
@@ -163,9 +133,8 @@ export default function ResourcesScreen() {
         Module Worksheets
       </Text>
       <Text style={[styles.sectionSubtitle, isDark && styles.subtextDark]}>
-        Tap a worksheet to view its PDF, then open your digital workbook if you
-        prefer typed answers — they save on this device. Each module uses one
-        workbook document everywhere in the app.
+        View and Print the worksheets or use the Digital Workbook if you
+        prefer typed answers — they save on this device.
       </Text>
 
       {MODULE_ORDER.map((slug) => {
@@ -217,10 +186,7 @@ export default function ResourcesScreen() {
             {pdfs.map((pdf) => (
               <TouchableOpacity
                 key={pdf.id}
-                style={[
-                  styles.pdfRow,
-                  isDark && styles.pdfRowDark,
-                ]}
+                style={[styles.pdfRow, isDark && styles.pdfRowDark]}
                 activeOpacity={0.7}
                 onPress={() => openPdf(slug, pdf)}
               >
