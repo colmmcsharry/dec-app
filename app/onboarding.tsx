@@ -48,9 +48,7 @@ import Svg, { Line, Polyline } from "react-native-svg";
 
 const AnimatedPolyline = Animated.createAnimatedComponent(Polyline);
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-/** Pushes slide content down from the status bar / dots for a calmer layout */
-const SLIDE_TOP_OFFSET = Math.round(SCREEN_HEIGHT * 0.15);
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const H_PADDING = 24;
 const SLIDE_INNER = SCREEN_WIDTH - H_PADDING * 2;
 
@@ -409,7 +407,8 @@ export default function OnboardingScreen() {
     switch (item.id) {
       case "welcome":
         return (
-          <View style={[styles.slide, styles.slideWelcome]}>
+          <View style={styles.slide}>
+            <View style={styles.slideContent}>
             <Animated.View
               entering={FadeInDown.duration(500).springify()}
               style={styles.heroIcon}
@@ -440,11 +439,13 @@ export default function OnboardingScreen() {
                 <Text style={styles.pillText}>Soul</Text>
               </View>
             </View>
+            </View>
           </View>
         );
       case "growth":
         return (
           <View style={styles.slide}>
+            <View style={styles.slideContent}>
             <View style={styles.slideCopy}>
               <Text style={styles.slideTitle}>Momentum builds over time</Text>
               <Text style={styles.slideBody}>
@@ -459,11 +460,13 @@ export default function OnboardingScreen() {
                 Illustrative — your path is personal
               </Text>
             </View>
+            </View>
           </View>
         );
       case "social":
         return (
           <View style={styles.slide}>
+            <View style={styles.slideContent}>
             <View style={styles.slideCopy}>
               <View style={styles.slideTitleWithIcon}>
                 <Quote size={28} color={MAIN_PURPLE} strokeWidth={2} />
@@ -494,11 +497,13 @@ export default function OnboardingScreen() {
                 ))}
               </View>
             </View>
+            </View>
           </View>
         );
       case "progress":
         return (
           <View style={styles.slide}>
+            <View style={styles.slideContent}>
             <View style={styles.slideCopy}>
               <Text style={styles.slideTitle}>See your progress add up</Text>
               <Text style={styles.slideBody}>
@@ -509,11 +514,13 @@ export default function OnboardingScreen() {
             <View style={styles.slideVisual}>
               <ProgressWave active={progressActive} />
             </View>
+            </View>
           </View>
         );
       case "goals":
         return (
           <View style={styles.slide}>
+            <View style={styles.slideContent}>
             <View style={styles.slideCopy}>
               <Text style={styles.slideTitle}>
                 What do you want to improve?
@@ -523,7 +530,7 @@ export default function OnboardingScreen() {
                 modules will help most.
               </Text>
             </View>
-            <View style={[styles.slideVisual, styles.slideVisualGoals]}>
+            <View style={styles.slideVisual}>
               <View style={styles.goalsGrid}>
                 {GOALS.map((g, i) => {
                   const selected = selectedGoals.includes(g.id);
@@ -581,11 +588,13 @@ export default function OnboardingScreen() {
                 })}
               </View>
             </View>
+            </View>
           </View>
         );
       case "match":
         return (
           <View style={styles.slide}>
+            <View style={styles.slideContent}>
             <View style={styles.slideCopy}>
               <View style={styles.slideTitleWithIcon}>
                 <Sparkles size={28} color={MAIN_PURPLE} strokeWidth={2} />
@@ -614,11 +623,13 @@ export default function OnboardingScreen() {
                 />
               </Animated.View>
             </View>
+            </View>
           </View>
         );
       case "videos":
         return (
           <View style={styles.slide}>
+            <View style={styles.slideContent}>
             <View style={styles.slideCopy}>
               <Text style={styles.slideTitle}>Video lessons</Text>
               <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
@@ -639,11 +650,13 @@ export default function OnboardingScreen() {
                 />
               </Animated.View>
             </View>
+            </View>
           </View>
         );
       case "workbooks":
         return (
           <View style={styles.slide}>
+            <View style={styles.slideContent}>
             <View style={styles.slideCopy}>
               <Text style={styles.slideTitle}>Workbooks</Text>
               <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
@@ -663,6 +676,7 @@ export default function OnboardingScreen() {
                   accessibilityLabel="Preview of a module workbook"
                 />
               </Animated.View>
+            </View>
             </View>
           </View>
         );
@@ -779,26 +793,19 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     flex: 1,
     paddingHorizontal: H_PADDING,
-    paddingTop: 12 + SLIDE_TOP_OFFSET,
-    paddingBottom: 24,
-    justifyContent: "flex-start",
+    paddingVertical: 12,
+    justifyContent: "center",
     overflow: "hidden",
   },
-  slideWelcome: {
-    justifyContent: "center",
+  slideContent: {
+    width: "100%",
   },
   slideCopy: {
     width: "100%",
   },
   slideVisual: {
-    flex: 1,
-    minHeight: 0,
-    justifyContent: "center",
     width: "100%",
     paddingTop: 8,
-  },
-  slideVisualGoals: {
-    justifyContent: "flex-start",
   },
   slideTitleWithIcon: {
     flexDirection: "row",
