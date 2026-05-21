@@ -1,6 +1,11 @@
+import { ArticleListCard } from "@/components/article-list-card";
+import { DownloadListCard } from "@/components/download-list-card";
+import { MainTabHeader } from "@/components/main-tab-header";
 import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
+import { getFeaturedArticle } from "@/data/articles";
+import { getFeaturedDownload } from "@/data/downloads";
 import { MODULE_WORKBOOKS } from "@/data/module-workbooks";
 import { MODULE_PDFS, type PdfEntry } from "@/data/pdf-assets";
 import { hrefModuleDigitalWorkbook } from "@/lib/module-workbook-route";
@@ -9,12 +14,9 @@ import { useRouter } from "expo-router";
 import {
   BookOpen,
   ChevronRight,
-  Download,
-  ExternalLink,
   FileText,
 } from "lucide-react-native";
 import {
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -25,8 +27,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const COURSE_LEAFLET = require("@/assets/documents/course-leaflet.pdf");
-
 /** Module worksheet cards: neutral ink (pastel card bg only; no theme-coloured type). */
 const MODULE_INK_LIGHT = "#1E2430";
 const MODULE_MUTED_LIGHT = "#5C6370";
@@ -36,20 +36,24 @@ const MODULE_INK_DARK = "#ECEDEE";
 const MODULE_MUTED_DARK = "#AEB3C4";
 const MODULE_ICON_DARK = "#E5E7EB";
 const MODULE_CHEVRON_DARK = "#9090A8";
+const WORKBOOK_TEXT = "#1E2430";
 
 export default function ResourcesScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const openCourseLeaflet = async () => {
+  const featuredDownload = getFeaturedDownload();
+
+  const openDownload = async (id: string, title: string) => {
     if (!(await requirePro())) return;
     router.push({
       pathname: "/pdf-viewer",
-      params: {
-        assetId: String(COURSE_LEAFLET),
-        title: "Course Book",
-      },
+      params: { downloadId: id, title },
     });
+  };
+
+  const openAllDownloads = () => {
+    router.push("/downloads");
   };
 
   const openPdf = async (slug: string, pdf: PdfEntry) => {
@@ -65,67 +69,95 @@ export default function ResourcesScreen() {
     router.push(hrefModuleDigitalWorkbook(slug));
   };
 
+  const openArticle = async (slug: string) => {
+    if (!(await requirePro())) return;
+    router.push({
+      pathname: "/article/[slug]",
+      params: { slug },
+    });
+  };
+
   return (
     <ScrollView
       style={[styles.container, isDark && styles.containerDark]}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 40 },
+        { paddingTop: 8, paddingBottom: insets.bottom + 40 },
       ]}
     >
-      <Text style={[styles.pageTitle, isDark && styles.textDark]}>
-        Resources
+      <MainTabHeader />
+
+      {/* Downloads */}
+      <Text style={[styles.sectionHeading, isDark && styles.textDark]}>
+        Downloads
+      </Text>
+      <Text style={[styles.sectionSubtitle, isDark && styles.subtextDark]}>
+        Guides, meal plans and course materials
       </Text>
 
-      {/* Downloads & Links */}
+      <DownloadListCard
+        download={featuredDownload}
+        isDark={isDark}
+        onPress={() =>
+          void openDownload(featuredDownload.id, featuredDownload.title)
+        }
+      />
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.actionButton,
+          styles.primaryButton,
+          styles.viewAllDownloadsButton,
+          { opacity: pressed ? 0.7 : 1 },
+        ]}
+        onPress={() => void openAllDownloads()}
+        accessibilityRole="button"
+        accessibilityLabel="View all downloads"
+      >
+        <View style={styles.actionButtonContent}>
+          <Text style={styles.actionButtonText}>View All Downloads</Text>
+        </View>
+      </Pressable>
+
       <View
         style={[
-          styles.card,
-          isDark ? styles.cardDark : styles.downloadsCardLight,
+          styles.articlesSection,
+          isDark && styles.cardDark,
+          styles.cardShell,
+          isDark && styles.cardShellDark,
         ]}
       >
-        <View style={styles.cardHeader}>
-          <Download size={20} color={isDark ? "#818CF8" : MAIN_PURPLE} />
-          <Text style={[styles.cardTitle, isDark && styles.textDark]}>
-            Downloads & Links
+        <View
+          style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]}
+        />
+        <View style={styles.cardInner}>
+          <Text
+            style={[styles.sectionEyebrow, isDark && styles.sectionEyebrowDark]}
+          >
+            Latest Podcast
           </Text>
-        </View>
-        <Text style={[styles.cardBody, isDark && styles.subtextDark]}>
-          View or download the full course book
-        </Text>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.actionButton,
-            styles.primaryButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-          onPress={openCourseLeaflet}
-          accessibilityRole="button"
-          accessibilityLabel="Open course book PDF"
-        >
-          <View style={styles.actionButtonContent}>
-            <Text style={styles.actionButtonText}>Open Course Book</Text>
-          </View>
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.actionButton,
-            styles.primaryButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-          onPress={() =>
-            Linking.openURL("https://performancetreanor.wordpress.com")
-          }
-        >
-          <View style={styles.actionButtonContent}>
-            <ExternalLink size={16} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.actionButtonText}>
-              Blog — Performance Treanor
+          <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+            Articles & Podcasts
+          </Text>
+          <ArticleListCard
+            article={getFeaturedArticle()}
+            isDark={isDark}
+            onPress={() => void openArticle(getFeaturedArticle().slug)}
+          />
+          <Pressable
+            style={({ pressed }) => [
+              styles.viewAllButton,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+            onPress={() => router.push("/articles")}
+            accessibilityRole="button"
+            accessibilityLabel="View all articles and podcasts"
+          >
+            <Text style={styles.viewAllButtonText}>
+              View All Articles & Podcasts
             </Text>
-          </View>
-        </Pressable>
+          </Pressable>
+        </View>
       </View>
 
       {/* Module PDFs */}
@@ -273,13 +305,6 @@ const styles = StyleSheet.create({
   textDark: { color: "#ECEDEE" },
   subtextDark: { color: "#9BA1A6" },
 
-  pageTitle: {
-    fontSize: 28,
-    fontFamily: AppFonts.headingBold,
-    color: "#2C3E50",
-    marginBottom: 20,
-  },
-
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
@@ -321,6 +346,98 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     fontFamily: AppFonts.bodyRegular,
   },
+  courseBookGroup: {
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  courseBookGroupLight: {
+    backgroundColor: "#FFFFFF",
+  },
+  courseBookGroupDark: {
+    backgroundColor: "#2A2A45",
+  },
+  courseBookGroupBody: {
+    marginBottom: 12,
+  },
+  courseBookButton: {
+    marginBottom: 0,
+  },
+  viewAllDownloadsButton: {
+    marginTop: 4,
+    marginBottom: 24,
+  },
+
+  articlesSection: {
+    marginBottom: 24,
+    backgroundColor: "#F3F2F7",
+  },
+  cardShell: {
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "#EADBF7",
+    overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: MAIN_PURPLE,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 20,
+      },
+      android: { elevation: 4 },
+    }),
+  },
+  cardShellDark: {
+    borderColor: "#3A2E5C",
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0.35,
+      },
+    }),
+  },
+  cardAccentBar: {
+    height: 5,
+    backgroundColor: "#A8B4E8",
+  },
+  cardAccentBarDark: {
+    backgroundColor: MAIN_PURPLE,
+  },
+  cardInner: {
+    padding: 20,
+  },
+  sectionEyebrow: {
+    fontSize: 11,
+    fontFamily: AppFonts.headingBold,
+    color: MAIN_PURPLE,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 6,
+  },
+  sectionEyebrowDark: {
+    color: "#B7A8E0",
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontFamily: AppFonts.headingBold,
+    color: WORKBOOK_TEXT,
+    marginBottom: 12,
+  },
+  sectionTitleDark: {
+    color: "#ECEDEE",
+  },
+  viewAllButton: {
+    marginTop: 4,
+    backgroundColor: MAIN_PURPLE,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  viewAllButtonText: {
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 15,
+    color: "#FFFFFF",
+  },
 
   actionButton: {
     paddingVertical: 14,
@@ -354,6 +471,63 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontFamily: AppFonts.bodyRegular,
     marginBottom: 16,
+  },
+
+  articleCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  articleCardLight: {
+    backgroundColor: "#FFFFFF",
+  },
+  articleCardDark: {
+    backgroundColor: "#1E1E32",
+    borderColor: "#3A3D55",
+  },
+  articleCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  articleIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#EDE8F8",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  articleIconCircleDark: {
+    backgroundColor: "#2A2A45",
+  },
+  articleCardText: {
+    flex: 1,
+    gap: 4,
+  },
+  articleTitle: {
+    fontFamily: AppFonts.headingSemiBold,
+    fontSize: 16,
+    lineHeight: 22,
+    color: "#2C3E50",
+  },
+  articleExcerpt: {
+    fontFamily: AppFonts.bodyRegular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#6B7280",
+    marginTop: 2,
   },
 
   moduleCard: {

@@ -1,24 +1,24 @@
-import { MODULE_THEMES, MODULE_ORDER } from "@/constants/module-themes";
+import { MainTabHeader } from "@/components/main-tab-header";
+import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_VIDEOS } from "@/data/module-videos";
 import { getQuoteBackgroundOfTheDay, getQuoteOfTheDay } from "@/data/quotes";
-import { getAllProgress } from "@/services/progress";
 import {
   cancelDailyReminder,
   getNextReminderDate,
   requestNotificationPermission,
   scheduleDailyReminder,
 } from "@/services/notifications";
+import { getAllProgress } from "@/services/progress";
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Flame, Maximize2, Moon, Sun } from "lucide-react-native";
+import { Flame, Maximize2 } from "lucide-react-native";
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
-import Svg, { Circle } from "react-native-svg";
 import {
   Alert,
   ImageBackground,
@@ -31,6 +31,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 
 interface CategoryCardProps {
   title: string;
@@ -163,7 +164,7 @@ const MODULE_CATEGORY_ROWS = MODULE_ORDER.map((slug) => {
 });
 
 export default function HomeScreen() {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark } = useTheme();
 
   const [quoteDate, setQuoteDate] = useState(() => new Date());
   const dailyQuote = useMemo(() => getQuoteOfTheDay(quoteDate), [quoteDate]);
@@ -319,31 +320,7 @@ export default function HomeScreen() {
     >
       {/* Header Section */}
       <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={[styles.welcomeText, isDark && styles.welcomeTextDark]}>
-            Welcome Back, Declan
-          </Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={toggleTheme}
-              style={[styles.themeToggle, isDark && styles.themeToggleDark]}
-              activeOpacity={0.65}
-              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
-              accessibilityRole="button"
-              accessibilityLabel={
-                isDark ? "Switch to light mode" : "Switch to dark mode"
-              }
-            >
-              <View pointerEvents="none">
-                {isDark ? (
-                  <Sun size={20} color="#FDB813" strokeWidth={2.5} />
-                ) : (
-                  <Moon size={20} color="#6B5B8C" strokeWidth={2.5} />
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <MainTabHeader showThemeToggle />
         <Text style={[styles.mainTitle, isDark && styles.mainTitleDark]}>
           Mind • Body • Soul
         </Text>
@@ -394,7 +371,8 @@ export default function HomeScreen() {
               <Text
                 style={[
                   styles.dieselQuote,
-                  dailyQuote.author === "Daily Diesel" && styles.dieselQuoteNoAuthor,
+                  dailyQuote.author === "Daily Diesel" &&
+                    styles.dieselQuoteNoAuthor,
                 ]}
                 numberOfLines={3}
               >
@@ -531,7 +509,7 @@ export default function HomeScreen() {
                     cx={gaugeSize / 2}
                     cy={gaugeSize / 2}
                     r={radius}
-                    stroke={isDark ? '#2A2A3E' : '#E8E8EE'}
+                    stroke={isDark ? "#2A2A3E" : "#E8E8EE"}
                     strokeWidth={strokeWidth}
                     fill="none"
                   />
@@ -549,7 +527,9 @@ export default function HomeScreen() {
                     origin={`${gaugeSize / 2}, ${gaugeSize / 2}`}
                   />
                 </Svg>
-                <Text style={[styles.gaugePctText, isDark && { color: '#ECEDEE' }]}>
+                <Text
+                  style={[styles.gaugePctText, isDark && { color: "#ECEDEE" }]}
+                >
                   {Math.round(pct * 100)}%
                 </Text>
               </View>
@@ -605,45 +585,10 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 8,
   },
   header: {
     marginBottom: 24,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  tourButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#EEF1FB",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  tourButtonDark: {
-    backgroundColor: "#2A2A3E",
-  },
-  welcomeText: {
-    fontSize: 16,
-    color: "#8E8EA0",
-    fontFamily: AppFonts.bodyRegular,
-  },
-  welcomeTextDark: {
-    color: "#9090A8",
   },
   mainTitle: {
     fontSize: 32,
@@ -663,22 +608,6 @@ const styles = StyleSheet.create({
   },
   subtitleDark: {
     color: "#9090A8",
-  },
-  themeToggle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F0ECF7",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  themeToggleDark: {
-    backgroundColor: "#2A2A3E",
   },
   grid: {
     flexDirection: "row",

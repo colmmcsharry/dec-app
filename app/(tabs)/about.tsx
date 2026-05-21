@@ -31,8 +31,13 @@ const WORKBOOK_TEXT = "#1E2430";
 const WORKBOOK_TEXT_BODY = "#363C48";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CAROUSEL_GAP = 16;
 const CAROUSEL_ITEM_WIDTH = SCREEN_WIDTH - 40;
+const CAROUSEL_IMAGE_WIDTH = CAROUSEL_ITEM_WIDTH - CAROUSEL_GAP;
+const CAROUSEL_STRIDE = CAROUSEL_ITEM_WIDTH;
 const CAROUSEL_IMAGE_HEIGHT = 250;
+
+const LOGO = require("@/assets/images/icon-transparent.png");
 
 const TESTIMONIAL_IMAGES: ImageSourcePropType[] = [
   require("@/assets/images/about/testimonials/testimonial-1.jpg"),
@@ -71,7 +76,7 @@ function TestimonialImageCarousel({ isDark }: { isDark: boolean }) {
 
   const onCarouselScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
-    setActiveIndex(Math.round(x / CAROUSEL_ITEM_WIDTH));
+    setActiveIndex(Math.round(x / CAROUSEL_STRIDE));
   };
 
   const onModalScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -92,20 +97,28 @@ function TestimonialImageCarousel({ isDark }: { isDark: boolean }) {
         data={TESTIMONIAL_IMAGES}
         style={styles.carouselList}
         horizontal
-        pagingEnabled
         nestedScrollEnabled
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
+        snapToInterval={CAROUSEL_STRIDE}
+        snapToAlignment="start"
+        disableIntervalMomentum
         keyExtractor={(_, index) => `testimonial-image-${index}`}
         onMomentumScrollEnd={onCarouselScrollEnd}
         getItemLayout={(_, index) => ({
-          length: CAROUSEL_ITEM_WIDTH,
-          offset: CAROUSEL_ITEM_WIDTH * index,
+          length: CAROUSEL_STRIDE,
+          offset: CAROUSEL_STRIDE * index,
           index,
         })}
         renderItem={({ item, index }) => (
           <Pressable
-            style={[styles.carouselSlide, { width: CAROUSEL_ITEM_WIDTH }]}
+            style={[
+              styles.carouselSlide,
+              {
+                width: CAROUSEL_IMAGE_WIDTH,
+                marginRight: CAROUSEL_GAP,
+              },
+            ]}
             onPress={() => openViewer(index)}
             disabled={viewerOpen}
             accessibilityRole="button"
@@ -303,53 +316,70 @@ function PremiumStatusBanner({
   isDark: boolean;
   isPremium: boolean | null;
 }) {
+  const insets = useSafeAreaInsets();
+
   if (isPremium === null) return null;
 
   const active = isPremium;
+  const title = active
+    ? "You are on the Premium version"
+    : "You are on the Basic version";
 
   return (
-    <View
-      style={[
-        styles.premiumBanner,
-        active ? styles.premiumBannerActive : styles.premiumBannerFree,
-        isDark &&
-          (active ? styles.premiumBannerActiveDark : styles.premiumBannerFreeDark),
-      ]}
-      accessibilityRole="text"
-      accessibilityLabel={
-        active
-          ? "You are on the Premium version"
-          : "You are on the Basic version"
-      }
-    >
-      {active ? (
-        <Crown size={18} color={isDark ? "#C4B5E8" : MAIN_PURPLE} strokeWidth={2.2} />
-      ) : (
-        <Lock size={18} color={isDark ? "#AEB3C4" : "#5C6370"} strokeWidth={2.2} />
-      )}
-      <View style={styles.premiumBannerText}>
-        <Text
-          style={[
-            styles.premiumBannerTitle,
-            isDark && styles.premiumBannerTitleDark,
-            active && styles.premiumBannerTitleActive,
-            active && isDark && styles.premiumBannerTitleActiveDark,
-          ]}
-        >
-          {active
-            ? "You are on the Premium version"
-            : "You are on the Basic version"}
-        </Text>
-        <Text
-          style={[
-            styles.premiumBannerSubtitle,
-            isDark && styles.premiumBannerSubtitleDark,
-          ]}
-        >
-          {active
-            ? "Full access to all modules, videos, and workbooks."
-            : "Upgrade to Premium to unlock all modules, videos, and workbooks."}
-        </Text>
+    <View style={{ paddingTop: insets.top + 8, marginBottom: 20 }}>
+      <View
+        style={[
+          styles.premiumBanner,
+          active ? styles.premiumBannerActive : styles.premiumBannerFree,
+          isDark &&
+            (active ? styles.premiumBannerActiveDark : styles.premiumBannerFreeDark),
+        ]}
+        accessibilityRole="text"
+        accessibilityLabel={title}
+      >
+        <Image
+          source={LOGO}
+          style={styles.premiumBannerLogo}
+          resizeMode="contain"
+          accessibilityLabel="Performance Treanor"
+        />
+        <View style={styles.premiumBannerText}>
+          <View style={styles.premiumBannerTitleRow}>
+            <Text
+              style={[
+                styles.premiumBannerTitle,
+                isDark && styles.premiumBannerTitleDark,
+                active && styles.premiumBannerTitleActive,
+                active && isDark && styles.premiumBannerTitleActiveDark,
+              ]}
+            >
+              {title}
+            </Text>
+            {active ? (
+              <Crown
+                size={18}
+                color={isDark ? "#C4B5E8" : MAIN_PURPLE}
+                strokeWidth={2.2}
+              />
+            ) : (
+              <Lock
+                size={18}
+                color={isDark ? "#AEB3C4" : "#5C6370"}
+                strokeWidth={2.2}
+              />
+            )}
+          </View>
+          <Text
+            style={[
+              styles.premiumBannerSubtitle,
+              isDark && styles.premiumBannerSubtitleDark,
+            ]}
+          >
+            {active
+              ? "Full access to all modules, videos, and workbooks."
+              : "Upgrade to Premium to unlock all modules, videos, and workbooks."}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -617,7 +647,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 40,
   },
   premiumBanner: {
@@ -625,9 +654,9 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 12,
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingTop: 14,
+    paddingBottom: 14,
     paddingHorizontal: 16,
-    marginBottom: 20,
     borderWidth: 1.5,
   },
   premiumBannerActive: {
@@ -646,14 +675,24 @@ const styles = StyleSheet.create({
     backgroundColor: "#1E1E32",
     borderColor: "#3A3A52",
   },
+  premiumBannerLogo: {
+    width: 44,
+    height: 44,
+  },
   premiumBannerText: {
     flex: 1,
+  },
+  premiumBannerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 2,
   },
   premiumBannerTitle: {
     fontFamily: AppFonts.headingSemiBold,
     fontSize: 16,
     color: WORKBOOK_TEXT,
-    marginBottom: 2,
   },
   premiumBannerTitleDark: {
     color: "#ECEDEE",
@@ -672,6 +711,19 @@ const styles = StyleSheet.create({
   },
   premiumBannerSubtitleDark: {
     color: "#AEB3C4",
+  },
+  viewAllButton: {
+    marginTop: 4,
+    backgroundColor: MAIN_PURPLE,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  viewAllButtonText: {
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 15,
+    color: "#FFFFFF",
   },
   textDark: {
     color: "#ECEDEE",

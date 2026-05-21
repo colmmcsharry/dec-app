@@ -24,13 +24,16 @@ import { ChevronLeft } from "lucide-react-native";
 
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
+import { getDownloadById } from "@/data/downloads";
 import { MODULE_PDFS } from "@/data/pdf-assets";
+import { requirePro } from "@/services/purchases";
 
 export default function PdfViewerScreen() {
-  const { slug, pdfId, assetId, title } = useLocalSearchParams<{
+  const { slug, pdfId, assetId, downloadId, title } = useLocalSearchParams<{
     slug?: string;
     pdfId?: string;
     assetId?: string;
+    downloadId?: string;
     title?: string;
   }>();
   const router = useRouter();
@@ -39,8 +42,31 @@ export default function PdfViewerScreen() {
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [accessChecked, setAccessChecked] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const allowed = await requirePro();
+      if (cancelled) return;
+      if (!allowed) {
+        router.back();
+        return;
+      }
+      setAccessChecked(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const resolvedAsset = useMemo<{ module: number; id: string } | null>(() => {
+    if (downloadId) {
+      const entry = getDownloadById(String(downloadId));
+      if (!entry) return null;
+      return { module: entry.asset, id: entry.id };
+    }
+
     if (assetId) {
       const moduleId = Number(assetId);
       if (!Number.isFinite(moduleId)) return null;
@@ -55,9 +81,11 @@ export default function PdfViewerScreen() {
     }
 
     return null;
-  }, [assetId, slug, pdfId]);
+  }, [assetId, slug, pdfId, downloadId]);
 
   useEffect(() => {
+    if (!accessChecked) return;
+
     let cancelled = false;
 
     (async () => {
@@ -92,7 +120,7 @@ export default function PdfViewerScreen() {
     return () => {
       cancelled = true;
     };
-  }, [resolvedAsset]);
+  }, [resolvedAsset, accessChecked]);
 
   const displayTitle =
     typeof title === "string" && title.length > 0 ? title : "Document";
@@ -226,7 +254,7 @@ export default function PdfViewerScreen() {
               {error}
             </Text>
           </View>
-        ) : !viewerSource ? (
+        ) : !accessChecked || !viewerSource ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={isDark ? "#818CF8" : "#6366F1"} />
             <Text style={[styles.loadingText, isDark && { color: "#9CA3AF" }]}>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Performance Treanor — holistic coaching for mind, body and soul. Home of the Daily Diesel app."
+    />
+    <title>Performance Treanor</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/">
+          <img
+            src="/assets/logo-transparent.png"
+            alt="Performance Treanor logo"
+            width="48"
+            height="48"
+          />
+          <span>Performance Treanor</span>
+        </a>
+        <nav class="nav">
+          <a href="#about">About</a>
+          <a href="#app">Daily Diesel</a>
+          <a href="#resources">Resources</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow">Train the Mind, Body and Soul</p>
+            <h1>Performance coaching for real life</h1>
+            <p class="lead">
+              Science-backed guidance on sleep, nutrition, mindset, movement, and
+              recovery — built for professionals who want more from their day.
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="#app">Explore the app</a>
+              <a
+                class="btn btn-secondary"
+                href="https://performancetreanor.wordpress.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Read the blog
+              </a>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <img
+              src="/assets/logo-square.png"
+              alt="Performance Treanor"
+              class="hero-logo"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section id="about" class="section">
+        <div class="container narrow">
+          <h2>About</h2>
+          <p>
+            Declan Treanor helps high performers build sustainable habits across
+            mind, body, and soul. Drawing on psychology, sport, and years of
+            coaching experience, Performance Treanor supports people who want
+            better energy, focus, and wellbeing — without gimmicks.
+          </p>
+          <p>
+            This site is the new home for Performance Treanor online. When
+            <strong>performancetreanor.com</strong> goes live, it will point
+            here — same content, your domain.
+          </p>
+        </div>
+      </section>
+
+      <section id="app" class="section section-muted">
+        <div class="container app-grid">
+          <div>
+            <h2>Daily Diesel app</h2>
+            <p>
+              The Daily Diesel app brings Declan’s course modules, videos,
+              workbooks, and resources to your phone. Track progress, build
+              streaks, and work through holistic performance topics at your own
+              pace.
+            </p>
+            <ul class="feature-list">
+              <li>Video modules hosted on Vimeo</li>
+              <li>Digital and printable workbooks</li>
+              <li>Articles and podcasts in Resources</li>
+              <li>Daily motivation and progress tracking</li>
+            </ul>
+          </div>
+          <div class="app-card">
+            <img
+              src="/assets/logo-transparent.png"
+              alt=""
+              width="80"
+              height="80"
+            />
+            <h3>Daily Diesel</h3>
+            <p>Available on iOS via the App Store.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="resources" class="section">
+        <div class="container narrow">
+          <h2>Articles &amp; podcasts</h2>
+          <p>
+            Long-form articles and podcast episodes are read and played inside
+            the Daily Diesel app — streamed over the internet, not bundled into
+            the download, so the app stays lightweight.
+          </p>
+          <p>
+            Media can be hosted here on Netlify for now. When you are ready,
+            upload converted MP3 files to <code>/media/podcasts/</code> and
+            update the app to use this site as
+            <code>mediaBaseUrl</code> instead of the legacy WordPress URLs.
+          </p>
+          <div class="note">
+            <strong>Tip:</strong> Convert large WAV podcast files to MP3 before
+            uploading — much faster for listeners on mobile data.
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>&copy; <span id="year"></span> Performance Treanor</p>
+        <p>
+          <a href="mailto:info@performancetreanor.com">Contact</a>
+          ·
+          <a
+            href="https://performancetreanor.wordpress.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Legacy blog</a
+          >
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>
