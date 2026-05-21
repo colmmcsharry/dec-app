@@ -843,7 +843,7 @@ const styles = StyleSheet.create({
   },
   dieselCardContent: {
     padding: 20,
-    minHeight: 300,
+    height: 300,
   },
   dieselTopBar: {
     flexDirection: "row",
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.18)",
   },
   dieselQuoteCenter: {
-    minHeight: 152,
+    flex: 1,
     justifyContent: "center",
   },
   dieselIconWrap: {
@@ -891,7 +891,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dieselQuoteNoAuthor: {
-    marginBottom: 16,
+    marginBottom: 0,
   },
   dieselAuthor: {
     fontSize: 13,
@@ -901,7 +901,6 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   reminderRow: {
-    marginTop: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -925,7 +924,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     width: "100%",
-    marginTop: 12,
     backgroundColor: MAIN_PURPLE,
     paddingVertical: 12,
     paddingHorizontal: 24,

@@ -10,21 +10,22 @@ import {
   Heart,
   Moon,
   Quote,
-  Sparkles,
   Sunrise,
   Target,
   TrendingUp,
   Zap,
   type LucideIcon,
 } from "lucide-react-native";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -51,6 +52,12 @@ const AnimatedPolyline = Animated.createAnimatedComponent(Polyline);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const H_PADDING = 24;
 const SLIDE_INNER = SCREEN_WIDTH - H_PADDING * 2;
+const TESTIMONIAL_CAROUSEL_GAP = 16;
+const TESTIMONIAL_CAROUSEL_ITEM_WIDTH = SLIDE_INNER - TESTIMONIAL_CAROUSEL_GAP;
+const TESTIMONIAL_CAROUSEL_STRIDE = SLIDE_INNER;
+const TESTIMONIAL_CARD_HEIGHT = 272;
+const TESTIMONIAL_CARD_RADIUS = 16;
+const APP_LOGO = require("@/assets/images/icon-transparent.png");
 
 type SlideId =
   | "welcome"
@@ -302,23 +309,161 @@ const barStyles = StyleSheet.create({
 const TESTIMONIALS = [
   {
     quote:
-      "Finally something that connects sleep, energy, and mindset in one place.",
-    name: "Alex M.",
-    role: "Product lead",
+      "Would highly recommend to all professionals aiming at achieving a higher degree of wellbeing at work and in their personal lives.",
+    name: "Lucyna Gutman-Grauer",
+    role: "Head of employee training at Interel",
   },
   {
     quote:
-      "The modules are short enough for busy weeks but deep enough to actually change habits.",
-    name: "Jordan K.",
-    role: "Consultant",
+      "Practical tips and simple exercises to improve your wellbeing across body, mind and soul. Declan is an engaging speaker and his positivity, energy, sense of humor, knowledge and enthusiasm for health and wellness topics are definitely inspiring.",
+    name: "Stephanie Gerniers",
+    role: "Digital Event Strategist, SWIFT",
   },
   {
     quote:
-      "I use the daily quote and reminders — small nudges, big difference.",
-    name: "Sam R.",
-    role: "Athlete",
+      "Declan is extremely well informed in his area of expertise. His lessons are not only informative, but fun. He offers lots of take away tips, including video and book recommendations.",
+    name: "Karen Pritchard",
+    role: "Corporate Social Responsibility at Kroll",
   },
 ];
+
+const LOOPED_TESTIMONIALS = [
+  TESTIMONIALS[TESTIMONIALS.length - 1]!,
+  ...TESTIMONIALS,
+  TESTIMONIALS[0]!,
+];
+const LOOPED_START_INDEX = 1;
+
+function TestimonialCard({ testimonial }: { testimonial: (typeof TESTIMONIALS)[number] }) {
+  return (
+    <View style={styles.testimonialCard}>
+      <View style={styles.testimonialCardBody}>
+        <Text style={styles.testimonialQuoteMark} accessibilityElementsHidden>
+          “
+        </Text>
+        <Text style={styles.testimonialQuoteText}>{testimonial.quote}</Text>
+      </View>
+      <View style={styles.testimonialCardFooter}>
+        <View style={styles.testimonialAttribution}>
+          <Text style={styles.testimonialName}>{testimonial.name}</Text>
+          {testimonial.role ? (
+            <Text style={styles.testimonialRole}>{testimonial.role}</Text>
+          ) : null}
+        </View>
+        <Image
+          source={APP_LOGO}
+          style={styles.testimonialLogo}
+          resizeMode="contain"
+          accessibilityLabel="Daily Diesel logo"
+        />
+      </View>
+    </View>
+  );
+}
+
+function OnboardingTestimonialCarousel() {
+  const scrollRef = useRef<ScrollView>(null);
+  const isJumpingRef = useRef(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        x: TESTIMONIAL_CAROUSEL_STRIDE * LOOPED_START_INDEX,
+        animated: false,
+      });
+    });
+  }, []);
+
+  const toLogicalIndex = (scrollIndex: number) => {
+    if (scrollIndex === 0) return TESTIMONIALS.length - 1;
+    if (scrollIndex === LOOPED_TESTIMONIALS.length - 1) return 0;
+    return scrollIndex - 1;
+  };
+
+  const handleCarouselScrollEnd = (
+    e: NativeSyntheticEvent<NativeScrollEvent>,
+  ) => {
+    if (isJumpingRef.current) return;
+
+    const scrollIndex = Math.round(
+      e.nativeEvent.contentOffset.x / TESTIMONIAL_CAROUSEL_STRIDE,
+    );
+    setActiveIndex(toLogicalIndex(scrollIndex));
+
+    if (scrollIndex === 0) {
+      isJumpingRef.current = true;
+      scrollRef.current?.scrollTo({
+        x: TESTIMONIAL_CAROUSEL_STRIDE * TESTIMONIALS.length,
+        animated: false,
+      });
+      requestAnimationFrame(() => {
+        isJumpingRef.current = false;
+      });
+      return;
+    }
+
+    if (scrollIndex === LOOPED_TESTIMONIALS.length - 1) {
+      isJumpingRef.current = true;
+      scrollRef.current?.scrollTo({
+        x: TESTIMONIAL_CAROUSEL_STRIDE * LOOPED_START_INDEX,
+        animated: false,
+      });
+      requestAnimationFrame(() => {
+        isJumpingRef.current = false;
+      });
+    }
+  };
+
+  return (
+    <View style={styles.testimonialCarouselWrap}>
+      <View style={styles.testimonialCarouselViewport}>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          snapToInterval={TESTIMONIAL_CAROUSEL_STRIDE}
+          snapToAlignment="start"
+          disableIntervalMomentum
+          onMomentumScrollEnd={handleCarouselScrollEnd}
+          onScrollEndDrag={handleCarouselScrollEnd}
+          style={styles.testimonialCarouselScroll}
+          contentContainerStyle={styles.testimonialCarouselContent}
+        >
+          {LOOPED_TESTIMONIALS.map((t, loopIndex) => (
+            <View
+              key={`${t.name}-${loopIndex}`}
+              style={[
+                styles.testimonialCarouselSlide,
+                {
+                  width: TESTIMONIAL_CAROUSEL_ITEM_WIDTH,
+                  height: TESTIMONIAL_CARD_HEIGHT,
+                  marginRight: TESTIMONIAL_CAROUSEL_GAP,
+                },
+              ]}
+            >
+              <TestimonialCard testimonial={t} />
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+      <View style={styles.testimonialCarouselDots}>
+        {TESTIMONIALS.map((_, dotIndex) => (
+          <View
+            key={dotIndex}
+            style={[
+              styles.testimonialCarouselDot,
+              dotIndex === activeIndex && styles.testimonialCarouselDotActive,
+            ]}
+          />
+        ))}
+      </View>
+      <Text style={styles.testimonialCarouselHint}>Swipe for more</Text>
+    </View>
+  );
+}
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -413,7 +558,12 @@ export default function OnboardingScreen() {
               entering={FadeInDown.duration(500).springify()}
               style={styles.heroIcon}
             >
-              <Sparkles size={48} color={MAIN_PURPLE} strokeWidth={2} />
+              <Image
+                source={APP_LOGO}
+                style={styles.heroLogo}
+                resizeMode="contain"
+                accessibilityLabel="DEC app logo"
+              />
             </Animated.View>
             <Animated.Text
               entering={FadeIn.delay(120).duration(450)}
@@ -450,15 +600,11 @@ export default function OnboardingScreen() {
               <Text style={styles.slideTitle}>Momentum builds over time</Text>
               <Text style={styles.slideBody}>
                 Users who stack small wins week after week report the biggest
-                shifts in energy and focus — here&apos;s what that can look
-                like.
+                improvements in energy and focus
               </Text>
             </View>
             <View style={styles.slideVisual}>
               <GrowthBars active={growthActive} />
-              <Text style={styles.chartFoot}>
-                Illustrative — your path is personal
-              </Text>
             </View>
             </View>
           </View>
@@ -479,23 +625,7 @@ export default function OnboardingScreen() {
               </View>
             </View>
             <View style={styles.slideVisual}>
-              <View style={styles.testimonialList}>
-                {TESTIMONIALS.map((t, i) => (
-                  <Animated.View
-                    key={t.name}
-                    entering={FadeInUp.delay(i * 100).duration(400)}
-                    style={styles.testimonialCard}
-                  >
-                    <Text style={styles.stars}>★★★★★</Text>
-                    <Text style={styles.quoteText}>
-                      &ldquo;{t.quote}&rdquo;
-                    </Text>
-                    <Text style={styles.quoteMeta}>
-                      {t.name} · {t.role}
-                    </Text>
-                  </Animated.View>
-                ))}
-              </View>
+              <OnboardingTestimonialCarousel />
             </View>
             </View>
           </View>
@@ -526,8 +656,7 @@ export default function OnboardingScreen() {
                 What do you want to improve?
               </Text>
               <Text style={styles.slideBody}>
-                Pick everything that matters to you — we&apos;ll show which
-                modules will help most.
+                Pick everything that matters to you
               </Text>
             </View>
             <View style={styles.slideVisual}>
@@ -597,7 +726,6 @@ export default function OnboardingScreen() {
             <View style={styles.slideContent}>
             <View style={styles.slideCopy}>
               <View style={styles.slideTitleWithIcon}>
-                <Sparkles size={28} color={MAIN_PURPLE} strokeWidth={2} />
                 <Text style={[styles.slideTitle, styles.slideTitleBesideIcon]}>
                   {selectedGoals.length > 0
                     ? "We've got you covered"
@@ -607,7 +735,7 @@ export default function OnboardingScreen() {
               <Text style={styles.slideBody}>
                 {selectedGoals.length > 0
                   ? `We have modules to help with ${selectedGoals.length === 1 ? "that area" : "all of your main problem areas"}.`
-                  : "Explore the full library — there's something here for every part of your day."}
+                  : "Something here for every part of your day."}
               </Text>
             </View>
             <View style={styles.slideVisual}>
@@ -820,11 +948,14 @@ const styles = StyleSheet.create({
   heroIcon: {
     width: 96,
     height: 96,
-    borderRadius: 28,
-    backgroundColor: "#EDE8F8",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 28,
+  },
+  heroLogo: {
+    width: 96,
+    height: 96,
+    borderRadius: 22,
   },
   heroTitle: {
     fontFamily: AppFonts.headingBold,
@@ -888,37 +1019,108 @@ const styles = StyleSheet.create({
     marginTop: 12,
     textAlign: "center",
   },
-  testimonialList: {
-    gap: 12,
+  testimonialCarouselWrap: {
     width: "100%",
+    alignItems: "center",
   },
-  testimonialCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+  testimonialCarouselViewport: {
+    width: SLIDE_INNER,
+    height: TESTIMONIAL_CARD_HEIGHT,
   },
-  stars: {
-    fontSize: 14,
-    color: "#FBBF24",
-    marginBottom: 8,
-    letterSpacing: 2,
+  testimonialCarouselScroll: {
+    width: SLIDE_INNER,
+    height: TESTIMONIAL_CARD_HEIGHT,
   },
-  quoteText: {
+  testimonialCarouselContent: {
+    flexGrow: 0,
+  },
+  testimonialCarouselSlide: {
+    height: TESTIMONIAL_CARD_HEIGHT,
+  },
+  testimonialCarouselDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 14,
+  },
+  testimonialCarouselDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#D1D5DB",
+  },
+  testimonialCarouselDotActive: {
+    width: 20,
+    backgroundColor: MAIN_PURPLE,
+  },
+  testimonialCarouselHint: {
+    marginTop: 10,
     fontFamily: AppFonts.bodyRegular,
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#374151",
-    marginBottom: 10,
-  },
-  quoteMeta: {
-    fontFamily: AppFonts.bodyMedium,
     fontSize: 13,
     color: "#4B5563",
+    textAlign: "center",
+  },
+  testimonialCard: {
+    width: "100%",
+    height: TESTIMONIAL_CARD_HEIGHT,
+    backgroundColor: "#1F1F35",
+    borderRadius: TESTIMONIAL_CARD_RADIUS,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 16,
+    overflow: "hidden",
+    flexDirection: "column",
+    ...(Platform.OS === "ios"
+      ? { borderCurve: "continuous" as const }
+      : null),
+  },
+  testimonialQuoteMark: {
+    fontFamily: AppFonts.headingBold,
+    fontSize: 44,
+    lineHeight: 44,
+    color: "#6E78A8",
+    marginBottom: 4,
+  },
+  testimonialCardBody: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  testimonialQuoteText: {
+    fontFamily: AppFonts.headingSemiBold,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#FFFFFF",
+  },
+  testimonialCardFooter: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 12,
+    flexShrink: 0,
+  },
+  testimonialAttribution: {
+    flex: 1,
+  },
+  testimonialName: {
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: "italic",
+    color: "#94A0C8",
+  },
+  testimonialRole: {
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 12,
+    lineHeight: 17,
+    fontStyle: "italic",
+    color: "#94A0C8",
+    marginTop: 2,
+  },
+  testimonialLogo: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
   },
   footer: {
     paddingHorizontal: H_PADDING,

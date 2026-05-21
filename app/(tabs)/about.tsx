@@ -2,17 +2,235 @@ import { DevResetButton } from "@/components/dev-reset-button";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import {
+  addCustomerInfoListener,
+  customerInfoHasPro,
+  hasProEntitlement,
+} from "@/services/purchases";
+import { useIsFocused } from "@react-navigation/native";
+import { Crown, Lock, X } from "lucide-react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Dimensions,
+  FlatList,
   Image,
+  Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  type ImageSourcePropType,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Matches digital workbook body copy (`app/module-workbook/[slug].tsx`). */
 const WORKBOOK_TEXT = "#1E2430";
 const WORKBOOK_TEXT_BODY = "#363C48";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CAROUSEL_ITEM_WIDTH = SCREEN_WIDTH - 40;
+const CAROUSEL_IMAGE_HEIGHT = 250;
+
+const TESTIMONIAL_IMAGES: ImageSourcePropType[] = [
+  require("@/assets/images/about/testimonials/testimonial-1.jpg"),
+  require("@/assets/images/about/testimonials/testimonial-2.jpg"),
+  require("@/assets/images/about/testimonials/testimonial-3.jpg"),
+  require("@/assets/images/about/testimonials/testimonial-4.jpg"),
+  require("@/assets/images/about/testimonials/testimonial-5.jpg"),
+  require("@/assets/images/about/testimonials/testimonial-6.jpg"),
+  require("@/assets/images/about/testimonials/testimonial-7.jpg"),
+  require("@/assets/images/about/testimonials/testimonial-8.jpg"),
+];
+
+function TestimonialImageCarousel({ isDark }: { isDark: boolean }) {
+  const insets = useSafeAreaInsets();
+  const modalListRef = useRef<FlatList<ImageSourcePropType>>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  /** null = closed; number = open (initial slide only — swipe uses modalSlideIndex). */
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [modalSlideIndex, setModalSlideIndex] = useState(0);
+
+  useEffect(() => {
+    if (viewerIndex === null) return;
+    setModalSlideIndex(viewerIndex);
+    requestAnimationFrame(() => {
+      modalListRef.current?.scrollToIndex({
+        index: viewerIndex,
+        animated: false,
+      });
+    });
+  }, [viewerIndex]);
+
+  const openViewer = (index: number) => {
+    if (viewerIndex !== null) return;
+    setViewerIndex(index);
+  };
+
+  const onCarouselScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const x = e.nativeEvent.contentOffset.x;
+    setActiveIndex(Math.round(x / CAROUSEL_ITEM_WIDTH));
+  };
+
+  const onModalScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const x = e.nativeEvent.contentOffset.x;
+    setModalSlideIndex(Math.round(x / SCREEN_WIDTH));
+  };
+
+  const closeViewer = () => {
+    setActiveIndex(modalSlideIndex);
+    setViewerIndex(null);
+  };
+
+  const viewerOpen = viewerIndex !== null;
+
+  return (
+    <View style={styles.carouselWrap}>
+      <FlatList
+        data={TESTIMONIAL_IMAGES}
+        style={styles.carouselList}
+        horizontal
+        pagingEnabled
+        nestedScrollEnabled
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        keyExtractor={(_, index) => `testimonial-image-${index}`}
+        onMomentumScrollEnd={onCarouselScrollEnd}
+        getItemLayout={(_, index) => ({
+          length: CAROUSEL_ITEM_WIDTH,
+          offset: CAROUSEL_ITEM_WIDTH * index,
+          index,
+        })}
+        renderItem={({ item, index }) => (
+          <Pressable
+            style={[styles.carouselSlide, { width: CAROUSEL_ITEM_WIDTH }]}
+            onPress={() => openViewer(index)}
+            disabled={viewerOpen}
+            accessibilityRole="button"
+            accessibilityLabel={`Testimonial ${index + 1} of ${TESTIMONIAL_IMAGES.length}. Tap to open full screen.`}
+          >
+            <Image
+              source={item}
+              style={styles.carouselImage}
+              resizeMode="contain"
+            />
+          </Pressable>
+        )}
+      />
+      <View style={styles.carouselDots}>
+        {TESTIMONIAL_IMAGES.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.carouselDot,
+              isDark && styles.carouselDotDark,
+              index === activeIndex && styles.carouselDotActive,
+              index === activeIndex && isDark && styles.carouselDotActiveDark,
+            ]}
+          />
+        ))}
+      </View>
+      <Text style={[styles.carouselHint, isDark && styles.carouselHintDark]}>
+        Tap to view full screen · Swipe for more
+      </Text>
+
+      <Modal
+        visible={viewerOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={closeViewer}
+        presentationStyle="fullScreen"
+      >
+        <View style={styles.viewerRoot}>
+          <View
+            style={[
+              styles.viewerHeader,
+              { paddingTop: insets.top + 8, paddingHorizontal: 16 },
+            ]}
+          >
+            <Text style={styles.viewerCounter}>
+              {modalSlideIndex + 1} / {TESTIMONIAL_IMAGES.length}
+            </Text>
+            <Pressable
+              onPress={closeViewer}
+              onPressIn={(e) => e.stopPropagation()}
+              hitSlop={16}
+              style={({ pressed }) => [
+                styles.viewerCloseBtn,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Close testimonial viewer"
+            >
+              <X size={24} color="#FFFFFF" strokeWidth={2.5} />
+            </Pressable>
+          </View>
+
+          <FlatList
+            ref={modalListRef}
+            style={styles.viewerList}
+            data={TESTIMONIAL_IMAGES}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="fast"
+            keyExtractor={(_, index) => `testimonial-viewer-${index}`}
+            onMomentumScrollEnd={onModalScrollEnd}
+            getItemLayout={(_, index) => ({
+              length: SCREEN_WIDTH,
+              offset: SCREEN_WIDTH * index,
+              index,
+            })}
+            onScrollToIndexFailed={(info) => {
+              setTimeout(() => {
+                modalListRef.current?.scrollToIndex({
+                  index: info.index,
+                  animated: false,
+                });
+              }, 100);
+            }}
+            renderItem={({ item, index }) => (
+              <View
+                style={[styles.viewerSlide, { width: SCREEN_WIDTH }]}
+                accessibilityRole="image"
+                accessibilityLabel={`Testimonial ${index + 1} of ${TESTIMONIAL_IMAGES.length}`}
+              >
+                <Image
+                  source={item}
+                  style={styles.viewerImage}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+          />
+
+          <View
+            style={[
+              styles.viewerFooter,
+              { paddingBottom: insets.bottom + 16 },
+            ]}
+          >
+            <View style={styles.carouselDots}>
+              {TESTIMONIAL_IMAGES.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.carouselDot,
+                    styles.viewerDot,
+                    index === modalSlideIndex && styles.viewerDotActive,
+                  ]}
+                />
+              ))}
+            </View>
+            <Text style={styles.viewerHint}>Swipe to browse testimonials</Text>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
 
 interface TestimonialProps {
   name: string;
@@ -78,14 +296,88 @@ function Testimonial({
   );
 }
 
+function PremiumStatusBanner({
+  isDark,
+  isPremium,
+}: {
+  isDark: boolean;
+  isPremium: boolean | null;
+}) {
+  if (isPremium === null) return null;
+
+  const active = isPremium;
+
+  return (
+    <View
+      style={[
+        styles.premiumBanner,
+        active ? styles.premiumBannerActive : styles.premiumBannerFree,
+        isDark &&
+          (active ? styles.premiumBannerActiveDark : styles.premiumBannerFreeDark),
+      ]}
+      accessibilityRole="text"
+      accessibilityLabel={
+        active
+          ? "You are on the Premium version"
+          : "You are on the Basic version"
+      }
+    >
+      {active ? (
+        <Crown size={18} color={isDark ? "#C4B5E8" : MAIN_PURPLE} strokeWidth={2.2} />
+      ) : (
+        <Lock size={18} color={isDark ? "#AEB3C4" : "#5C6370"} strokeWidth={2.2} />
+      )}
+      <View style={styles.premiumBannerText}>
+        <Text
+          style={[
+            styles.premiumBannerTitle,
+            isDark && styles.premiumBannerTitleDark,
+            active && styles.premiumBannerTitleActive,
+            active && isDark && styles.premiumBannerTitleActiveDark,
+          ]}
+        >
+          {active
+            ? "You are on the Premium version"
+            : "You are on the Basic version"}
+        </Text>
+        <Text
+          style={[
+            styles.premiumBannerSubtitle,
+            isDark && styles.premiumBannerSubtitleDark,
+          ]}
+        >
+          {active
+            ? "Full access to all modules, videos, and workbooks."
+            : "Upgrade to Premium to unlock all modules, videos, and workbooks."}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export default function AboutScreen() {
   const { isDark } = useTheme();
+  const isFocused = useIsFocused();
+  const [isPremium, setIsPremium] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    void hasProEntitlement().then(setIsPremium);
+  }, [isFocused]);
+
+  useEffect(() => {
+    return addCustomerInfoListener((info) => {
+      setIsPremium(customerInfoHasPro(info));
+    });
+  }, []);
 
   return (
     <ScrollView
       style={[styles.container, isDark && styles.containerDark]}
       contentContainerStyle={styles.contentContainer}
     >
+      <PremiumStatusBanner isDark={isDark} isPremium={isPremium} />
+
       {/* Hero */}
       <View
         style={[
@@ -243,6 +535,8 @@ export default function AboutScreen() {
         What People Say
       </Text>
 
+      <TestimonialImageCarousel isDark={isDark} />
+
       <Testimonial
         name="Declan Egan"
         role="Founder, 100minds"
@@ -268,6 +562,44 @@ export default function AboutScreen() {
         isDark={isDark}
       />
 
+      <View
+        style={[
+          styles.disclaimerWrap,
+          isDark && styles.disclaimerWrapDark,
+        ]}
+      >
+        <View
+          style={[
+            styles.section,
+            styles.missionCard,
+            isDark && styles.cardDark,
+            styles.cardShell,
+            isDark && styles.cardShellDark,
+          ]}
+        >
+        <View
+          style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]}
+        />
+        <View style={styles.cardInner}>
+          <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+            Medical Disclaimer
+          </Text>
+          <Text
+            style={[
+              styles.bodyText,
+              styles.disclaimerBodyText,
+              isDark && styles.bodyTextDark,
+            ]}
+          >
+            The content in this app is for informational purposes only and is not
+            a substitute for professional medical advice, diagnosis or treatment.
+            Always consult a qualified healthcare provider regarding any medical
+            conditions.
+          </Text>
+        </View>
+      </View>
+      </View>
+
       <DevResetButton variant="inline" />
 
       <View style={{ height: 40 }} />
@@ -287,6 +619,59 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 40,
+  },
+  premiumBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    borderWidth: 1.5,
+  },
+  premiumBannerActive: {
+    backgroundColor: "#F4F0FB",
+    borderColor: "#C4B5E8",
+  },
+  premiumBannerActiveDark: {
+    backgroundColor: "#2A2440",
+    borderColor: "#5B4A8A",
+  },
+  premiumBannerFree: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E5E7EB",
+  },
+  premiumBannerFreeDark: {
+    backgroundColor: "#1E1E32",
+    borderColor: "#3A3A52",
+  },
+  premiumBannerText: {
+    flex: 1,
+  },
+  premiumBannerTitle: {
+    fontFamily: AppFonts.headingSemiBold,
+    fontSize: 16,
+    color: WORKBOOK_TEXT,
+    marginBottom: 2,
+  },
+  premiumBannerTitleDark: {
+    color: "#ECEDEE",
+  },
+  premiumBannerTitleActive: {
+    color: MAIN_PURPLE,
+  },
+  premiumBannerTitleActiveDark: {
+    color: "#C4B5E8",
+  },
+  premiumBannerSubtitle: {
+    fontFamily: AppFonts.bodyRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#5C6370",
+  },
+  premiumBannerSubtitleDark: {
+    color: "#AEB3C4",
   },
   textDark: {
     color: "#ECEDEE",
@@ -461,6 +846,107 @@ const styles = StyleSheet.create({
     color: WORKBOOK_TEXT,
     marginBottom: 16,
   },
+  carouselWrap: {
+    marginBottom: 28,
+  },
+  carouselList: {
+    width: CAROUSEL_ITEM_WIDTH,
+  },
+  carouselSlide: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  carouselImage: {
+    width: "100%",
+    height: CAROUSEL_IMAGE_HEIGHT,
+    maxHeight: CAROUSEL_IMAGE_HEIGHT,
+    borderRadius: 16,
+    backgroundColor: "#1A1D2E",
+  },
+  carouselDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 14,
+  },
+  carouselDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#D1D5DB",
+  },
+  carouselDotDark: {
+    backgroundColor: "#4B5563",
+  },
+  carouselDotActive: {
+    width: 20,
+    backgroundColor: MAIN_PURPLE,
+  },
+  carouselDotActiveDark: {
+    backgroundColor: "#B7A8E0",
+  },
+  carouselHint: {
+    marginTop: 10,
+    fontSize: 13,
+    fontFamily: AppFonts.bodyRegular,
+    color: "#5C6370",
+    textAlign: "center",
+  },
+  carouselHintDark: {
+    color: "#AEB3C4",
+  },
+  viewerRoot: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.94)",
+  },
+  viewerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: 8,
+  },
+  viewerCounter: {
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 15,
+    color: "rgba(255,255,255,0.9)",
+  },
+  viewerCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  viewerList: {
+    flex: 1,
+  },
+  viewerSlide: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  viewerImage: {
+    width: SCREEN_WIDTH - 24,
+    height: "100%",
+  },
+  viewerFooter: {
+    paddingTop: 12,
+    alignItems: "center",
+    gap: 8,
+  },
+  viewerDot: {
+    backgroundColor: "rgba(255,255,255,0.35)",
+  },
+  viewerDotActive: {
+    backgroundColor: "#FFFFFF",
+  },
+  viewerHint: {
+    fontFamily: AppFonts.bodyRegular,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.65)",
+  },
   testimonialCard: {
     backgroundColor: "#FFFFFF",
     marginBottom: 16,
@@ -505,5 +991,17 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyRegular,
+  },
+  disclaimerWrap: {
+    marginTop: 12,
+    paddingTop: 28,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#D1D5DB",
+  },
+  disclaimerWrapDark: {
+    borderTopColor: "#3A3A52",
+  },
+  disclaimerBodyText: {
+    marginBottom: 0,
   },
 });

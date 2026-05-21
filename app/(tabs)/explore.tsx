@@ -283,6 +283,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
     padding: 20,
     marginBottom: 16,
     ...Platform.select({

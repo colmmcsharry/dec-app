@@ -4,7 +4,7 @@
     "slug": "daily-diesel",
     "version": "1.3.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo-square.png",
     "scheme": "dailydiesel",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -18,7 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/logo-square.png",
         "backgroundColor": "#A8B5E0"
       },
       "edgeToEdgeEnabled": true,
@@ -33,7 +33,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/icon-transparent.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#E8EBF5",
