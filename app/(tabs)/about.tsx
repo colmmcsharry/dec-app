@@ -37,8 +37,6 @@ const CAROUSEL_IMAGE_WIDTH = CAROUSEL_ITEM_WIDTH - CAROUSEL_GAP;
 const CAROUSEL_STRIDE = CAROUSEL_ITEM_WIDTH;
 const CAROUSEL_IMAGE_HEIGHT = 250;
 
-const LOGO = require("@/assets/images/icon-transparent.png");
-
 const TESTIMONIAL_IMAGES: ImageSourcePropType[] = [
   require("@/assets/images/about/testimonials/testimonial-1.jpg"),
   require("@/assets/images/about/testimonials/testimonial-2.jpg"),
@@ -337,12 +335,6 @@ function PremiumStatusBanner({
         accessibilityRole="text"
         accessibilityLabel={title}
       >
-        <Image
-          source={LOGO}
-          style={styles.premiumBannerLogo}
-          resizeMode="contain"
-          accessibilityLabel="Performance Treanor"
-        />
         <View style={styles.premiumBannerText}>
           <View style={styles.premiumBannerTitleRow}>
             <Text
@@ -674,10 +666,6 @@ const styles = StyleSheet.create({
   premiumBannerFreeDark: {
     backgroundColor: "#1E1E32",
     borderColor: "#3A3A52",
-  },
-  premiumBannerLogo: {
-    width: 44,
-    height: 44,
   },
   premiumBannerText: {
     flex: 1,

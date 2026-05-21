@@ -1,4 +1,5 @@
-import { MainTabHeader } from "@/components/main-tab-header";
+import { MainTabHeader, ThemeToggle } from "@/components/main-tab-header";
+import { PageHeading } from "@/components/page-heading";
 import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -318,16 +319,12 @@ export default function HomeScreen() {
       style={[styles.container, isDark && styles.containerDark]}
       contentContainerStyle={styles.contentContainer}
     >
-      {/* Header Section */}
-      <View style={styles.header}>
-        <MainTabHeader showThemeToggle />
-        <Text style={[styles.mainTitle, isDark && styles.mainTitleDark]}>
-          Mind • Body • Soul
-        </Text>
-        <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>
-          Your holistic journey to peak performance
-        </Text>
-      </View>
+      <MainTabHeader />
+      <PageHeading
+        title="Mind • Body • Soul"
+        subtitle="Your holistic journey to peak performance"
+        trailing={<ThemeToggle />}
+      />
 
       {/* Daily Diesel Quote Card — scenic image (cover, no stretch), white text */}
       <View style={styles.dieselCardOuter}>
@@ -586,28 +583,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 20,
     paddingTop: 8,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  mainTitle: {
-    fontSize: 32,
-    fontFamily: AppFonts.headingBold,
-    color: "#2C3E50",
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  mainTitleDark: {
-    color: "#ECEDEE",
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#8E8EA0",
-    lineHeight: 20,
-    fontFamily: AppFonts.bodyRegular,
-  },
-  subtitleDark: {
-    color: "#9090A8",
   },
   grid: {
     flexDirection: "row",

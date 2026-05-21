@@ -1,6 +1,7 @@
 import { ArticleListCard } from "@/components/article-list-card";
 import { DownloadListCard } from "@/components/download-list-card";
 import { MainTabHeader } from "@/components/main-tab-header";
+import { PageHeading } from "@/components/page-heading";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { getFeaturedArticle, getFeaturedPodcast } from "@/data/articles";
@@ -21,10 +22,61 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const WORKBOOK_TEXT = "#1E2430";
 
+type SectionVariant = "purple" | "blue" | "yellow";
+
+const SECTION_THEMES: Record<
+  SectionVariant,
+  {
+    light: { background: string; border: string; accent: string; shadow: string };
+    dark: { background: string; border: string; accent: string };
+  }
+> = {
+  purple: {
+    light: {
+      background: "#F3F2F7",
+      border: "#EADBF7",
+      accent: "#A8B4E8",
+      shadow: MAIN_PURPLE,
+    },
+    dark: {
+      background: "#1E1E32",
+      border: "#3A2E5C",
+      accent: MAIN_PURPLE,
+    },
+  },
+  blue: {
+    light: {
+      background: "#EDF3FB",
+      border: "#C8DAF2",
+      accent: "#89AAD4",
+      shadow: "#5B8BC4",
+    },
+    dark: {
+      background: "#1A2438",
+      border: "#2E4568",
+      accent: "#5B8BC4",
+    },
+  },
+  yellow: {
+    light: {
+      background: "#FBF7EC",
+      border: "#EDE0B8",
+      accent: "#D4B86A",
+      shadow: "#B8943A",
+    },
+    dark: {
+      background: "#2A2818",
+      border: "#4A4528",
+      accent: "#C4A855",
+    },
+  },
+};
+
 type FeatureSectionProps = {
   title: string;
   titleIcon: LucideIcon;
   eyebrow: string;
+  variant: SectionVariant;
   isDark: boolean;
   viewAllLabel: string;
   onViewAll: () => void;
@@ -35,21 +87,32 @@ function FeatureSection({
   title,
   titleIcon: TitleIcon,
   eyebrow,
+  variant,
   isDark,
   viewAllLabel,
   onViewAll,
   children,
 }: FeatureSectionProps) {
+  const theme = SECTION_THEMES[variant][isDark ? "dark" : "light"];
+
   return (
     <View
       style={[
         styles.featureSection,
-        isDark && styles.cardDark,
         styles.cardShell,
-        isDark && styles.cardShellDark,
+        {
+          backgroundColor: theme.background,
+          borderColor: theme.border,
+          ...Platform.select({
+            ios: {
+              shadowColor: isDark ? MAIN_PURPLE : theme.shadow,
+            },
+            default: {},
+          }),
+        },
       ]}
     >
-      <View style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]} />
+      <View style={[styles.cardAccentBar, { backgroundColor: theme.accent }]} />
       <View style={styles.cardInner}>
         <View style={styles.sectionTitleRow}>
           <TitleIcon
@@ -116,10 +179,12 @@ export default function ResourcesScreen() {
       ]}
     >
       <MainTabHeader />
+      <PageHeading title="Resources" />
 
       <FeatureSection
         title="Downloads"
         titleIcon={Download}
+        variant="purple"
         eyebrow="Latest Download"
         isDark={isDark}
         viewAllLabel="View All Downloads"
@@ -138,6 +203,7 @@ export default function ResourcesScreen() {
         <FeatureSection
           title="Articles"
           titleIcon={FileText}
+          variant="yellow"
           eyebrow="Latest Article"
           isDark={isDark}
           viewAllLabel="View All Articles"
@@ -160,6 +226,7 @@ export default function ResourcesScreen() {
         <FeatureSection
           title="Podcasts"
           titleIcon={Headphones}
+          variant="blue"
           eyebrow="Latest Podcast"
           isDark={isDark}
           viewAllLabel="View All Podcasts"
@@ -192,21 +259,15 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
   },
-  cardDark: {
-    backgroundColor: "#1E1E32",
-  },
   featureSection: {
     marginBottom: 24,
-    backgroundColor: "#F3F2F7",
   },
   cardShell: {
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: "#EADBF7",
     overflow: "hidden",
     ...Platform.select({
       ios: {
-        shadowColor: MAIN_PURPLE,
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.12,
         shadowRadius: 20,
@@ -214,20 +275,8 @@ const styles = StyleSheet.create({
       android: { elevation: 4 },
     }),
   },
-  cardShellDark: {
-    borderColor: "#3A2E5C",
-    ...Platform.select({
-      ios: {
-        shadowOpacity: 0.35,
-      },
-    }),
-  },
   cardAccentBar: {
     height: 5,
-    backgroundColor: "#A8B4E8",
-  },
-  cardAccentBarDark: {
-    backgroundColor: MAIN_PURPLE,
   },
   cardInner: {
     padding: 20,

@@ -1,4 +1,5 @@
 import { MainTabHeader } from "@/components/main-tab-header";
+import { PageHeading } from "@/components/page-heading";
 import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -55,14 +56,10 @@ export default function WorksheetsScreen() {
       ]}
     >
       <MainTabHeader />
-
-      <Text style={[styles.sectionHeading, isDark && styles.textDark]}>
-        Module Worksheets
-      </Text>
-      <Text style={[styles.sectionSubtitle, isDark && styles.subtextDark]}>
-        View and Print the worksheets or use the Digital Workbook if you prefer
-        typed answers — they save on this device.
-      </Text>
+      <PageHeading
+        title="Module Worksheets"
+        subtitle="View and Print the worksheets or use the Digital Workbook if you prefer typed answers — they save on this device."
+      />
 
       {MODULE_ORDER.map((slug) => {
         const pdfs = MODULE_PDFS[slug];
@@ -195,21 +192,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-  },
-  textDark: { color: "#ECEDEE" },
-  subtextDark: { color: "#9BA1A6" },
-  sectionHeading: {
-    fontSize: 22,
-    fontFamily: AppFonts.headingBold,
-    color: "#2C3E50",
-    marginTop: 8,
-    marginBottom: 6,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    fontFamily: AppFonts.bodyRegular,
-    marginBottom: 16,
   },
   moduleCard: {
     borderRadius: 22,

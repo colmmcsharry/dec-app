@@ -48,11 +48,11 @@ export const MINDFUL_EATING_ARTICLE: Article = {
     },
     {
       type: "paragraph",
-      text: "Contact me for more details on the following book I will soon be releasing:",
+      text: "Check out the other book in the Downloads section",
     },
     {
       type: "emphasis",
-      text: "A definitive guide to weight loss.",
+      text: "How to Lose Fat — A Definitive Guide",
     },
     {
       type: "paragraph",
