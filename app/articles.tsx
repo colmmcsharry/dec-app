@@ -3,7 +3,7 @@ import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { ARTICLES } from "@/data/articles";
 import { requirePro } from "@/services/purchases";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import {
   Pressable,
@@ -18,6 +18,28 @@ export default function ArticlesScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { kind } = useLocalSearchParams<{ kind?: string }>();
+
+  const filteredArticles = ARTICLES.filter((article) => {
+    if (kind === "article" || kind === "podcast") {
+      return article.kind === kind;
+    }
+    return true;
+  });
+
+  const headerTitle =
+    kind === "article"
+      ? "Articles"
+      : kind === "podcast"
+        ? "Podcasts"
+        : "Articles & Podcasts";
+
+  const subtitle =
+    kind === "article"
+      ? "Articles from Declan and guest contributors"
+      : kind === "podcast"
+        ? "Podcast episodes and interviews"
+        : "Articles and podcast episodes";
 
   const openArticle = async (slug: string) => {
     if (!(await requirePro())) return;
@@ -47,7 +69,7 @@ export default function ArticlesScreen() {
           <ChevronLeft size={24} color={isDark ? "#ECEDEE" : MAIN_PURPLE} />
         </Pressable>
         <Text style={[styles.headerTitle, isDark && styles.textDark]}>
-          Articles & Podcasts
+          {headerTitle}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -60,10 +82,10 @@ export default function ArticlesScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.subtitle, isDark && styles.subtextDark]}>
-          Articles and podcast episodes
+          {subtitle}
         </Text>
 
-        {ARTICLES.map((article) => (
+        {filteredArticles.map((article) => (
           <ArticleListCard
             key={article.slug}
             article={article}

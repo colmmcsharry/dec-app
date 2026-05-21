@@ -202,7 +202,7 @@ export default function CategoryScreen() {
               Additional resources
             </Text>
             <Text style={[styles.resourcesSub, isDark && styles.subtextDark]}>
-              Printable worksheets — same PDFs as in the Resources tab.
+              Printable worksheets — same PDFs as in the Worksheets tab.
             </Text>
             {modulePdfs.map((pdf) => (
               <TouchableOpacity

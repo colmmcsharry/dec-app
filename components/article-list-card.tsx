@@ -31,40 +31,25 @@ export function ArticleListCard({
       accessibilityLabel={`Open ${kindLabel.toLowerCase()}: ${article.title}`}
     >
       <View style={styles.row}>
-        <View style={styles.mediaCol}>
-          {thumbnail ? (
-            <View
-              style={[
-                styles.thumbnailWrap,
-                isDark ? styles.thumbnailWrapDark : styles.thumbnailWrapLight,
-              ]}
-            >
-              <Image
-                source={{ uri: thumbnail }}
-                style={styles.thumbnail}
-                resizeMode="cover"
-                accessibilityIgnoresInvertColors
-              />
-            </View>
-          ) : (
-            <View
-              style={[styles.iconCircle, isDark && styles.iconCircleDark]}
-            >
-              <KindIcon size={28} color={isDark ? "#ECEDEE" : MAIN_PURPLE} />
-            </View>
-          )}
-
-          <View style={styles.kindRow}>
-            <KindIcon
-              size={18}
-              color={isDark ? "#C4B5E8" : MAIN_PURPLE}
-              strokeWidth={2.25}
+        {thumbnail ? (
+          <View
+            style={[
+              styles.thumbnailWrap,
+              isDark ? styles.thumbnailWrapDark : styles.thumbnailWrapLight,
+            ]}
+          >
+            <Image
+              source={{ uri: thumbnail }}
+              style={styles.thumbnail}
+              resizeMode="cover"
+              accessibilityIgnoresInvertColors
             />
-            <Text style={[styles.kindText, isDark && styles.kindTextDark]}>
-              {kindLabel}
-            </Text>
           </View>
-        </View>
+        ) : (
+          <View style={[styles.iconCircle, isDark && styles.iconCircleDark]}>
+            <KindIcon size={28} color={isDark ? "#ECEDEE" : MAIN_PURPLE} />
+          </View>
+        )}
 
         <View style={styles.textWrap}>
           <Text
@@ -123,17 +108,13 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 12,
   },
-  mediaCol: {
-    width: THUMB_SIZE,
-    alignItems: "flex-start",
-    gap: 6,
-  },
   thumbnailWrap: {
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
+    flexShrink: 0,
   },
   thumbnailWrapLight: {
     borderColor: "#D1D5DB",
@@ -144,20 +125,6 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: THUMB_SIZE,
     height: THUMB_SIZE,
-  },
-  kindRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    gap: 5,
-  },
-  kindText: {
-    fontFamily: AppFonts.bodyMedium,
-    fontSize: 12,
-    color: MAIN_PURPLE,
-  },
-  kindTextDark: {
-    color: "#C4B5E8",
   },
   iconCircle: {
     width: THUMB_SIZE,

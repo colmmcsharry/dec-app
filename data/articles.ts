@@ -3,6 +3,7 @@ import { DANNY_LENNON_DIET_ARTICLE } from "./articles/danny-lennon-diet";
 import { INNER_CHIMP_ARTICLE } from "./articles/inner-chimp";
 import { MINDFUL_EATING_ARTICLE } from "./articles/mindful-eating";
 import { PAT_SPILLANE_ARTICLE } from "./articles/pat-spillane";
+import { SEAN_MCGARRITY_SALES_ARTICLE } from "./articles/sean-mcgarrity-sales";
 import { TAIJI_ARTICLE } from "./articles/taiji";
 import type { Article } from "./articles/types";
 
@@ -10,6 +11,7 @@ export type { Article, ArticleBlock, ArticlePodcastTrack } from "./articles/type
 
 export const ARTICLES: Article[] = [
   DANNY_LENNON_DIET_ARTICLE,
+  SEAN_MCGARRITY_SALES_ARTICLE,
   MINDFUL_EATING_ARTICLE,
   CARRAUNTOOHIL_ARTICLE,
   TAIJI_ARTICLE,
@@ -21,8 +23,18 @@ export function getArticleBySlug(slug: string): Article | undefined {
   return ARTICLES.find((article) => article.slug === slug);
 }
 
-export function getFeaturedArticle(): Article {
-  return ARTICLES.find((article) => article.kind === "podcast") ?? ARTICLES[0];
+function latestByKind(kind: Article["kind"]): Article | undefined {
+  return ARTICLES.filter((article) => article.kind === kind).sort(
+    (a, b) => b.publishedAt.localeCompare(a.publishedAt),
+  )[0];
+}
+
+export function getFeaturedPodcast(): Article | undefined {
+  return latestByKind("podcast");
+}
+
+export function getFeaturedArticle(): Article | undefined {
+  return latestByKind("article");
 }
 
 export function getArticleThumbnail(article: Article): string | undefined {
