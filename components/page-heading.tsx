@@ -1,22 +1,46 @@
-import type { ReactNode } from "react";
-import { AppFonts } from "@/constants/theme";
+import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
+import { Crown } from "lucide-react-native";
+import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 type PageHeadingProps = {
   title: string;
   subtitle?: string;
   trailing?: ReactNode;
+  showPremiumBadge?: boolean;
 };
 
-export function PageHeading({ title, subtitle, trailing }: PageHeadingProps) {
+export function PageHeading({
+  title,
+  subtitle,
+  trailing,
+  showPremiumBadge = false,
+}: PageHeadingProps) {
   const { isDark } = useTheme();
 
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
         <View style={styles.textBlock}>
-          <Text style={[styles.title, isDark && styles.titleDark]}>{title}</Text>
+          <View style={styles.titleRow}>
+            <Text
+              style={[styles.title, isDark && styles.titleDark]}
+              includeFontPadding={false}
+            >
+              {title}
+            </Text>
+            {showPremiumBadge ? (
+              <View style={styles.premiumBadge}>
+                <Crown
+                  size={20}
+                  color={isDark ? "#C4B5E8" : MAIN_PURPLE}
+                  strokeWidth={2.2}
+                  accessibilityLabel="Premium"
+                />
+              </View>
+            ) : null}
+          </View>
           {subtitle ? (
             <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>
               {subtitle}
@@ -41,6 +65,16 @@ const styles = StyleSheet.create({
   textBlock: {
     flex: 1,
     minWidth: 0,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  premiumBadge: {
+    marginTop: 3,
+    transform: [{ translateY: -1 }],
   },
   trailing: {
     flexShrink: 0,

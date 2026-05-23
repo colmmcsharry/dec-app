@@ -57,6 +57,7 @@ export default function WorksheetsScreen() {
     >
       <MainTabHeader />
       <PageHeading
+        showPremiumBadge
         title="Module Worksheets"
         subtitle="View and Print the worksheets or use the Digital Workbook if you prefer typed answers — they save on this device."
       />

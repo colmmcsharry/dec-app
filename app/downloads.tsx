@@ -1,12 +1,14 @@
 import { DownloadListCard } from "@/components/download-list-card";
-import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
+import {
+  SCREEN_BACK_BUTTON_WIDTH,
+  ScreenBackButton,
+} from "@/components/screen-back-button";
+import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { DOWNLOADS } from "@/data/downloads";
 import { requirePro } from "@/services/purchases";
 import { useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
 import {
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -35,17 +37,7 @@ export default function DownloadsScreen() {
           { paddingTop: insets.top + 8, paddingBottom: 12 },
         ]}
       >
-        <Pressable
-          style={({ pressed }) => [
-            styles.backButton,
-            { opacity: pressed ? 0.6 : 1 },
-          ]}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <ChevronLeft size={24} color={isDark ? "#ECEDEE" : MAIN_PURPLE} />
-        </Pressable>
+        <ScreenBackButton color={isDark ? "#ECEDEE" : "#2C3E50"} />
         <Text style={[styles.headerTitle, isDark && styles.textDark]}>
           Downloads
         </Text>
@@ -90,12 +82,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E5E7EB",
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
+    zIndex: 10,
   },
   headerTitle: {
     flex: 1,
@@ -105,7 +92,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   headerSpacer: {
-    width: 44,
+    minWidth: SCREEN_BACK_BUTTON_WIDTH,
   },
   content: {
     paddingHorizontal: 20,

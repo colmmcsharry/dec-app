@@ -179,7 +179,7 @@ export default function ResourcesScreen() {
       ]}
     >
       <MainTabHeader />
-      <PageHeading title="Resources" />
+      <PageHeading showPremiumBadge title="Resources" />
 
       <FeatureSection
         title="Downloads"

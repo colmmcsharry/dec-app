@@ -1,11 +1,12 @@
 import { ArticleAudioPlayer } from "@/components/article-audio-player";
+import { ScreenBackButton } from "@/components/screen-back-button";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { getArticleBySlug, type ArticleBlock } from "@/data/articles";
 import { mediaUrl } from "@/lib/media-base-url";
 import { requirePro } from "@/services/purchases";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, FileText, Headphones } from "lucide-react-native";
+import { FileText, Headphones } from "lucide-react-native";
 import {
   ActivityIndicator,
   Image,
@@ -210,18 +211,7 @@ export default function ArticleScreen() {
           },
         ]}
       >
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={12}
-          style={({ pressed }) => [
-            styles.backButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <ChevronLeft size={24} color={isDark ? "#ECEDEE" : "#1E2430"} />
-        </Pressable>
+        <ScreenBackButton color={isDark ? "#ECEDEE" : "#1E2430"} />
         <View style={styles.kindBadge}>
           {article.kind === "podcast" ? (
             <Headphones size={14} color={MAIN_PURPLE} />
@@ -298,12 +288,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingBottom: 8,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: "flex-start",
-    justifyContent: "center",
+    zIndex: 10,
   },
   kindBadge: {
     flexDirection: "row",
