@@ -614,8 +614,12 @@ export default function OnboardingScreen() {
           <View style={styles.slide}>
             <View style={styles.slideContent}>
             <View style={styles.slideCopy}>
-              <View style={styles.slideTitleWithIcon}>
+              <View style={styles.slideQuoteIcon}>
                 <Quote size={28} color={MAIN_PURPLE} strokeWidth={2} />
+              </View>
+              <View
+                style={[styles.slideTitleWithIcon, styles.slideTitleBelowIcon]}
+              >
                 <Text
                   style={[styles.slideTitle, styles.slideTitleBesideIcon]}
                   numberOfLines={4}
@@ -945,6 +949,13 @@ const styles = StyleSheet.create({
     flex: 1,
     marginBottom: 12,
   },
+  slideTitleBelowIcon: {
+    marginTop: 10,
+  },
+  slideQuoteIcon: {
+    alignSelf: "flex-start",
+    transform: [{ scaleX: -1 }],
+  },
   heroIcon: {
     width: 96,
     height: 96,
@@ -1107,14 +1118,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontStyle: "italic",
-    color: "#94A0C8",
+    color: "#A4AED0",
   },
   testimonialRole: {
     fontFamily: AppFonts.bodyMedium,
     fontSize: 12,
     lineHeight: 17,
     fontStyle: "italic",
-    color: "#94A0C8",
+    color: "#A4AED0",
     marginTop: 2,
   },
   testimonialLogo: {

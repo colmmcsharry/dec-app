@@ -19,12 +19,10 @@ const log = (...args: unknown[]) => {
  * Renders the RevenueCat-hosted paywall.
  *
  * Navigation strategy:
- *   - `/welcome` (post-purchase celebration) is reached from
- *     `onPurchaseCompleted` / `onRestoreCompleted`, or from `onDismiss`
- *     only when Pro became active **after** this screen opened (snapshot
- *     taken before showing the paywall). That way TestFlight / sandbox
- *     users who already have an active sub but tap X do not get the
- *     “congrats” flow.
+ *   - `/welcome` (post-purchase celebration) is reached only from
+ *     `onPurchaseCompleted` / `onRestoreCompleted`. Tapping X always closes
+ *     the paywall without that flow, even if RevenueCat synced entitlements
+ *     in the background (e.g. sandbox restore on the same Apple ID).
  *
  *   - `routedRef` latches the first navigation so duplicate callbacks are
  *     ignored.
@@ -35,8 +33,6 @@ export default function PaywallScreen() {
   const isPreview = preview === "1" || preview === "true";
 
   const routedRef = useRef(false);
-  /** Pro entitlement when this paywall instance became ready (before RC UI). */
-  const hadProAtOpenRef = useRef(false);
   const [snapshotReady, setSnapshotReady] = useState(isPreview);
   /** True while a native purchase/restore flow is in progress (started → completed/error/cancel). */
   const billingFlowActiveRef = useRef(false);
@@ -45,9 +41,10 @@ export default function PaywallScreen() {
     if (isPreview) return;
     let cancelled = false;
     void (async () => {
-      const pro = await hasProEntitlement();
+      // Wait for RevenueCat's initial customer-info sync before mounting the
+      // paywall UI so entitlement state is stable.
+      await hasProEntitlement();
       if (cancelled) return;
-      hadProAtOpenRef.current = pro;
       setSnapshotReady(true);
     })();
     return () => {
@@ -189,18 +186,12 @@ export default function PaywallScreen() {
     }
     if (routedRef.current) return;
 
-    const proNow = await hasProEntitlement();
-    log("onDismiss after delay, proNow=", proNow, "hadProAtOpen=", hadProAtOpenRef.current);
-    if (routedRef.current) return;
-
-    // Already had Pro when they opened this paywall (e.g. sandbox sub) → X
-    // means "not buying again / close", not post-purchase celebration.
-    if (proNow && !hadProAtOpenRef.current) {
-      goWelcome();
-    } else {
-      goBackOrTabs();
-    }
-  }, [goBackOrTabs, goWelcome, isPreview, router]);
+    // User tapped X — always close without the post-purchase welcome flow,
+    // even if RevenueCat synced a sandbox entitlement in the background.
+    // Purchase / restore success is handled only in those callbacks.
+    log("onDismiss → closing paywall");
+    goBackOrTabs();
+  }, [goBackOrTabs, isPreview, router]);
 
   if (Platform.OS === "web") {
     void goTabs();

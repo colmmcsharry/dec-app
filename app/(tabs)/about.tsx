@@ -28,7 +28,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Matches digital workbook body copy (`app/module-workbook/[slug].tsx`). */
 const WORKBOOK_TEXT = "#1E2430";
-const WORKBOOK_TEXT_BODY = "#363C48";
+const WORKBOOK_TEXT_BODY = "#2E343F";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CAROUSEL_GAP = 16;
@@ -37,9 +37,31 @@ const CAROUSEL_IMAGE_WIDTH = CAROUSEL_ITEM_WIDTH - CAROUSEL_GAP;
 const CAROUSEL_STRIDE = CAROUSEL_ITEM_WIDTH;
 const CAROUSEL_IMAGE_HEIGHT = 250;
 
+const COLLAGE_SOURCE = require("@/assets/images/deco-collage-compressed.png");
+const COLLAGE_HEIGHT_RATIO = 537 / 539;
+
+function BioCollage() {
+  const [width, setWidth] = useState(0);
+
+  return (
+    <View
+      style={styles.bioCollageWrap}
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+    >
+      {width > 0 ? (
+        <Image
+          source={COLLAGE_SOURCE}
+          style={{ width, height: width * COLLAGE_HEIGHT_RATIO }}
+          accessibilityLabel="Photos of Declan running, with family, and on the coast"
+        />
+      ) : null}
+    </View>
+  );
+}
+
 const TESTIMONIAL_IMAGES: ImageSourcePropType[] = [
-  require("@/assets/images/about/testimonials/testimonial-1.jpg"),
   require("@/assets/images/about/testimonials/testimonial-2.jpg"),
+  require("@/assets/images/about/testimonials/testimonial-1.jpg"),
   require("@/assets/images/about/testimonials/testimonial-3.jpg"),
   require("@/assets/images/about/testimonials/testimonial-4.jpg"),
   require("@/assets/images/about/testimonials/testimonial-5.jpg"),
@@ -218,10 +240,7 @@ function TestimonialImageCarousel({ isDark }: { isDark: boolean }) {
           />
 
           <View
-            style={[
-              styles.viewerFooter,
-              { paddingBottom: insets.bottom + 16 },
-            ]}
+            style={[styles.viewerFooter, { paddingBottom: insets.bottom + 16 }]}
           >
             <View style={styles.carouselDots}>
               {TESTIMONIAL_IMAGES.map((_, index) => (
@@ -264,7 +283,7 @@ function Testimonial({
     <View
       style={[
         styles.testimonialCard,
-        isDark && styles.cardDark,
+        isDark ? styles.testimonialCardDark : styles.testimonialCardLight,
         styles.cardShell,
         isDark && styles.cardShellDark,
       ]}
@@ -284,11 +303,19 @@ function Testimonial({
             resizeMode="cover"
           />
           <View style={styles.testimonialNameWrap}>
-            <Text style={[styles.testimonialName, isDark && styles.textDark]}>
+            <Text
+              style={[
+                styles.testimonialName,
+                isDark && styles.testimonialNameDark,
+              ]}
+            >
               {name}
             </Text>
             <Text
-              style={[styles.testimonialRole, isDark && styles.metaTextDark]}
+              style={[
+                styles.testimonialRole,
+                isDark && styles.testimonialRoleDark,
+              ]}
             >
               {role}
             </Text>
@@ -330,7 +357,9 @@ function PremiumStatusBanner({
           styles.premiumBanner,
           active ? styles.premiumBannerActive : styles.premiumBannerFree,
           isDark &&
-            (active ? styles.premiumBannerActiveDark : styles.premiumBannerFreeDark),
+            (active
+              ? styles.premiumBannerActiveDark
+              : styles.premiumBannerFreeDark),
         ]}
         accessibilityRole="text"
         accessibilityLabel={title}
@@ -428,7 +457,7 @@ export default function AboutScreen() {
             <Text
               style={[styles.heroTagline, isDark && styles.heroTaglineDark]}
             >
-              Train the Mind, Body and Soul
+              aka Performance Treanor
             </Text>
           </View>
         </View>
@@ -453,16 +482,18 @@ export default function AboutScreen() {
           >
             Mission
           </Text>
-          <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+          <Text
+            style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
+          >
             My Mission
           </Text>
           <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
             I want to help people get the best out of themselves.
           </Text>
           <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-            This app is the culmination of my 10 years of experience in the field
-            of psychology and performance, working with high performers and
-            average Joes and Janes.
+            This app is the culmination of my 10 years of experience in the
+            field of psychology and performance, working with high performers
+            and average Joes and Janes.
           </Text>
         </View>
       </View>
@@ -486,21 +517,32 @@ export default function AboutScreen() {
           >
             Background
           </Text>
-          <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+          <Text
+            style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
+          >
             So who am I?
           </Text>
-          <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
+          <BioCollage />
+          <Text
+            style={[
+              styles.bodyText,
+              styles.bodyTextAfterPhoto,
+              isDark && styles.bodyTextDark,
+            ]}
+          >
             I am an enthusiast for the area of psychology and performance and
             have completed a Sports Psychology diploma with distinction.
           </Text>
           <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-            Residing in Dublin, Ireland, I am happily married, a father and and a REPs accredited (Register of Exercise
-            Professionals), fully qualified Personal Trainer. This qualification
-            includes a national certificate in Nutrition for Physical Activity.
+            Residing in Dublin, Ireland, I am happily married, a father and and
+            a REPs accredited (Register of Exercise Professionals), fully
+            qualified Personal Trainer. This qualification includes a national
+            certificate in Nutrition for Physical Activity.
           </Text>
           <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-            Before these qualifications I obtained an MSc in Strategic Management
-            and Planning and a BComm in Commerce International with French.
+            Before these qualifications I obtained an MSc in Strategic
+            Management and Planning and a BComm in Commerce International with
+            French.
           </Text>
           <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
             As a Gaelic Footballer I was part of the Dublin Senior Team{"'"}s O
@@ -521,21 +563,17 @@ export default function AboutScreen() {
               isDark && styles.bodyTextDark,
             ]}
           >
-            My Dad got me interested in the area of performance by passing me on a
-            book called the Monk who sold his Ferrari. Now it{"'"}s my turn to
-            pass something on to you!
+            My Dad got me interested in the area of performance by passing me on
+            a book called{" "}
+            <Text style={styles.bookTitle}>the Monk Who Sold His Ferrari</Text>.
+            Now it{"'"}s my turn to pass something on to you!
           </Text>
           <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
             Having suffered the debilitating effects of performance anxiety
             particularly in the field of sport I feel it important to share
             information that can help others through such issues.
           </Text>
-          <Text
-            style={[
-              styles.closingText,
-              isDark && styles.closingTextDark,
-            ]}
-          >
+          <Text style={[styles.closingText, isDark && styles.closingTextDark]}>
             Train your mind, body and soul!
           </Text>
         </View>
@@ -552,7 +590,10 @@ export default function AboutScreen() {
         Testimonials
       </Text>
       <Text
-        style={[styles.testimonialsSectionTitle, isDark && styles.sectionTitleDark]}
+        style={[
+          styles.testimonialsSectionTitle,
+          isDark && styles.sectionTitleDark,
+        ]}
       >
         What People Say
       </Text>
@@ -585,10 +626,7 @@ export default function AboutScreen() {
       />
 
       <View
-        style={[
-          styles.disclaimerWrap,
-          isDark && styles.disclaimerWrapDark,
-        ]}
+        style={[styles.disclaimerWrap, isDark && styles.disclaimerWrapDark]}
       >
         <View
           style={[
@@ -599,27 +637,29 @@ export default function AboutScreen() {
             isDark && styles.cardShellDark,
           ]}
         >
-        <View
-          style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]}
-        />
-        <View style={styles.cardInner}>
-          <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
-            Medical Disclaimer
-          </Text>
-          <Text
-            style={[
-              styles.bodyText,
-              styles.disclaimerBodyText,
-              isDark && styles.bodyTextDark,
-            ]}
-          >
-            The content in this app is for informational purposes only and is not
-            a substitute for professional medical advice, diagnosis or treatment.
-            Always consult a qualified healthcare provider regarding any medical
-            conditions.
-          </Text>
+          <View
+            style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]}
+          />
+          <View style={styles.cardInner}>
+            <Text
+              style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
+            >
+              Medical Disclaimer
+            </Text>
+            <Text
+              style={[
+                styles.bodyText,
+                styles.disclaimerBodyText,
+                isDark && styles.bodyTextDark,
+              ]}
+            >
+              The content in this app is for informational purposes only and is
+              not a substitute for professional medical advice, diagnosis or
+              treatment. Always consult a qualified healthcare provider
+              regarding any medical conditions.
+            </Text>
+          </View>
         </View>
-      </View>
       </View>
 
       <DevResetButton variant="inline" />
@@ -720,7 +760,7 @@ const styles = StyleSheet.create({
     color: "#ECEDEE",
   },
   bodyTextDark: {
-    color: "#D8DBE8",
+    color: "#E0E3EC",
   },
   metaTextDark: {
     color: "#AEB3C4",
@@ -842,14 +882,24 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: AppFonts.headingBold,
     color: WORKBOOK_TEXT,
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  bioCollageWrap: {
+    width: "100%",
+    marginTop: 8,
+  },
+  bodyTextAfterPhoto: {
+    marginTop: 8,
   },
   bodyText: {
-    fontSize: 15,
-    lineHeight: 23,
+    fontSize: 16,
+    lineHeight: 25,
     color: WORKBOOK_TEXT_BODY,
     marginBottom: 12,
     fontFamily: AppFonts.bodyRegular,
+  },
+  bookTitle: {
+    fontStyle: "italic",
   },
   teamPhoto: {
     width: "100%",
@@ -988,8 +1038,13 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.65)",
   },
   testimonialCard: {
-    backgroundColor: "#FFFFFF",
     marginBottom: 16,
+  },
+  testimonialCardLight: {
+    backgroundColor: "#FFFFFF",
+  },
+  testimonialCardDark: {
+    backgroundColor: "#34344a",
   },
   testimonialHeader: {
     flexDirection: "row",
@@ -1019,11 +1074,17 @@ const styles = StyleSheet.create({
     fontFamily: AppFonts.headingSemiBold,
     color: WORKBOOK_TEXT,
   },
+  testimonialNameDark: {
+    color: "#F4F5F6",
+  },
   testimonialRole: {
     fontSize: 13,
     color: "#5C6370",
     marginTop: 2,
     fontFamily: AppFonts.bodyRegular,
+  },
+  testimonialRoleDark: {
+    color: "#BABECD",
   },
   testimonialQuote: {
     fontSize: 14,

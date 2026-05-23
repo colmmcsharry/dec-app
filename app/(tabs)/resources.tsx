@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginBottom: 6,
+    marginBottom: 18,
   },
   sectionEyebrow: {
     fontSize: 11,
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     color: MAIN_PURPLE,
     letterSpacing: 1.2,
     textTransform: "uppercase",
-    marginBottom: 12,
+    marginBottom: 4,
   },
   sectionEyebrowDark: {
     color: "#B7A8E0",

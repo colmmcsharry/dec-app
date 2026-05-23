@@ -6,6 +6,7 @@ import { getArticleBySlug, type ArticleBlock } from "@/data/articles";
 import { mediaUrl } from "@/lib/media-base-url";
 import { requirePro } from "@/services/purchases";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { openBrowserAsync } from "expo-web-browser";
 import { FileText, Headphones } from "lucide-react-native";
 import {
   ActivityIndicator,
@@ -137,6 +138,17 @@ function ArticleBlockView({
         <ArticleImage block={block} uri={uri} isDark={isDark} />
       );
     }
+    case "link":
+      return (
+        <Pressable
+          onPress={() => void openBrowserAsync(block.url)}
+          style={styles.linkBlock}
+        >
+          <Text style={[styles.linkText, isDark && styles.linkTextDark]}>
+            {block.label}
+          </Text>
+        </Pressable>
+      );
     case "paragraph":
     default:
       return (
@@ -375,6 +387,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 26,
     color: WORKBOOK_TEXT_BODY,
+  },
+  linkBlock: {
+    marginBottom: 12,
+  },
+  linkText: {
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 16,
+    lineHeight: 24,
+    color: MAIN_PURPLE,
+    textDecorationLine: "underline",
+  },
+  linkTextDark: {
+    color: "#A78BFA",
   },
   quoteBlock: {
     borderLeftWidth: 3,
