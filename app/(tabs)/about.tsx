@@ -2,28 +2,29 @@ import { BeforeAfterCarousel } from "@/components/before-after-carousel";
 import { DevResetButton } from "@/components/dev-reset-button";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
+import { requestAppReview } from "@/services/app-review";
 import {
-    addCustomerInfoListener,
-    customerInfoHasPro,
-    hasProEntitlement,
+  addCustomerInfoListener,
+  customerInfoHasPro,
+  hasProEntitlement,
 } from "@/services/purchases";
 import { useIsFocused } from "@react-navigation/native";
-import { Crown, Lock, X } from "lucide-react-native";
+import { Crown, Lock, Star, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
-    Dimensions,
-    FlatList,
-    Image,
-    Modal,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-    type ImageSourcePropType,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ImageSourcePropType,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -461,14 +462,28 @@ export default function AboutScreen() {
               aka Performance Treanor
             </Text>
           </View>
+          <Text
+            style={[
+              styles.bodyText,
+              styles.heroMissionText,
+              isDark && styles.bodyTextDark,
+            ]}
+          >
+            I want to help people get the best out of themselves.
+          </Text>
+          <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
+            This app is the culmination of my 10 years of experience in the
+            field of psychology and performance, working with high performers
+            and average Joes and Janes.
+          </Text>
         </View>
       </View>
 
-      {/* Mission */}
+      {/* Leave a review */}
       <View
         style={[
           styles.section,
-          styles.missionCard,
+          styles.reviewCard,
           isDark && styles.cardDark,
           styles.cardShell,
           isDark && styles.cardShellDark,
@@ -481,21 +496,41 @@ export default function AboutScreen() {
           <Text
             style={[styles.sectionEyebrow, isDark && styles.sectionEyebrowDark]}
           >
-            Mission
+            Feedback
           </Text>
           <Text
             style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
           >
-            My Mission
+            Enjoying Daily Diesel?
           </Text>
           <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-            I want to help people get the best out of themselves.
+            If the app is helping you, a quick review on the App Store makes a
+            big difference.
           </Text>
-          <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-            This app is the culmination of my 10 years of experience in the
-            field of psychology and performance, working with high performers
-            and average Joes and Janes.
-          </Text>
+          <Pressable
+            onPress={() => void requestAppReview()}
+            style={({ pressed }) => [
+              styles.reviewButton,
+              isDark && styles.reviewButtonDark,
+              pressed && styles.reviewButtonPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Leave a review on the App Store"
+          >
+            <Star
+              size={18}
+              color={isDark ? "#1E2430" : "#FFFFFF"}
+              fill={isDark ? "#C4B5E8" : "#FFFFFF"}
+            />
+            <Text
+              style={[
+                styles.reviewButtonText,
+                isDark && styles.reviewButtonTextDark,
+              ]}
+            >
+              Leave a review
+            </Text>
+          </Pressable>
         </View>
       </View>
 
@@ -531,14 +566,14 @@ export default function AboutScreen() {
               isDark && styles.bodyTextDark,
             ]}
           >
-            I am an enthusiast for the area of psychology and performance and
-            have completed a Sports Psychology diploma with distinction.
-          </Text>
-          <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
             Residing in Dublin, Ireland, I am happily married, a father and and
             a REPs accredited (Register of Exercise Professionals), fully
             qualified Personal Trainer. This qualification includes a national
             certificate in Nutrition for Physical Activity.
+          </Text>
+          <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
+            I am an enthusiast for the area of psychology and performance and
+            have completed a Sports Psychology diploma with distinction.
           </Text>
           <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
             Before these qualifications I obtained an MSc in Strategic
@@ -882,6 +917,9 @@ const styles = StyleSheet.create({
   heroTaglineDark: {
     color: "#B7A8E0",
   },
+  heroMissionText: {
+    marginTop: 16,
+  },
 
   section: {
     marginBottom: 20,
@@ -896,6 +934,35 @@ const styles = StyleSheet.create({
   beforeAfterCard: {
     backgroundColor: "#FFFFFF",
     marginBottom: 24,
+  },
+  reviewCard: {
+    backgroundColor: "#FFFFFF",
+    marginBottom: 24,
+  },
+  reviewButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 4,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    backgroundColor: MAIN_PURPLE,
+  },
+  reviewButtonDark: {
+    backgroundColor: "#B7A8E0",
+  },
+  reviewButtonPressed: {
+    opacity: 0.85,
+  },
+  reviewButtonText: {
+    fontSize: 16,
+    fontFamily: AppFonts.headingSemiBold,
+    color: "#FFFFFF",
+  },
+  reviewButtonTextDark: {
+    color: "#1E2430",
   },
   sectionEyebrow: {
     fontSize: 11,
