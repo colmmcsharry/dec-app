@@ -95,7 +95,7 @@ export default function WorksheetsScreen() {
                     },
                   ]}
                 >
-                  Module {def.moduleNumber}
+                  Module {def.moduleNumber} — {theme.shortName}
                 </Text>
                 <Text
                   style={[

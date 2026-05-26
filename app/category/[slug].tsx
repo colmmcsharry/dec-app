@@ -24,12 +24,12 @@ const categoryInfo: Record<string, { title: string; color: string; moduleNumber:
   sleep: { title: 'Sleep', color: '#E5D9F2', moduleNumber: 1 },
   'morning-routines': { title: 'Morning Routines', color: '#FFF3DC', moduleNumber: 2 },
   'energy-management': { title: 'Energy Management', color: '#D4F1E8', moduleNumber: 3 },
-  'mindfulness': { title: 'Mindfulness', color: '#EADBF7', moduleNumber: 4 },
-  'move-2-perform': { title: 'Move 2 Perform', color: '#D9E9F7', moduleNumber: 5 },
+  'mindfulness': { title: 'Creativity', color: '#EADBF7', moduleNumber: 4 },
+  'move-2-perform': { title: 'Recovery', color: '#DBE9F7', moduleNumber: 5 },
   'thinking-2-perform': { title: 'Thinking 2 Perform', color: '#F7DBF0', moduleNumber: 6 },
-  'recovery': { title: 'Recovery', color: '#DBE9F7', moduleNumber: 7 },
+  'recovery': { title: 'Move 2 Perform', color: '#D9E9F7', moduleNumber: 7 },
   'fuel-2-perform': { title: 'Fuel 2 Perform', color: '#FFDDD9', moduleNumber: 8 },
-  'stress-management': { title: 'Stress Management', color: '#F7EADB', moduleNumber: 9 },
+  'stress-management': { title: 'Most Authentic You', color: '#F7EADB', moduleNumber: 9 },
   'habits': { title: 'Building Habits', color: '#DBF7EA', moduleNumber: 10 },
 };
 

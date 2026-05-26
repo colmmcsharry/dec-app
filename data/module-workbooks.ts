@@ -868,7 +868,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     ],
   },
 
-  /* ── Module 4 — Mindfulness (Creative Solutions) ──────────────────────── */
+  /* ── Module 4 — Creativity (Creative Solutions) ───────────────────────── */
   mindfulness: {
     slug: "mindfulness",
     title: "Creative Solutions & Difficult Conversations",
@@ -1010,7 +1010,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     slug: "move-2-perform",
     title: "Rejuvenating Downtime",
     moduleNumber: 5,
-    color: "#D9E9F7",
+    color: "#DBE9F7",
     intro:
       "The downtime course content—evening, weekend & holiday advice—plus your interactive planning worksheets.",
     workbookCardTeaser:
@@ -1215,7 +1215,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     slug: "recovery",
     title: "Move To Perform With Exercise & Physical Activity",
     moduleNumber: 7,
-    color: "#DBE9F7",
+    color: "#D9E9F7",
     intro:
       "The full exercise module content—myth busting, the habit loop, mini habits—plus your interactive exercise planner.",
     workbookCardTeaser:
@@ -1411,7 +1411,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     ],
   },
 
-  /* ── Module 9 — Stress Management (Confidence) ───────────────────────── */
+  /* ── Module 9 — Most Authentic You (Confidence) ──────────────────────── */
   "stress-management": {
     slug: "stress-management",
     title: "Most Authentic You: Confidence, Charisma & Assertiveness",

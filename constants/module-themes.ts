@@ -8,7 +8,7 @@ import {
   Leaf,
   Moon,
   Sunrise,
-  Wind,
+  User,
   type LucideIcon,
 } from "lucide-react-native";
 
@@ -34,6 +34,8 @@ export interface ModuleTheme {
   backgroundColor: string;
   /** Body / heading text color used on top of `backgroundColor`. */
   textColor: string;
+  /** Short label for module headers (e.g. "Energy Management"). */
+  shortName: string;
 }
 
 export const MODULE_THEMES: Record<string, ModuleTheme> = {
@@ -43,6 +45,7 @@ export const MODULE_THEMES: Record<string, ModuleTheme> = {
     iconColor: "#8B7AB8",
     backgroundColor: "#E5D9F2",
     textColor: "#6B5B8C",
+    shortName: "Sleep",
   },
   "morning-routines": {
     slug: "morning-routines",
@@ -50,6 +53,7 @@ export const MODULE_THEMES: Record<string, ModuleTheme> = {
     iconColor: "#D4A574",
     backgroundColor: "#FFF3DC",
     textColor: "#B8884D",
+    shortName: "Morning Routines",
   },
   "energy-management": {
     slug: "energy-management",
@@ -57,6 +61,7 @@ export const MODULE_THEMES: Record<string, ModuleTheme> = {
     iconColor: "#5D9B8B",
     backgroundColor: "#D4F1E8",
     textColor: "#4A7D6F",
+    shortName: "Energy Management",
   },
   mindfulness: {
     slug: "mindfulness",
@@ -64,13 +69,15 @@ export const MODULE_THEMES: Record<string, ModuleTheme> = {
     iconColor: "#A87BC9",
     backgroundColor: "#EADBF7",
     textColor: "#7B5299",
+    shortName: "Creativity",
   },
   "move-2-perform": {
     slug: "move-2-perform",
-    Icon: Dumbbell,
-    iconColor: "#6B9BD1",
-    backgroundColor: "#D9E9F7",
+    Icon: HeartPulse,
+    iconColor: "#7BA8C9",
+    backgroundColor: "#DBE9F7",
     textColor: "#5278A8",
+    shortName: "Recovery",
   },
   "thinking-2-perform": {
     slug: "thinking-2-perform",
@@ -78,13 +85,15 @@ export const MODULE_THEMES: Record<string, ModuleTheme> = {
     iconColor: "#C97BA8",
     backgroundColor: "#F7DBF0",
     textColor: "#A35D85",
+    shortName: "Thinking 2 Perform",
   },
   recovery: {
     slug: "recovery",
-    Icon: HeartPulse,
-    iconColor: "#7BA8C9",
-    backgroundColor: "#DBE9F7",
+    Icon: Dumbbell,
+    iconColor: "#6B9BD1",
+    backgroundColor: "#D9E9F7",
     textColor: "#5278A8",
+    shortName: "Move 2 Perform",
   },
   "fuel-2-perform": {
     slug: "fuel-2-perform",
@@ -92,13 +101,15 @@ export const MODULE_THEMES: Record<string, ModuleTheme> = {
     iconColor: "#D97B7B",
     backgroundColor: "#FFDDD9",
     textColor: "#B85D5D",
+    shortName: "Fuel 2 Perform",
   },
   "stress-management": {
     slug: "stress-management",
-    Icon: Wind,
+    Icon: User,
     iconColor: "#C9A87B",
     backgroundColor: "#F7EADB",
     textColor: "#997D5C",
+    shortName: "Most Authentic You",
   },
   habits: {
     slug: "habits",
@@ -106,6 +117,7 @@ export const MODULE_THEMES: Record<string, ModuleTheme> = {
     iconColor: "#7BC9A8",
     backgroundColor: "#DBF7EA",
     textColor: "#52997D",
+    shortName: "Building Habits",
   },
 };
 
