@@ -1,3 +1,4 @@
+import { BeforeAfterCarousel } from "@/components/before-after-carousel";
 import { DevResetButton } from "@/components/dev-reset-button";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -579,6 +580,34 @@ export default function AboutScreen() {
         </View>
       </View>
 
+      {/* Before / After */}
+      <View
+        style={[
+          styles.section,
+          styles.beforeAfterCard,
+          isDark && styles.cardDark,
+          styles.cardShell,
+          isDark && styles.cardShellDark,
+        ]}
+      >
+        <View
+          style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]}
+        />
+        <View style={styles.cardInner}>
+          <Text
+            style={[styles.sectionEyebrow, isDark && styles.sectionEyebrowDark]}
+          >
+            Before / After
+          </Text>
+          <Text
+            style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
+          >
+            Client Transformations
+          </Text>
+          <BeforeAfterCarousel isDark={isDark} />
+        </View>
+      </View>
+
       {/* Testimonials */}
       <Text
         style={[
@@ -861,6 +890,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   bioCard: {
+    backgroundColor: "#FFFFFF",
+    marginBottom: 24,
+  },
+  beforeAfterCard: {
     backgroundColor: "#FFFFFF",
     marginBottom: 24,
   },
