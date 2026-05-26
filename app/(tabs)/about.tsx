@@ -3,27 +3,27 @@ import { DevResetButton } from "@/components/dev-reset-button";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import {
-  addCustomerInfoListener,
-  customerInfoHasPro,
-  hasProEntitlement,
+    addCustomerInfoListener,
+    customerInfoHasPro,
+    hasProEntitlement,
 } from "@/services/purchases";
 import { useIsFocused } from "@react-navigation/native";
 import { Crown, Lock, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
-  FlatList,
-  Image,
-  Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type ImageSourcePropType,
+    Dimensions,
+    FlatList,
+    Image,
+    Modal,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+    type ImageSourcePropType,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
