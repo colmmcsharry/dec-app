@@ -2,13 +2,8 @@ import { BeforeAfterSlider } from "@/components/before-after-slider";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type ImageSourcePropType,
-} from "react-native";
+import { StyleSheet, Text, View, type ImageSourcePropType } from "react-native";
+import { Pressable } from "react-native-gesture-handler";
 
 type TransformationSlide = {
   before: ImageSourcePropType;
@@ -66,6 +61,7 @@ export function BeforeAfterCarousel({ isDark = false }: BeforeAfterCarouselProps
       <View style={styles.controls}>
         <Pressable
           onPress={goToPrevious}
+          hitSlop={8}
           style={({ pressed }) => [
             styles.navButton,
             isDark && styles.navButtonDark,
@@ -74,7 +70,7 @@ export function BeforeAfterCarousel({ isDark = false }: BeforeAfterCarouselProps
           accessibilityRole="button"
           accessibilityLabel="Previous transformation"
         >
-          <ChevronLeft size={20} color={isDark ? "#E5E7EB" : "#1E2430"} />
+          <ChevronLeft size={22} color={isDark ? "#E5E7EB" : "#1E2430"} />
         </Pressable>
 
         <View style={styles.dots}>
@@ -82,21 +78,27 @@ export function BeforeAfterCarousel({ isDark = false }: BeforeAfterCarouselProps
             <Pressable
               key={item.caption}
               onPress={() => setActiveIndex(index)}
-              style={[
-                styles.dot,
-                isDark && styles.dotDark,
-                index === activeIndex && styles.dotActive,
-                index === activeIndex && isDark && styles.dotActiveDark,
-              ]}
+              hitSlop={6}
+              style={styles.dotHitArea}
               accessibilityRole="button"
               accessibilityLabel={`Show transformation ${index + 1} of ${TRANSFORMATION_SLIDES.length}`}
               accessibilityState={{ selected: index === activeIndex }}
-            />
+            >
+              <View
+                style={[
+                  styles.dot,
+                  isDark && styles.dotDark,
+                  index === activeIndex && styles.dotActive,
+                  index === activeIndex && isDark && styles.dotActiveDark,
+                ]}
+              />
+            </Pressable>
           ))}
         </View>
 
         <Pressable
           onPress={goToNext}
+          hitSlop={8}
           style={({ pressed }) => [
             styles.navButton,
             isDark && styles.navButtonDark,
@@ -105,7 +107,7 @@ export function BeforeAfterCarousel({ isDark = false }: BeforeAfterCarouselProps
           accessibilityRole="button"
           accessibilityLabel="Next transformation"
         >
-          <ChevronRight size={20} color={isDark ? "#E5E7EB" : "#1E2430"} />
+          <ChevronRight size={22} color={isDark ? "#E5E7EB" : "#1E2430"} />
         </Pressable>
       </View>
 
@@ -128,9 +130,9 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   navButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#F3F4F6",
@@ -147,7 +149,13 @@ const styles = StyleSheet.create({
   dots: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 2,
+  },
+  dotHitArea: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   dot: {
     width: 7,
