@@ -2,7 +2,7 @@ import { BeforeAfterCarousel } from "@/components/before-after-carousel";
 import { DevResetButton } from "@/components/dev-reset-button";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
-import { requestAppReview } from "@/services/app-review";
+import { getReviewStoreLabel, requestAppReview } from "@/services/app-review";
 import {
   addCustomerInfoListener,
   customerInfoHasPro,
@@ -504,8 +504,8 @@ export default function AboutScreen() {
             Enjoying Daily Diesel?
           </Text>
           <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-            If the app is helping you, a quick review on the App Store makes a
-            big difference.
+            If the app is helping you, a quick review on the{" "}
+            {getReviewStoreLabel()} makes a big difference.
           </Text>
           <Pressable
             onPress={() => void requestAppReview()}
@@ -515,7 +515,7 @@ export default function AboutScreen() {
               pressed && styles.reviewButtonPressed,
             ]}
             accessibilityRole="button"
-            accessibilityLabel="Leave a review on the App Store"
+            accessibilityLabel={`Leave a review on the ${getReviewStoreLabel()}`}
           >
             <Star
               size={18}

@@ -1,3 +1,4 @@
+import { PRO_ENTITLEMENT_ID } from "@/constants/revenuecat";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { router } from "expo-router";
@@ -42,11 +43,7 @@ export async function getDevPremiumUnlockForTesting(): Promise<boolean> {
   return readDevPremiumUnlockFlag();
 }
 
-/**
- * The entitlement identifier configured in RevenueCat (Product catalog → Entitlements).
- * A user must have this entitlement active to access paid app content.
- */
-export const PRO_ENTITLEMENT_ID = "Daily Diesel Pro";
+export { PRO_ENTITLEMENT_ID };
 
 let configured = false;
 

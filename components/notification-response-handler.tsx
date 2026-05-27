@@ -1,18 +1,27 @@
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 
 import { DAILY_REMINDER_ID } from '@/services/notifications';
 
 /**
- * Handles taps on the daily-reminder notification. Routes the user to the
- * standalone /daily-quote screen, which is reachable to all users (paid or
- * not) so the daily quote works as a free-tier surface that also funnels
- * non-entitled users into the paywall.
+ * Daily reminder tap → /daily-quote.
+ * When the app is open, Android often skips the banner — open the quote screen directly.
  */
 export function NotificationResponseHandler() {
   const router = useRouter();
   const lastResponse = Notifications.useLastNotificationResponse();
+
+  useEffect(() => {
+    const sub = Notifications.addNotificationReceivedListener((notification) => {
+      if (notification.request.identifier !== DAILY_REMINDER_ID) return;
+      if (AppState.currentState === 'active') {
+        router.push('/daily-quote');
+      }
+    });
+    return () => sub.remove();
+  }, [router]);
 
   useEffect(() => {
     if (!lastResponse) return;

@@ -7,8 +7,9 @@ import { MODULE_VIDEOS } from "@/data/module-videos";
 import { getQuoteBackgroundOfTheDay, getQuoteOfTheDay } from "@/data/quotes";
 import {
   cancelDailyReminder,
+  DEFAULT_REMINDER_HOUR,
+  DEFAULT_REMINDER_MINUTE,
   getNextReminderDate,
-  requestNotificationPermission,
   scheduleDailyReminder,
 } from "@/services/notifications";
 import { getAllProgress } from "@/services/progress";
@@ -222,14 +223,42 @@ export default function HomeScreen() {
     async (hour: number, minute: number, label: string) => {
       await cancelDailyReminder();
       const id = await scheduleDailyReminder(hour, minute);
+      await refreshReminderState();
       if (id) {
-        setDailyReminderOn(true);
-        setNextReminderTime(label);
         Alert.alert("Reminder set", `Daily reminder is now at ${label}.`);
       }
     },
-    [],
+    [refreshReminderState],
   );
+
+  const enableDailyReminder = useCallback(async () => {
+    if (Platform.OS === "android") {
+      const value = new Date();
+      value.setHours(DEFAULT_REMINDER_HOUR, DEFAULT_REMINDER_MINUTE, 0, 0);
+      DateTimePickerAndroid.open({
+        value,
+        mode: "time",
+        onChange: (event, date) => {
+          if (event.type === "set" && date) {
+            const lbl = date.toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+            });
+            void scheduleAt(date.getHours(), date.getMinutes(), lbl);
+          }
+        },
+      });
+      return;
+    }
+    const id = await scheduleDailyReminder();
+    if (id) {
+      await refreshReminderState();
+      Alert.alert(
+        "Daily reminder on",
+        'You\'ll get a notification every day. Tap "Change time" to pick a time that suits you.',
+      );
+    }
+  }, [refreshReminderState, scheduleAt]);
 
   const showChangeTimePicker = useCallback(() => {
     if (Platform.OS === "web") {
@@ -279,39 +308,6 @@ export default function HomeScreen() {
       minute: "2-digit",
     });
     await scheduleAt(hour, minute, label);
-  }, [scheduleAt]);
-
-  const enableDailyReminder = useCallback(async () => {
-    const granted = await requestNotificationPermission();
-    if (!granted) {
-      Alert.alert(
-        "Notifications off",
-        "Enable notifications in your device Settings to get daily reminders.",
-      );
-      return;
-    }
-    if (Platform.OS === "android") {
-      const value = new Date();
-      value.setHours(9, 0, 0, 0);
-      DateTimePickerAndroid.open({
-        value,
-        mode: "time",
-        onChange: (event, date) => {
-          if (event.type === "set" && date) {
-            const lbl = date.toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-            });
-            scheduleAt(date.getHours(), date.getMinutes(), lbl);
-          }
-        },
-      });
-      return;
-    }
-    const defaultTime = new Date(new Date().setHours(9, 0, 0, 0));
-    pickerTimeRef.current = defaultTime;
-    setPickerTime(defaultTime);
-    setShowTimePicker(true);
   }, [scheduleAt]);
 
   return (
