@@ -1,9 +1,4 @@
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import { Asset } from "expo-asset";
-import {
-  cacheDirectory,
-  copyAsync,
-} from "expo-file-system";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { WebView } from "react-native-webview";
+import Pdf from "react-native-pdf";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SymbolView } from "expo-symbols";
@@ -26,6 +22,9 @@ import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { getDownloadById } from "@/data/downloads";
 import { MODULE_PDFS } from "@/data/pdf-assets";
+import {
+  resolveBundledPdfUri,
+} from "@/lib/resolve-bundled-pdf";
 import { requirePro } from "@/services/purchases";
 
 export default function PdfViewerScreen() {
@@ -95,21 +94,18 @@ export default function PdfViewerScreen() {
           return;
         }
 
-        const asset = Asset.fromModule(resolvedAsset.module);
-        await asset.downloadAsync();
-
-        let finalUri: string | null = null;
-        if (Platform.OS === "android") {
-          const dest = `${cacheDirectory}${resolvedAsset.id}.pdf`;
-          if (asset.localUri) {
-            await copyAsync({ from: asset.localUri, to: dest });
-          }
-          finalUri = dest;
-        } else {
-          finalUri = asset.localUri ?? null;
+        if (!cancelled) {
+          setLocalUri(null);
         }
 
-        if (!cancelled) setLocalUri(finalUri);
+        const finalUri = await resolveBundledPdfUri(
+          resolvedAsset.module,
+          resolvedAsset.id,
+        );
+
+        if (!cancelled) {
+          setLocalUri(finalUri);
+        }
       } catch (e: unknown) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to load PDF");
@@ -148,15 +144,7 @@ export default function PdfViewerScreen() {
     }
   };
 
-  const viewerSource = useMemo(() => {
-    if (!localUri) return null;
-    if (Platform.OS === "android") {
-      // Android WebView can't render file:// PDFs natively; use Google's viewer.
-      const encoded = encodeURIComponent(localUri);
-      return { uri: `https://docs.google.com/gview?embedded=1&url=${encoded}` };
-    }
-    return { uri: localUri };
-  }, [localUri]);
+  const showViewer = accessChecked && localUri && !error;
 
   return (
     <>
@@ -254,20 +242,32 @@ export default function PdfViewerScreen() {
               {error}
             </Text>
           </View>
-        ) : !accessChecked || !viewerSource ? (
+        ) : !showViewer ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={isDark ? "#818CF8" : "#6366F1"} />
             <Text style={[styles.loadingText, isDark && { color: "#9CA3AF" }]}>
               Loading PDF…
             </Text>
           </View>
+        ) : Platform.OS === "android" ? (
+          <Pdf
+            source={{ uri: localUri, cache: true }}
+            style={[styles.webview, isDark && { backgroundColor: "#1A1D2E" }]}
+            trustAllCerts={false}
+            onError={(event) => {
+              const message =
+                typeof event.nativeEvent?.message === "string"
+                  ? event.nativeEvent.message
+                  : "Failed to display PDF";
+              setError(message);
+            }}
+          />
         ) : (
           <WebView
-            source={viewerSource}
+            source={{ uri: localUri }}
             style={[styles.webview, isDark && { backgroundColor: "#1A1D2E" }]}
             originWhitelist={["*"]}
             startInLoadingState
-            androidLayerType="hardware"
             renderLoading={() => (
               <View style={[styles.center, StyleSheet.absoluteFill]}>
                 <ActivityIndicator size="large" color="#6366F1" />

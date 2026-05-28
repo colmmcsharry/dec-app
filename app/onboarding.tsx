@@ -85,6 +85,8 @@ const SLIDES: Slide[] = [
   { id: "workbooks", key: "workbooks" },
 ];
 
+const GOALS_SLIDE_INDEX = SLIDES.findIndex((s) => s.id === "goals");
+
 type GoalOption = {
   id: string;
   label: string;
@@ -513,12 +515,13 @@ export default function OnboardingScreen() {
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       const i = viewableItems[0]?.index;
       if (i == null) return;
+      if (selectedGoals.length === 0 && i > GOALS_SLIDE_INDEX) return;
       setIndex(i);
       const slide = SLIDES[i];
       setGrowthActive(slide?.id === "growth");
       setProgressActive(slide?.id === "progress");
     },
-    [],
+    [selectedGoals.length],
   );
 
   const viewabilityConfig = useRef({
@@ -702,7 +705,6 @@ export default function OnboardingScreen() {
                             styles.goalLabel,
                             selected && styles.goalLabelSelected,
                           ]}
-                          numberOfLines={1}
                         >
                           {g.label}
                         </Text>
@@ -840,6 +842,9 @@ export default function OnboardingScreen() {
         keyExtractor={(s) => s.key}
         horizontal
         pagingEnabled
+        scrollEnabled={false}
+        bounces={false}
+        overScrollMode="never"
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
@@ -850,10 +855,6 @@ export default function OnboardingScreen() {
           index: i,
         })}
         onScrollToIndexFailed={onScrollToIndexFailed}
-        onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
-          const x = e.nativeEvent.contentOffset.x;
-          setIndex(Math.round(x / SCREEN_WIDTH));
-        }}
       />
 
       <View style={styles.footer}>
@@ -1170,12 +1171,13 @@ const styles = StyleSheet.create({
   },
   goalCell: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 12,
+    paddingRight: 28,
     borderWidth: 2,
     borderColor: "transparent",
     shadowColor: "#000",
@@ -1184,6 +1186,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
     position: "relative",
+    minHeight: 52,
   },
   goalCellSelected: {
     borderColor: MAIN_PURPLE,
@@ -1195,11 +1198,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 1,
   },
   goalLabel: {
     flex: 1,
+    flexShrink: 1,
     fontFamily: AppFonts.bodyMedium,
     fontSize: 14,
+    lineHeight: 19,
     color: "#374151",
   },
   goalLabelSelected: {

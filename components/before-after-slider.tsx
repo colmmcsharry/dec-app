@@ -56,6 +56,7 @@ export function BeforeAfterSlider({
   const pan = Gesture.Pan()
     .activeOffsetX([-12, 12])
     .failOffsetY([-12, 12])
+    .shouldCancelWhenOutside(true)
     .onStart(() => {
       startX.value = sliderX.value;
     })

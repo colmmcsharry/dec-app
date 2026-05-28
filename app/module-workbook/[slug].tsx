@@ -25,8 +25,11 @@ import {
   useMemo,
   useRef,
   useState,
+  type RefObject,
 } from "react";
 import {
+  Dimensions,
+  Keyboard,
   KeyboardAvoidingView,
   type LayoutChangeEvent,
   Modal,
@@ -36,6 +39,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type TextInputFocusEventData,
+  UIManager,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -70,6 +77,85 @@ function normalizeStoredEnergyRating1to5(raw: string): string {
 
 type SaveState = "loading" | "saving" | "saved";
 
+function useAndroidKeyboardScroll(scrollRef: RefObject<ScrollView | null>) {
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const scrollYRef = useRef(0);
+  const keyboardHeightRef = useRef(0);
+  const lastFocusedTargetRef = useRef<number | null>(null);
+
+  const scrollTargetIntoView = useCallback(
+    (target: number, kbHeight: number) => {
+      UIManager.measureInWindow(target, (_x, y, _width, height) => {
+        const windowHeight = Dimensions.get("window").height;
+        const visibleBottom = windowHeight - kbHeight - 24;
+        const inputBottom = y + height;
+
+        if (inputBottom > visibleBottom) {
+          scrollRef.current?.scrollTo({
+            y: scrollYRef.current + (inputBottom - visibleBottom),
+            animated: true,
+          });
+        }
+      });
+    },
+    [scrollRef],
+  );
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    const showSub = Keyboard.addListener("keyboardDidShow", (event) => {
+      keyboardHeightRef.current = event.endCoordinates.height;
+      setKeyboardHeight(event.endCoordinates.height);
+      const target = lastFocusedTargetRef.current;
+      if (target != null) {
+        setTimeout(() => {
+          scrollTargetIntoView(target, event.endCoordinates.height);
+        }, 50);
+      }
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      keyboardHeightRef.current = 0;
+      setKeyboardHeight(0);
+      lastFocusedTargetRef.current = null;
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [scrollTargetIntoView]);
+
+  const onScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollYRef.current = event.nativeEvent.contentOffset.y;
+  }, []);
+
+  const scrollInputIntoView = useCallback(
+    (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
+      if (Platform.OS !== "android") return;
+
+      const target = event.nativeEvent.target;
+      if (typeof target !== "number") return;
+
+      lastFocusedTargetRef.current = target;
+      setTimeout(() => {
+        scrollTargetIntoView(
+          target,
+          keyboardHeightRef.current || 280,
+        );
+      }, 120);
+    },
+    [scrollTargetIntoView],
+  );
+
+  return {
+    keyboardHeight,
+    onScroll,
+    scrollInputIntoView,
+    contentPaddingBottom: Platform.OS === "android" ? 40 + keyboardHeight : 40,
+  };
+}
+
 export default function ModuleWorkbookScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
@@ -101,6 +187,8 @@ export default function ModuleWorkbookScreen() {
   const [heroHeight, setHeroHeight] = useState(0);
   const hasHydratedRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
+  const { onScroll, scrollInputIntoView, contentPaddingBottom } =
+    useAndroidKeyboardScroll(scrollRef);
   const sectionAnchorY = useRef<Record<string, number>>({});
   const [auditTimePickerTarget, setAuditTimePickerTarget] = useState<{
     auditIndex: number;
@@ -400,20 +488,27 @@ export default function ModuleWorkbookScreen() {
         <KeyboardAvoidingView
           style={styles.keyboardWrap}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
+          enabled={Platform.OS === "ios"}
           keyboardVerticalOffset={keyboardVerticalOffset}
         >
           {/**
-           * Do NOT use `automaticallyAdjustKeyboardInsets` here: it fights
-           * KeyboardAvoidingView on iOS and can scroll the focused field under
+           * Do NOT use `automaticallyAdjustKeyboardInsets` on iOS: it fights
+           * KeyboardAvoidingView and can scroll the focused field under
            * the header or yank content to the top of the screen.
+           * On Android, enable it plus extra bottom padding + focus scroll.
            */}
           <ScrollView
             ref={scrollRef}
             style={[styles.container, isDark && styles.containerDark]}
-            contentContainerStyle={styles.contentContainer}
+            contentContainerStyle={[
+              styles.contentContainer,
+              { paddingBottom: contentPaddingBottom },
+            ]}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-            automaticallyAdjustKeyboardInsets={false}
+            automaticallyAdjustKeyboardInsets={Platform.OS === "android"}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
           >
           <View
             style={[styles.heroCard, isDark && styles.heroCardDarkShell]}
@@ -575,6 +670,7 @@ export default function ModuleWorkbookScreen() {
                   isDark={isDark}
                   onToggleDay={togglePlanDayCompleted}
                   onPlanAction={updatePlanAction}
+                  onInputFocus={scrollInputIntoView}
                 />
               ))}
             </View>
@@ -682,6 +778,7 @@ export default function ModuleWorkbookScreen() {
                               value,
                             )
                           }
+                          onFocus={scrollInputIntoView}
                           placeholder="What were you doing?"
                           placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
                           multiline
@@ -852,6 +949,7 @@ export default function ModuleWorkbookScreen() {
                             onChangeText={(v) =>
                               updateWorksheetField(ws.id, field.id, v)
                             }
+                            onFocus={scrollInputIntoView}
                             placeholder={field.placeholder ?? "Type here"}
                             placeholderTextColor={
                               isDark ? "#7B7E95" : "#9CA3AF"
@@ -901,6 +999,7 @@ export default function ModuleWorkbookScreen() {
               <TextInput
                 value={formData.journalEntry}
                 onChangeText={updateJournalEntry}
+                onFocus={scrollInputIntoView}
                 placeholder="Write your reflection here"
                 placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
                 multiline
@@ -1052,7 +1151,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
-    paddingBottom: 40,
   },
   textDark: {
     color: "#ECEDEE",
@@ -1619,6 +1717,7 @@ type WeeklyPlanSectionViewProps = {
   isDark: boolean;
   onToggleDay: (sectionId: string, dayIndex: number) => void;
   onPlanAction: (sectionId: string, value: string) => void;
+  onInputFocus: (event: NativeSyntheticEvent<TextInputFocusEventData>) => void;
 };
 
 const WeeklyPlanSectionView = memo(function WeeklyPlanSectionView({
@@ -1627,6 +1726,7 @@ const WeeklyPlanSectionView = memo(function WeeklyPlanSectionView({
   isDark,
   onToggleDay,
   onPlanAction,
+  onInputFocus,
 }: WeeklyPlanSectionViewProps) {
   return (
     <View style={styles.planSection}>
@@ -1639,6 +1739,7 @@ const WeeklyPlanSectionView = memo(function WeeklyPlanSectionView({
       <TextInput
         value={plan.action}
         onChangeText={(value) => onPlanAction(section.id, value)}
+        onFocus={onInputFocus}
         placeholder="Type your plan here"
         placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
         multiline

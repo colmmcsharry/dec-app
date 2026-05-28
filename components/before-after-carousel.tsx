@@ -2,8 +2,8 @@ import { BeforeAfterSlider } from "@/components/before-after-slider";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useState } from "react";
-import { StyleSheet, Text, View, type ImageSourcePropType } from "react-native";
-import { Pressable } from "react-native-gesture-handler";
+import { Platform, StyleSheet, Text, View, type ImageSourcePropType } from "react-native";
+import { RectButton } from "react-native-gesture-handler";
 
 type TransformationSlide = {
   before: ImageSourcePropType;
@@ -59,32 +59,31 @@ export function BeforeAfterCarousel({ isDark = false }: BeforeAfterCarouselProps
       />
 
       <View style={styles.controls}>
-        <Pressable
+        <RectButton
           onPress={goToPrevious}
-          hitSlop={8}
-          style={({ pressed }) => [
-            styles.navButton,
-            isDark && styles.navButtonDark,
-            pressed && styles.navButtonPressed,
-          ]}
+          style={[styles.navButton, isDark && styles.navButtonDark]}
+          underlayColor={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)"}
           accessibilityRole="button"
           accessibilityLabel="Previous transformation"
         >
-          <ChevronLeft size={22} color={isDark ? "#E5E7EB" : "#1E2430"} />
-        </Pressable>
+          <View style={styles.navButtonInner} pointerEvents="none">
+            <ChevronLeft size={22} color={isDark ? "#E5E7EB" : "#1E2430"} />
+          </View>
+        </RectButton>
 
         <View style={styles.dots}>
           {TRANSFORMATION_SLIDES.map((item, index) => (
-            <Pressable
+            <RectButton
               key={item.caption}
               onPress={() => setActiveIndex(index)}
-              hitSlop={6}
               style={styles.dotHitArea}
+              underlayColor={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)"}
               accessibilityRole="button"
               accessibilityLabel={`Show transformation ${index + 1} of ${TRANSFORMATION_SLIDES.length}`}
               accessibilityState={{ selected: index === activeIndex }}
             >
               <View
+                pointerEvents="none"
                 style={[
                   styles.dot,
                   isDark && styles.dotDark,
@@ -92,23 +91,21 @@ export function BeforeAfterCarousel({ isDark = false }: BeforeAfterCarouselProps
                   index === activeIndex && isDark && styles.dotActiveDark,
                 ]}
               />
-            </Pressable>
+            </RectButton>
           ))}
         </View>
 
-        <Pressable
+        <RectButton
           onPress={goToNext}
-          hitSlop={8}
-          style={({ pressed }) => [
-            styles.navButton,
-            isDark && styles.navButtonDark,
-            pressed && styles.navButtonPressed,
-          ]}
+          style={[styles.navButton, isDark && styles.navButtonDark]}
+          underlayColor={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)"}
           accessibilityRole="button"
           accessibilityLabel="Next transformation"
         >
-          <ChevronRight size={22} color={isDark ? "#E5E7EB" : "#1E2430"} />
-        </Pressable>
+          <View style={styles.navButtonInner} pointerEvents="none">
+            <ChevronRight size={22} color={isDark ? "#E5E7EB" : "#1E2430"} />
+          </View>
+        </RectButton>
       </View>
 
       <Text
@@ -128,23 +125,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 16,
     marginTop: 14,
+    zIndex: 2,
+    ...Platform.select({
+      android: { elevation: 2 },
+    }),
   },
   navButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
     backgroundColor: "#F3F4F6",
     borderWidth: 1,
     borderColor: "#E5E7EB",
+    overflow: "hidden",
+  },
+  navButtonInner: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   navButtonDark: {
     backgroundColor: "#2A2D3E",
     borderColor: "#3A3D4E",
-  },
-  navButtonPressed: {
-    opacity: 0.75,
   },
   dots: {
     flexDirection: "row",
