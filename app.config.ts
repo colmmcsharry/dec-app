@@ -20,6 +20,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         process.env.REVENUECAT_IOS_KEY ?? base.extra?.revenueCatIosKey,
       revenueCatAndroidKey:
         process.env.REVENUECAT_ANDROID_KEY ?? base.extra?.revenueCatAndroidKey,
+      pdfBaseUrl:
+        process.env.EXPO_PUBLIC_PDF_BASE_URL ??
+        base.extra?.pdfBaseUrl ??
+        "https://dailydiesel.netlify.app",
     },
   };
 };

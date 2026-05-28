@@ -25,7 +25,7 @@ export default function DownloadsScreen() {
     if (!(await requirePro())) return;
     router.push({
       pathname: "/pdf-viewer",
-      params: { downloadId: id, title },
+      params: { pdfKey: id, title },
     });
   };
 

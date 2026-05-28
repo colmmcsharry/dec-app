@@ -73,7 +73,8 @@
       },
       "revenueCatIosKey": "appl_bDspZSLYQkAbHSCRPuwRNZEiTFx",
       "revenueCatAndroidKey": "goog_MeqAOpmIcwvmemUbYCdCyQVkbPZ",
-      "mediaBaseUrl": ""
+      "mediaBaseUrl": "",
+      "pdfBaseUrl": "https://dailydiesel.netlify.app"
     }
   }
 }

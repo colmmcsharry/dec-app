@@ -38,7 +38,7 @@ export default function WorksheetsScreen() {
     if (!(await requirePro())) return;
     router.push({
       pathname: "/pdf-viewer",
-      params: { slug, pdfId: pdf.id, title: pdf.title },
+      params: { pdfKey: pdf.id, title: pdf.title },
     });
   };
 

@@ -17,6 +17,7 @@ import { Image } from "expo-image";
 import { Picker } from "@react-native-picker/picker";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronDown, ChevronLeft, ChevronRight, Check } from "lucide-react-native";
+import { RectButton } from "react-native-gesture-handler";
 import {
   Fragment,
   memo,
@@ -31,7 +32,6 @@ import {
   Dimensions,
   Keyboard,
   KeyboardAvoidingView,
-  type LayoutChangeEvent,
   Modal,
   Platform,
   Pressable,
@@ -152,6 +152,7 @@ function useAndroidKeyboardScroll(scrollRef: RefObject<ScrollView | null>) {
     keyboardHeight,
     onScroll,
     scrollInputIntoView,
+    scrollYRef,
     contentPaddingBottom: Platform.OS === "android" ? 40 + keyboardHeight : 40,
   };
 }
@@ -184,12 +185,11 @@ export default function ModuleWorkbookScreen() {
 
   const [formData, setFormData] = useState<ModuleWorkbookData | null>(initialData);
   const [saveState, setSaveState] = useState<SaveState>("loading");
-  const [heroHeight, setHeroHeight] = useState(0);
   const hasHydratedRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
-  const { onScroll, scrollInputIntoView, contentPaddingBottom } =
+  const sectionRefs = useRef<Record<string, View | null>>({});
+  const { onScroll, scrollInputIntoView, contentPaddingBottom, scrollYRef } =
     useAndroidKeyboardScroll(scrollRef);
-  const sectionAnchorY = useRef<Record<string, number>>({});
   const [auditTimePickerTarget, setAuditTimePickerTarget] = useState<{
     auditIndex: number;
     rowIndex: number;
@@ -228,29 +228,32 @@ export default function ModuleWorkbookScreen() {
     formData?.eveningAudits?.length,
   ]);
 
-  const registerSectionAnchor = useCallback(
-    (id: string) => (event: LayoutChangeEvent) => {
-      sectionAnchorY.current[id] = event.nativeEvent.layout.y;
+  const bindSectionRef = useCallback(
+    (id: string) => (node: View | null) => {
+      sectionRefs.current[id] = node;
     },
-    []
+    [],
   );
 
   const scrollToSection = useCallback(
-    (id: string) => {
-      const yInStack = sectionAnchorY.current[id];
-      if (yInStack === undefined) return;
-      /** contentContainer.paddingTop + hero + sectionStack.marginTop + y within stack */
-      const contentPadTop = 16;
-      const stackMarginTop = 16;
-      const y =
-        contentPadTop +
-        heroHeight +
-        stackMarginTop +
-        yInStack -
-        12;
-      scrollRef.current?.scrollTo({ y: Math.max(0, y), animated: true });
+    (id: string, attempt = 0) => {
+      const sectionView = sectionRefs.current[id];
+      const scrollView = scrollRef.current;
+      if (!sectionView || !scrollView) {
+        if (attempt < 4) {
+          requestAnimationFrame(() => scrollToSection(id, attempt + 1));
+        }
+        return;
+      }
+
+      sectionView.measureInWindow((_x, sectionY) => {
+        scrollView.measureInWindow((_sx, scrollViewportY) => {
+          const y = scrollYRef.current + (sectionY - scrollViewportY) - 12;
+          scrollView.scrollTo({ y: Math.max(0, y), animated: true });
+        });
+      });
     },
-    [heroHeight]
+    [scrollYRef],
   );
 
   const closeAuditTimePicker = useCallback(
@@ -512,7 +515,6 @@ export default function ModuleWorkbookScreen() {
           >
           <View
             style={[styles.heroCard, isDark && styles.heroCardDarkShell]}
-            onLayout={(e) => setHeroHeight(e.nativeEvent.layout.height)}
             collapsable={false}
           >
             <View
@@ -584,31 +586,33 @@ export default function ModuleWorkbookScreen() {
                 ]}
               >
                 {workbookIndexItems.map((item, rowIndex) => (
-                  <Pressable
+                  <RectButton
                     key={item.id}
                     onPress={() => scrollToSection(item.id)}
-                    style={({ pressed }) => [
+                    style={[
                       styles.indexRow,
                       isDark && styles.indexRowDark,
                       rowIndex === workbookIndexItems.length - 1 &&
                         styles.indexRowLast,
-                      { opacity: pressed ? 0.75 : 1 },
                     ]}
+                    underlayColor={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}
                     accessibilityRole="button"
                     accessibilityLabel={`Go to ${item.label}`}
                   >
-                    <Text
-                      style={[styles.indexRowLabel, isDark && styles.textDark]}
-                      numberOfLines={2}
-                    >
-                      {item.label}
-                    </Text>
-                    <ChevronRight
-                      size={20}
-                      color={isDark ? "#A8ACBF" : MAIN_PURPLE}
-                      strokeWidth={2}
-                    />
-                  </Pressable>
+                    <View style={styles.indexRowInner} pointerEvents="none">
+                      <Text
+                        style={[styles.indexRowLabel, isDark && styles.textDark]}
+                        numberOfLines={2}
+                      >
+                        {item.label}
+                      </Text>
+                      <ChevronRight
+                        size={20}
+                        color={isDark ? "#A8ACBF" : MAIN_PURPLE}
+                        strokeWidth={2}
+                      />
+                    </View>
+                  </RectButton>
                 ))}
               </View>
             </View>
@@ -620,7 +624,7 @@ export default function ModuleWorkbookScreen() {
                   styles.sectionCard,
                   isDark && styles.sectionCardDark,
                 ]}
-                onLayout={registerSectionAnchor("section-content")}
+                ref={bindSectionRef("section-content")}
                 collapsable={false}
               >
                 <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
@@ -652,7 +656,7 @@ export default function ModuleWorkbookScreen() {
                 styles.sectionCard,
                 isDark && styles.sectionCardDark,
               ]}
-              onLayout={registerSectionAnchor("section-weekly")}
+              ref={bindSectionRef("section-weekly")}
               collapsable={false}
             >
               <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
@@ -681,7 +685,7 @@ export default function ModuleWorkbookScreen() {
                 styles.sectionCard,
                 isDark && styles.sectionCardDark,
               ]}
-              onLayout={registerSectionAnchor("section-audit")}
+              ref={bindSectionRef("section-audit")}
               collapsable={false}
             >
               <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
@@ -822,9 +826,9 @@ export default function ModuleWorkbookScreen() {
                         styles.workbookPageBreak,
                         isDark && styles.workbookPageBreakDark,
                       ]}
-                      onLayout={
+                      ref={
                         worksheetSectionId
-                          ? registerSectionAnchor(worksheetSectionId)
+                          ? bindSectionRef(worksheetSectionId)
                           : undefined
                       }
                       collapsable={false}
@@ -977,7 +981,7 @@ export default function ModuleWorkbookScreen() {
                 styles.sectionCard,
                 isDark && styles.sectionCardDark,
               ]}
-              onLayout={registerSectionAnchor("section-journal")}
+              ref={bindSectionRef("section-journal")}
               collapsable={false}
             >
               <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
@@ -1284,15 +1288,18 @@ const styles = StyleSheet.create({
     borderColor: "#2A2A3E",
   },
   indexRow: {
+    backgroundColor: "#F9FAFB",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E5E7EB",
+    overflow: "hidden",
+  },
+  indexRowInner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    backgroundColor: "#F9FAFB",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E7EB",
   },
   indexRowDark: {
     backgroundColor: "#141425",

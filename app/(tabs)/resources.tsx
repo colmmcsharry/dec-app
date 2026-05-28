@@ -158,7 +158,7 @@ export default function ResourcesScreen() {
     if (!(await requirePro())) return;
     router.push({
       pathname: "/pdf-viewer",
-      params: { downloadId: id, title },
+      params: { pdfKey: id, title },
     });
   };
 

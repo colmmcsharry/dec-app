@@ -1,4 +1,5 @@
 import { BeforeAfterCarousel } from "@/components/before-after-carousel";
+import { VideoTestimonialCarousel } from "@/components/video-testimonial-carousel";
 import { DevResetButton } from "@/components/dev-reset-button";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -260,78 +261,6 @@ function TestimonialImageCarousel({ isDark }: { isDark: boolean }) {
           </View>
         </View>
       </Modal>
-    </View>
-  );
-}
-
-interface TestimonialProps {
-  name: string;
-  role: string;
-  image: any;
-  quote: string;
-  isDark: boolean;
-  imageRound?: boolean;
-}
-
-function Testimonial({
-  name,
-  role,
-  image,
-  quote,
-  isDark,
-  imageRound,
-}: TestimonialProps) {
-  return (
-    <View
-      style={[
-        styles.testimonialCard,
-        isDark ? styles.testimonialCardDark : styles.testimonialCardLight,
-        styles.cardShell,
-        isDark && styles.cardShellDark,
-      ]}
-    >
-      <View
-        style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]}
-      />
-      <View style={styles.cardInner}>
-        <View style={styles.testimonialHeader}>
-          <Image
-            source={image}
-            style={[
-              styles.testimonialImage,
-              imageRound && styles.testimonialImageRound,
-              isDark && styles.testimonialImageDark,
-            ]}
-            resizeMode="cover"
-          />
-          <View style={styles.testimonialNameWrap}>
-            <Text
-              style={[
-                styles.testimonialName,
-                isDark && styles.testimonialNameDark,
-              ]}
-            >
-              {name}
-            </Text>
-            <Text
-              style={[
-                styles.testimonialRole,
-                isDark && styles.testimonialRoleDark,
-              ]}
-            >
-              {role}
-            </Text>
-          </View>
-        </View>
-        <Text
-          style={[
-            styles.testimonialQuote,
-            isDark && styles.testimonialQuoteDark,
-          ]}
-        >
-          &ldquo;{quote}&rdquo;
-        </Text>
-      </View>
     </View>
   );
 }
@@ -662,32 +591,11 @@ export default function AboutScreen() {
         What People Say
       </Text>
 
+      <View style={styles.carouselWrap}>
+        <VideoTestimonialCarousel isDark={isDark} />
+      </View>
+
       <TestimonialImageCarousel isDark={isDark} />
-
-      <Testimonial
-        name="Declan Egan"
-        role="Founder, 100minds"
-        image={require("@/assets/images/about/dec-egan.jpg")}
-        quote="Declan was without doubt one of the most exemplary mentors we had on the project this year and stood out significantly as one of the most natural mentors amongst 160 of his peers ranging from companies like Google, Deloitte and many more. The feedback from his team of students was extremely positive and his commitment to going the extra mile both for his own team and for the bigger cause was amazing."
-        isDark={isDark}
-      />
-
-      <Testimonial
-        name="Igor Belozerov"
-        role="Export Specialist, Watts Industries"
-        image={require("@/assets/images/about/igor.jpg")}
-        quote="Declan was the mastermind and the heart of our Drama/Theatre Group at the European Commission. He organized and ran weekly sessions for the Group. Being extremely creative, he always came up with interesting techniques and exercises for the warm up and to understand different on stage roles. He got two theatre experts in who helped us a lot with their knowledge and experience. Declan's natural leadership and especially his empathy guided the group to our final show which was a great success!"
-        isDark={isDark}
-        imageRound
-      />
-
-      <Testimonial
-        name="Caoimhe Ní Shúilleabháin"
-        role="Belgium GAA Chairman & Ladies' Footballer"
-        image={require("@/assets/images/about/caoimhe.jpg")}
-        quote="Declan trained Belgium ladies Gaelic football team in the run up to their encounter with the UK champions in the Junior Club All-Ireland championship in 2016. The transition was a smooth one thanks to Declan being well prepared from the beginning but also because he showed he was open to learning from us also. He pushed the players to give their 100%, but never in a negative way — feedback was always very constructive. Having Declan with us for our preparations for that big match was a great bonus to us."
-        isDark={isDark}
-      />
 
       <View
         style={[styles.disclaimerWrap, isDark && styles.disclaimerWrapDark]}
@@ -828,9 +736,6 @@ const styles = StyleSheet.create({
   },
   metaTextDark: {
     color: "#AEB3C4",
-  },
-  testimonialQuoteDark: {
-    color: "#CFD2E0",
   },
 
   /** Shared card chrome (workbook / welcome-style purple). */
@@ -1136,62 +1041,6 @@ const styles = StyleSheet.create({
     fontFamily: AppFonts.bodyRegular,
     fontSize: 13,
     color: "rgba(255,255,255,0.65)",
-  },
-  testimonialCard: {
-    marginBottom: 16,
-  },
-  testimonialCardLight: {
-    backgroundColor: "#FFFFFF",
-  },
-  testimonialCardDark: {
-    backgroundColor: "#34344a",
-  },
-  testimonialHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 12,
-  },
-  testimonialImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: "#E5E7EB",
-    borderWidth: 2,
-    borderColor: "#EADBF7",
-  },
-  testimonialImageDark: {
-    borderColor: "#3A2E5C",
-  },
-  testimonialImageRound: {
-    borderRadius: 28,
-  },
-  testimonialNameWrap: {
-    flex: 1,
-  },
-  testimonialName: {
-    fontSize: 16,
-    fontFamily: AppFonts.headingSemiBold,
-    color: WORKBOOK_TEXT,
-  },
-  testimonialNameDark: {
-    color: "#F4F5F6",
-  },
-  testimonialRole: {
-    fontSize: 13,
-    color: "#5C6370",
-    marginTop: 2,
-    fontFamily: AppFonts.bodyRegular,
-  },
-  testimonialRoleDark: {
-    color: "#BABECD",
-  },
-  testimonialQuote: {
-    fontSize: 14,
-    lineHeight: 22,
-    fontStyle: "italic",
-    color: WORKBOOK_TEXT_BODY,
-    fontFamily: AppFonts.bodyRegular,
   },
   disclaimerWrap: {
     marginTop: 12,

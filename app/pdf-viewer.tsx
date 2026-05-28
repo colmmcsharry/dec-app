@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Platform,
   Pressable,
   Share,
@@ -12,7 +13,6 @@ import {
   View,
 } from "react-native";
 import { WebView } from "react-native-webview";
-import Pdf from "react-native-pdf";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SymbolView } from "expo-symbols";
@@ -20,28 +20,76 @@ import { ChevronLeft } from "lucide-react-native";
 
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
-import { getDownloadById } from "@/data/downloads";
-import { MODULE_PDFS } from "@/data/pdf-assets";
-import {
-  resolveBundledPdfUri,
-} from "@/lib/resolve-bundled-pdf";
+import { getPdfCatalogEntry } from "@/data/pdf-catalog";
+import { canUseNativePdfViewer } from "@/lib/native-pdf-capability";
+import { getPdfViewerRemoteUrl, resolvePdfUri } from "@/lib/resolve-pdf-uri";
+import { getPdfWebViewSource } from "@/lib/pdf-viewer-source";
+import { NativePdfView } from "@/components/native-pdf-view";
 import { requirePro } from "@/services/purchases";
 
+const LARGE_PDF_LOADING_MESSAGE =
+  "This is a very large document. Please be patient, the first load can take 20 - 40 seconds.";
+
+function resolvePdfKey(params: {
+  pdfKey?: string;
+  downloadId?: string;
+  pdfId?: string;
+}): string | null {
+  if (typeof params.pdfKey === "string" && params.pdfKey.length > 0) {
+    return params.pdfKey;
+  }
+  if (typeof params.downloadId === "string" && params.downloadId.length > 0) {
+    return params.downloadId;
+  }
+  if (typeof params.pdfId === "string" && params.pdfId.length > 0) {
+    return params.pdfId;
+  }
+  return null;
+}
+
+function LoadingState({
+  isDark,
+  isDownloading,
+  showPatientMessage,
+}: {
+  isDark: boolean;
+  isDownloading: boolean;
+  showPatientMessage: boolean;
+}) {
+  return (
+    <View style={styles.center}>
+      <ActivityIndicator size="large" color={isDark ? "#818CF8" : "#6366F1"} />
+      <Text style={[styles.loadingText, isDark && { color: "#9CA3AF" }]}>
+        {isDownloading ? "Downloading PDF…" : "Opening PDF…"}
+      </Text>
+      {showPatientMessage ? (
+        <Text style={[styles.patientText, isDark && { color: "#9CA3AF" }]}>
+          {LARGE_PDF_LOADING_MESSAGE}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 export default function PdfViewerScreen() {
-  const { slug, pdfId, assetId, downloadId, title } = useLocalSearchParams<{
-    slug?: string;
-    pdfId?: string;
-    assetId?: string;
+  const { pdfKey, downloadId, pdfId, title } = useLocalSearchParams<{
+    pdfKey?: string;
     downloadId?: string;
+    pdfId?: string;
     title?: string;
   }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
+  const useNativePdf = canUseNativePdfViewer();
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [accessChecked, setAccessChecked] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [viewerError, setViewerError] = useState<string | null>(null);
+  const [viewerReady, setViewerReady] = useState(false);
+  const [showPatientMessage, setShowPatientMessage] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,49 +107,47 @@ export default function PdfViewerScreen() {
     };
   }, [router]);
 
-  const resolvedAsset = useMemo<{ module: number; id: string } | null>(() => {
-    if (downloadId) {
-      const entry = getDownloadById(String(downloadId));
-      if (!entry) return null;
-      return { module: entry.asset, id: entry.id };
-    }
+  const resolvedPdfKey = useMemo(
+    () => resolvePdfKey({ pdfKey, downloadId, pdfId }),
+    [pdfKey, downloadId, pdfId],
+  );
 
-    if (assetId) {
-      const moduleId = Number(assetId);
-      if (!Number.isFinite(moduleId)) return null;
-      return { module: moduleId, id: `asset-${moduleId}` };
-    }
+  const catalogEntry = useMemo(
+    () => (resolvedPdfKey ? getPdfCatalogEntry(resolvedPdfKey) : undefined),
+    [resolvedPdfKey],
+  );
 
-    if (slug && pdfId) {
-      const pdfs = MODULE_PDFS[slug];
-      const entry = pdfs?.find((p) => p.id === pdfId);
-      if (!entry) return null;
-      return { module: entry.asset, id: entry.id };
-    }
+  const isLargePdf = catalogEntry?.large === true;
 
-    return null;
-  }, [assetId, slug, pdfId, downloadId]);
+  const remoteViewerUrl = useMemo(
+    () => (resolvedPdfKey ? getPdfViewerRemoteUrl(resolvedPdfKey) : null),
+    [resolvedPdfKey],
+  );
 
   useEffect(() => {
     if (!accessChecked) return;
+    if (!resolvedPdfKey) {
+      setError("PDF not found");
+      return;
+    }
 
     let cancelled = false;
 
-    (async () => {
+    void (async () => {
       try {
-        if (!resolvedAsset) {
-          setError("PDF not found");
-          return;
+        if (!remoteViewerUrl && Platform.OS === "android" && !useNativePdf) {
+          throw new Error("PDF download URL could not be resolved");
         }
 
         if (!cancelled) {
           setLocalUri(null);
+          setError(null);
+          setViewerError(null);
+          setViewerReady(false);
+          setIsDownloading(true);
         }
 
-        const finalUri = await resolveBundledPdfUri(
-          resolvedAsset.module,
-          resolvedAsset.id,
-        );
+        const finalUri = await resolvePdfUri(resolvedPdfKey);
 
         if (!cancelled) {
           setLocalUri(finalUri);
@@ -110,16 +156,36 @@ export default function PdfViewerScreen() {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to load PDF");
         }
+      } finally {
+        if (!cancelled) {
+          setIsDownloading(false);
+        }
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [resolvedAsset, accessChecked]);
+  }, [resolvedPdfKey, accessChecked, remoteViewerUrl, useNativePdf]);
+
+  useEffect(() => {
+    if (!isLargePdf) {
+      setShowPatientMessage(false);
+      return;
+    }
+
+    if (viewerReady) {
+      setShowPatientMessage(false);
+      return;
+    }
+
+    setShowPatientMessage(true);
+  }, [isLargePdf, viewerReady, isDownloading, localUri]);
 
   const displayTitle =
-    typeof title === "string" && title.length > 0 ? title : "Document";
+    typeof title === "string" && title.length > 0
+      ? title
+      : catalogEntry?.title ?? "Document";
 
   const handleShare = async () => {
     if (!localUri || sharing) return;
@@ -135,16 +201,33 @@ export default function PdfViewerScreen() {
         url: localUri,
       });
     } catch {
-      Alert.alert(
-        "Unable to share",
-        "Please try again in a moment."
-      );
+      Alert.alert("Unable to share", "Please try again in a moment.");
     } finally {
       setSharing(false);
     }
   };
 
-  const showViewer = accessChecked && localUri && !error;
+  const handleOpenInBrowser = () => {
+    if (!remoteViewerUrl) return;
+    void Linking.openURL(remoteViewerUrl);
+  };
+
+  const webViewSource = useMemo(
+    () =>
+      getPdfWebViewSource({
+        localUri,
+        remoteUrl: remoteViewerUrl,
+      }),
+    [localUri, remoteViewerUrl],
+  );
+
+  const waitingForDownload = accessChecked && !error && !localUri;
+
+  const showViewer =
+    accessChecked &&
+    !error &&
+    !viewerError &&
+    (useNativePdf ? !!localUri : webViewSource != null);
 
   return (
     <>
@@ -236,43 +319,82 @@ export default function PdfViewerScreen() {
           </TouchableOpacity>
         </View>
 
-        {error ? (
+        {error || viewerError ? (
           <View style={styles.center}>
             <Text style={[styles.errorText, isDark && { color: "#F87171" }]}>
-              {error}
+              {error ?? viewerError}
             </Text>
+            {viewerError && remoteViewerUrl ? (
+              <TouchableOpacity
+                onPress={handleOpenInBrowser}
+                style={styles.fallbackBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Open PDF in browser"
+              >
+                <Text style={[styles.fallbackBtnText, isDark && { color: "#A5B4FC" }]}>
+                  Open in browser
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
-        ) : !showViewer ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={isDark ? "#818CF8" : "#6366F1"} />
-            <Text style={[styles.loadingText, isDark && { color: "#9CA3AF" }]}>
-              Loading PDF…
-            </Text>
-          </View>
-        ) : Platform.OS === "android" ? (
-          <Pdf
-            source={{ uri: localUri, cache: true }}
-            style={[styles.webview, isDark && { backgroundColor: "#1A1D2E" }]}
-            trustAllCerts={false}
-            onError={(event) => {
-              const message =
-                typeof event.nativeEvent?.message === "string"
-                  ? event.nativeEvent.message
-                  : "Failed to display PDF";
-              setError(message);
-            }}
+        ) : waitingForDownload ? (
+          <LoadingState
+            isDark={isDark}
+            isDownloading={isDownloading}
+            showPatientMessage={showPatientMessage}
           />
-        ) : (
-          <WebView
-            source={{ uri: localUri }}
-            style={[styles.webview, isDark && { backgroundColor: "#1A1D2E" }]}
-            originWhitelist={["*"]}
-            startInLoadingState
-            renderLoading={() => (
-              <View style={[styles.center, StyleSheet.absoluteFill]}>
-                <ActivityIndicator size="large" color="#6366F1" />
+        ) : showViewer && useNativePdf && localUri ? (
+          <View style={styles.viewerWrap}>
+            <NativePdfView
+              uri={localUri}
+              isDark={isDark}
+              onError={(message) => setViewerError(message)}
+              onLoadComplete={() => setViewerReady(true)}
+            />
+            {!viewerReady && showPatientMessage ? (
+              <View style={[styles.patientOverlay, isDark && styles.patientOverlayDark]}>
+                <ActivityIndicator size="large" color={isDark ? "#818CF8" : "#6366F1"} />
+                <Text style={[styles.patientText, isDark && { color: "#D1D5DB" }]}>
+                  {LARGE_PDF_LOADING_MESSAGE}
+                </Text>
               </View>
-            )}
+            ) : null}
+          </View>
+        ) : showViewer ? (
+          <View style={styles.viewerWrap}>
+            <WebView
+              source={webViewSource!}
+              style={[styles.webview, isDark && { backgroundColor: "#1A1D2E" }]}
+              originWhitelist={["*"]}
+              startInLoadingState
+              javaScriptEnabled
+              domStorageEnabled
+              allowFileAccess
+              allowFileAccessFromFileURLs
+              allowUniversalAccessFromFileURLs
+              onError={() => setViewerError("Failed to display PDF")}
+              onHttpError={() => setViewerError("Failed to display PDF")}
+              onLoadEnd={() => setViewerReady(true)}
+              renderLoading={() => (
+                <View style={[styles.center, StyleSheet.absoluteFill]}>
+                  <ActivityIndicator size="large" color="#6366F1" />
+                </View>
+              )}
+            />
+            {!viewerReady && showPatientMessage ? (
+              <View style={[styles.patientOverlay, isDark && styles.patientOverlayDark]}>
+                <ActivityIndicator size="large" color={isDark ? "#818CF8" : "#6366F1"} />
+                <Text style={[styles.patientText, isDark && { color: "#D1D5DB" }]}>
+                  {LARGE_PDF_LOADING_MESSAGE}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : (
+          <LoadingState
+            isDark={isDark}
+            isDownloading={isDownloading}
+            showPatientMessage={showPatientMessage}
           />
         )}
       </View>
@@ -300,7 +422,6 @@ const styles = StyleSheet.create({
   headerDark: {
     borderBottomColor: "#2D3044",
   },
-  /** Same tap target pattern as `app/video/[id].tsx` — wide row, not a tiny chevron-only hit area. */
   backRow: {
     minWidth: 72,
     height: 44,
@@ -314,7 +435,6 @@ const styles = StyleSheet.create({
     fontFamily: AppFonts.bodyBold,
     marginLeft: 2,
   },
-  /** Mirrors back row width so the title stays visually centred. */
   shareHit: {
     minWidth: 72,
     height: 44,
@@ -340,15 +460,51 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 12,
+    paddingHorizontal: 32,
   },
   loadingText: {
     fontSize: 15,
     color: "#6B7280",
     marginTop: 8,
+    textAlign: "center",
+  },
+  patientText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6B7280",
+    textAlign: "center",
+    fontFamily: AppFonts.bodyRegular,
+    marginTop: 4,
   },
   errorText: {
     fontSize: 15,
     color: "#EF4444",
+    textAlign: "center",
+    paddingHorizontal: 24,
+  },
+  fallbackBtn: {
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  fallbackBtnText: {
+    fontSize: 15,
+    fontFamily: AppFonts.bodyBold,
+    color: "#6366F1",
+  },
+  viewerWrap: {
+    flex: 1,
+  },
+  patientOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 32,
+    backgroundColor: "rgba(249, 250, 251, 0.92)",
+  },
+  patientOverlayDark: {
+    backgroundColor: "rgba(26, 29, 46, 0.92)",
   },
   webview: {
     flex: 1,

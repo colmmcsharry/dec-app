@@ -180,11 +180,11 @@ export default function VideoDetailScreen() {
     try {
       setOpeningResourceKey(resourceKey);
 
-      if (resource.assetModule) {
+      if (resource.pdfKey) {
         router.push({
           pathname: "/pdf-viewer",
           params: {
-            assetId: String(resource.assetModule),
+            pdfKey: resource.pdfKey,
             title: resource.title,
           },
         });
@@ -352,7 +352,7 @@ export default function VideoDetailScreen() {
                           {isOpening
                             ? "Preparing..."
                             : resource.buttonLabel ??
-                              (resource.assetModule ? "Open PDF" : "Open Resource")}
+                              (resource.pdfKey ? "Open PDF" : "Open Resource")}
                         </Text>
                       </Pressable>
                     )}

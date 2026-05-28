@@ -27,6 +27,9 @@ export const VIMEO_CONFIG = {
     'stress-management': '28168958', // Module 9 (Most Authentic You)
     'habits': '28168960',            // Module 10
   },
+
+  /** About page video testimonials */
+  testimonialsFolder: '29392954',
 };
 
 // Note: Vimeo personal access tokens don't expire. Set it once and you're good.
