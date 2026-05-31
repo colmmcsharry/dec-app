@@ -7,7 +7,7 @@ import {
 } from "@/data/quotes";
 import { hasProEntitlement } from "@/services/purchases";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ChevronRight, Sparkles, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
@@ -34,6 +34,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
  */
 export default function DailyQuoteScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
   const [hasPro, setHasPro] = useState<boolean | null>(null);
@@ -82,11 +83,21 @@ export default function DailyQuoteScreen() {
   }, [fade]);
 
   const close = () => {
-    if (hasPro) {
-      router.replace("/(tabs)");
-    } else {
-      router.replace("/");
-    }
+    // Pop instantly — keep the fade only for opening (stack push).
+    navigation.setOptions({ animation: "none" });
+
+    requestAnimationFrame(() => {
+      if (router.canGoBack()) {
+        router.back();
+        return;
+      }
+
+      if (hasPro) {
+        router.replace("/(tabs)");
+      } else {
+        router.replace("/");
+      }
+    });
   };
 
   const goPaywall = () => {
@@ -178,7 +189,6 @@ export default function DailyQuoteScreen() {
           </View>
 
           <View style={styles.quoteMiddle}>
-            {/* Vertically centred in the space between top bar and optional bottom CTA */}
             <Animated.View
               style={[
                 styles.quoteBlock,

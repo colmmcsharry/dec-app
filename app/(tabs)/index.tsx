@@ -33,6 +33,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { RectButton } from "react-native-gesture-handler";
 import Svg, { Circle } from "react-native-svg";
 
 interface CategoryCardProps {
@@ -347,18 +348,17 @@ export default function HomeScreen() {
                 </View>
                 <Text style={styles.dieselLabel}>Daily Diesel</Text>
               </View>
-              <Pressable
+              <RectButton
                 onPress={openDailyQuote}
-                style={({ pressed }) => [
-                  styles.dieselFullscreenBtn,
-                  { opacity: pressed ? 0.75 : 1 },
-                ]}
-                hitSlop={10}
+                style={styles.dieselFullscreenBtn}
+                underlayColor="rgba(255,255,255,0.12)"
                 accessibilityRole="button"
                 accessibilityLabel="View quote full screen"
               >
-                <Maximize2 size={22} color="#FFFFFF" strokeWidth={2.2} />
-              </Pressable>
+                <View pointerEvents="none">
+                  <Maximize2 size={22} color="#FFFFFF" strokeWidth={2.2} />
+                </View>
+              </RectButton>
             </View>
             <View style={styles.dieselQuoteCenter}>
               <Text

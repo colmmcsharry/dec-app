@@ -33,7 +33,14 @@ function AppContent() {
         <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="paywall-placeholder" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="welcome" options={{ headerShown: false, animation: 'fade', gestureEnabled: false }} />
-        <Stack.Screen name="daily-quote" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen
+          name="daily-quote"
+          options={{
+            headerShown: false,
+            animation: 'fade',
+            gestureEnabled: false,
+          }}
+        />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="category/[slug]"
