@@ -1,7 +1,6 @@
 import { BeforeAfterCarousel } from "@/components/before-after-carousel";
 import { VideoTestimonialCarousel } from "@/components/video-testimonial-carousel";
 import { DevResetButton } from "@/components/dev-reset-button";
-import { Accordion } from "@animatereactnative/accordion";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { getPastelAccent, mixHex } from "@/constants/pastel-accents";
 import { useTheme } from "@/context/theme-context";
@@ -13,7 +12,7 @@ import {
 } from "@/services/purchases";
 import { useIsFocused } from "@react-navigation/native";
 import { ChevronDown, ChevronUp, Crown, Lock, Star, X } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -23,12 +22,12 @@ import {
   NativeSyntheticEvent,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
   type ImageSourcePropType,
 } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Matches digital workbook body copy (`app/module-workbook/[slug].tsx`). */
@@ -64,6 +63,51 @@ function BioCollage() {
   );
 }
 
+const BIO_TOGGLE_PRESS_RETENTION = {
+  top: 28,
+  bottom: 28,
+  left: 28,
+  right: 28,
+};
+
+function BioToggleButton({
+  label,
+  icon: Icon,
+  onPress,
+  accessibilityLabel,
+  isDark,
+}: {
+  label: string;
+  icon: typeof ChevronDown;
+  onPress: () => void;
+  accessibilityLabel: string;
+  isDark: boolean;
+}) {
+  const toggleColor = isDark ? "#ECEDEE" : WORKBOOK_TEXT;
+  const toggleTextStyle = [
+    styles.bioToggleText,
+    isDark && styles.bioToggleTextDark,
+  ];
+
+  return (
+    <Pressable
+      onPress={onPress}
+      pressRetentionOffset={BIO_TOGGLE_PRESS_RETENTION}
+      style={({ pressed }) => [
+        styles.bioToggleButton,
+        pressed && styles.bioToggleButtonPressed,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+    >
+      <View style={styles.bioToggleRow}>
+        <Text style={toggleTextStyle}>{label}</Text>
+        <Icon size={20} color={toggleColor} strokeWidth={2.5} />
+      </View>
+    </Pressable>
+  );
+}
+
 function WhoAmISection({
   isDark,
   defaultAccentBarColor,
@@ -71,12 +115,16 @@ function WhoAmISection({
   isDark: boolean;
   defaultAccentBarColor: string;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const bodyTextStyle = [styles.bodyText, isDark && styles.bodyTextDark];
-  const toggleColor = isDark ? "#ECEDEE" : WORKBOOK_TEXT;
-  const toggleTextStyle = [
-    styles.bioToggleText,
-    isDark && styles.bioToggleTextDark,
-  ];
+
+  const expandBio = useCallback(() => {
+    setExpanded(true);
+  }, []);
+
+  const collapseBio = useCallback(() => {
+    setExpanded(false);
+  }, []);
 
   return (
     <View
@@ -124,106 +172,105 @@ function WhoAmISection({
           I want to help people get the best out of themselves.
         </Text>
 
-        <Accordion.Accordion>
-          <Accordion.Header>
-            <Accordion.Collapsed>
-              <View style={styles.bioToggleRow} pointerEvents="none">
-                <Text style={toggleTextStyle}>Read More</Text>
-                <ChevronDown
-                  size={20}
-                  color={toggleColor}
-                  strokeWidth={2.5}
-                />
-              </View>
-            </Accordion.Collapsed>
-            <Accordion.Expanded>
-              <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-                This app is the culmination of my 10 years of experience in the
-                field of psychology and performance, working with high performers
-                and average Joes and Janes.
+        {!expanded ? (
+          <BioToggleButton
+            label="Read More"
+            icon={ChevronDown}
+            onPress={expandBio}
+            accessibilityLabel="Read more about Declan"
+            isDark={isDark}
+          />
+        ) : (
+          <BioToggleButton
+            label="See Less"
+            icon={ChevronUp}
+            onPress={collapseBio}
+            accessibilityLabel="See less about Declan"
+            isDark={isDark}
+          />
+        )}
+
+        {expanded ? (
+          <>
+            <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
+              This app is the culmination of my 10 years of experience in the
+              field of psychology and performance, working with high performers
+              and average Joes and Janes.
+            </Text>
+            <Text
+              style={[
+                styles.sectionEyebrow,
+                styles.bioExpandedEyebrow,
+                isDark && styles.sectionEyebrowDark,
+              ]}
+            >
+              Background
+            </Text>
+            <Text
+              style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
+            >
+              So who am I?
+            </Text>
+            <BioCollage />
+            <Text
+              style={[
+                styles.bodyText,
+                styles.bodyTextAfterPhoto,
+                isDark && styles.bodyTextDark,
+              ]}
+            >
+              Residing in Dublin, Ireland, I am happily married, a father and
+              a REPs accredited (Register of Exercise Professionals), fully
+              qualified Personal Trainer. This qualification includes a national
+              certificate in Nutrition for Physical Activity.
+            </Text>
+            <Text style={bodyTextStyle}>
+              I am an enthusiast for the area of psychology and performance and
+              have completed a Sports Psychology diploma with distinction.
+            </Text>
+            <Text style={bodyTextStyle}>
+              Before these qualifications I obtained an MSc in Strategic
+              Management and Planning and a BComm in Commerce International with
+              French.
+            </Text>
+            <Text style={bodyTextStyle}>
+              As a Gaelic Footballer I was part of the Dublin Senior Team{"'"}s O
+              {"'"}Byrne Cup squad in 2012.
+            </Text>
+            <Image
+              source={require("@/assets/images/about/dubs-team.jpg")}
+              style={styles.teamPhoto}
+              resizeMode="cover"
+            />
+            <Text style={[styles.photoCaption, isDark && styles.metaTextDark]}>
+              Back row 2nd from left — Photo kindly provided by Sportsfile
+            </Text>
+            <Text
+              style={[
+                styles.bodyText,
+                { marginTop: 16 },
+                isDark && styles.bodyTextDark,
+              ]}
+            >
+              My Dad got me interested in the area of performance by passing me on
+              a book called{" "}
+              <Text style={styles.bookTitle}>
+                the Monk Who Sold His Ferrari
               </Text>
-              <Text
-                style={[
-                  styles.sectionEyebrow,
-                  styles.bioExpandedEyebrow,
-                  isDark && styles.sectionEyebrowDark,
-                ]}
-              >
-                Background
-              </Text>
-              <Text
-                style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
-              >
-                So who am I?
-              </Text>
-              <BioCollage />
-              <Text
-                style={[
-                  styles.bodyText,
-                  styles.bodyTextAfterPhoto,
-                  isDark && styles.bodyTextDark,
-                ]}
-              >
-                Residing in Dublin, Ireland, I am happily married, a father and
-                a REPs accredited (Register of Exercise Professionals), fully
-                qualified Personal Trainer. This qualification includes a national
-                certificate in Nutrition for Physical Activity.
-              </Text>
-              <Text style={bodyTextStyle}>
-                I am an enthusiast for the area of psychology and performance and
-                have completed a Sports Psychology diploma with distinction.
-              </Text>
-              <Text style={bodyTextStyle}>
-                Before these qualifications I obtained an MSc in Strategic
-                Management and Planning and a BComm in Commerce International with
-                French.
-              </Text>
-              <Text style={bodyTextStyle}>
-                As a Gaelic Footballer I was part of the Dublin Senior Team{"'"}s O
-                {"'"}Byrne Cup squad in 2012.
-              </Text>
-              <Image
-                source={require("@/assets/images/about/dubs-team.jpg")}
-                style={styles.teamPhoto}
-                resizeMode="cover"
-              />
-              <Text style={[styles.photoCaption, isDark && styles.metaTextDark]}>
-                Back row 2nd from left — Photo kindly provided by Sportsfile
-              </Text>
-              <Text
-                style={[
-                  styles.bodyText,
-                  { marginTop: 16 },
-                  isDark && styles.bodyTextDark,
-                ]}
-              >
-                My Dad got me interested in the area of performance by passing me on
-                a book called{" "}
-                <Text style={styles.bookTitle}>
-                  the Monk Who Sold His Ferrari
-                </Text>
-                . Now it{"'"}s my turn to pass something on to you!
-              </Text>
-              <Text style={bodyTextStyle}>
-                Having suffered the debilitating effects of performance anxiety
-                particularly in the field of sport I feel it important to share
-                information that can help others through such issues.
-              </Text>
-              <Text
-                style={[styles.closingText, isDark && styles.closingTextDark]}
-              >
-                Train your mind, body and soul!
-              </Text>
-              <View
-                style={[styles.bioToggleRow, styles.bioToggleRowEnd]}
-                pointerEvents="none"
-              >
-                <Text style={toggleTextStyle}>See Less</Text>
-                <ChevronUp size={20} color={toggleColor} strokeWidth={2.5} />
-              </View>
-            </Accordion.Expanded>
-          </Accordion.Header>
-        </Accordion.Accordion>
+              . Now it{"'"}s my turn to pass something on to you!
+            </Text>
+            <Text style={bodyTextStyle}>
+              Having suffered the debilitating effects of performance anxiety
+              particularly in the field of sport I feel it important to share
+              information that can help others through such issues.
+            </Text>
+            <Text
+              style={[styles.closingText, isDark && styles.closingTextDark]}
+            >
+              Train your mind, body and soul!
+            </Text>
+          </>
+        ) : null}
       </View>
     </View>
   );
@@ -531,6 +578,8 @@ export default function AboutScreen() {
     <ScrollView
       style={[styles.container, isDark && styles.containerDark]}
       contentContainerStyle={styles.contentContainer}
+      keyboardShouldPersistTaps="always"
+      nestedScrollEnabled
     >
       <PremiumStatusBanner isDark={isDark} isPremium={isPremium} />
 
@@ -544,7 +593,7 @@ export default function AboutScreen() {
         style={[
           styles.section,
           styles.reviewCard,
-          { backgroundColor: "#D4F1E8" },
+          { backgroundColor: "#E6F5F0" },
         ]}
       >
         <View style={styles.cardInner}>
@@ -589,7 +638,6 @@ export default function AboutScreen() {
         </View>
       </View>
 
-      <Accordion.Sibling>
       {/* Before / After */}
       <View
         style={[
@@ -682,7 +730,6 @@ export default function AboutScreen() {
       <DevResetButton variant="inline" />
 
       <View style={{ height: 40 }} />
-      </Accordion.Sibling>
     </ScrollView>
   );
 }
@@ -874,6 +921,7 @@ const styles = StyleSheet.create({
   bioCard: {
     backgroundColor: "#FFFFFF",
     marginBottom: 24,
+    overflow: "visible",
   },
   beforeAfterCard: {
     backgroundColor: "#FFFFFF",
@@ -942,10 +990,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 10,
   },
-  bioToggleRowEnd: {
-    marginTop: 16,
+  bioToggleButton: {
+    alignSelf: "flex-start",
+    borderRadius: 8,
+    marginTop: 10,
+    marginLeft: -8,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    minHeight: 48,
+    justifyContent: "center",
+  },
+  bioToggleButtonPressed: {
+    opacity: 0.65,
   },
   bioToggleText: {
     fontFamily: AppFonts.bodyBold,

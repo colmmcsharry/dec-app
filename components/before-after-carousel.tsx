@@ -18,7 +18,7 @@ const TRANSFORMATION_SLIDES: TransformationSlide[] = [
   {
     before: require("@/assets/images/about/roux-before.png"),
     after: require("@/assets/images/about/roux-after.png"),
-    caption: "Rory, after 3 months of working together",
+    caption: "Rory, after 3 months",
   },
   {
     before: require("@/assets/images/about/dave-before.png"),
