@@ -1,6 +1,7 @@
 import { Directory, File, Paths } from "expo-file-system";
 import { fetch } from "expo/fetch";
 import { Asset } from "expo-asset";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 import { getPdfCatalogEntry } from "@/data/pdf-catalog";
@@ -50,18 +51,83 @@ async function fetchPdfToCache(remoteUrl: string, pdfKey: string): Promise<strin
   return dest.uri;
 }
 
+/** Dev client serves bundled assets from Metro — rewrite localhost for physical devices. */
+function getMetroDevHost(): string | null {
+  const hostUri =
+    Constants.expoConfig?.hostUri ??
+    Constants.manifest2?.extra?.expoClient?.hostUri ??
+    Constants.manifest?.debuggerHost;
+
+  if (typeof hostUri !== "string" || hostUri.length === 0) {
+    return null;
+  }
+
+  const cleaned = hostUri.replace(/^exp:\/\//, "").split("/")[0]?.trim();
+  return cleaned && !cleaned.startsWith("localhost") ? cleaned : null;
+}
+
+function rewriteLocalhostAssetUrl(uri: string): string {
+  const devHost = getMetroDevHost();
+  if (!devHost) return uri;
+
+  return uri.replace(
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/,
+    `http://${devHost}`,
+  );
+}
+
+async function copyBundledPdfToCache(
+  pdfKey: string,
+  moduleId: number,
+): Promise<string> {
+  const dest = getCacheFile(pdfKey);
+  if (dest.exists) {
+    dest.delete();
+  }
+
+  const asset = Asset.fromModule(moduleId);
+
+  if (!__DEV__) {
+    await asset.downloadAsync();
+    if (!asset.localUri) {
+      throw new Error("Bundled PDF could not be loaded");
+    }
+    if (asset.localUri.startsWith("file://")) {
+      return asset.localUri;
+    }
+  }
+
+  const fetchUrl = rewriteLocalhostAssetUrl(asset.uri);
+  const response = await fetch(fetchUrl);
+  if (!response.ok) {
+    const hint =
+      fetchUrl.includes("localhost") || fetchUrl.includes("127.0.0.1")
+        ? " Keep Metro running and run: adb reverse tcp:8081 tcp:8081"
+        : " Keep Metro running on the same Wi‑Fi network.";
+    throw new Error(
+      `Bundled PDF could not be loaded (${response.status}).${hint}`,
+    );
+  }
+
+  dest.write(await response.bytes());
+
+  if (!dest.exists || dest.size === 0) {
+    throw new Error("Bundled PDF is empty");
+  }
+
+  return dest.uri;
+}
+
 async function resolveBundledPdfUri(pdfKey: string): Promise<string | null> {
   const moduleId = getBundledPdfModule(pdfKey);
   if (!moduleId) return null;
 
-  const asset = Asset.fromModule(moduleId);
-  await asset.downloadAsync();
-
-  if (!asset.localUri) {
-    throw new Error("Bundled PDF could not be loaded");
+  const cached = getCacheFile(pdfKey);
+  if (cached.exists && cached.size > 0) {
+    return cached.uri;
   }
 
-  return asset.localUri;
+  return copyBundledPdfToCache(pdfKey, moduleId);
 }
 
 /** Public HTTPS URL for in-app viewing (WebView on Android). */
