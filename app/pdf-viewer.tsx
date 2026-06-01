@@ -21,6 +21,7 @@ import { ChevronLeft } from "lucide-react-native";
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { getPdfCatalogEntry } from "@/data/pdf-catalog";
+import { hasBundledPdf } from "@/lib/bundled-pdf-assets";
 import { canUseNativePdfViewer } from "@/lib/native-pdf-capability";
 import { getPdfViewerRemoteUrl, resolvePdfUri } from "@/lib/resolve-pdf-uri";
 import { getPdfWebViewSource } from "@/lib/pdf-viewer-source";
@@ -135,7 +136,12 @@ export default function PdfViewerScreen() {
 
     void (async () => {
       try {
-        if (!remoteViewerUrl && Platform.OS === "android" && !useNativePdf) {
+        if (
+          !remoteViewerUrl &&
+          Platform.OS === "android" &&
+          !useNativePdf &&
+          !hasBundledPdf(resolvedPdfKey)
+        ) {
           throw new Error("PDF download URL could not be resolved");
         }
 

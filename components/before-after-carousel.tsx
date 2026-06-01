@@ -18,17 +18,17 @@ const TRANSFORMATION_SLIDES: TransformationSlide[] = [
   {
     before: require("@/assets/images/about/roux-before.png"),
     after: require("@/assets/images/about/roux-after.png"),
-    caption: "Rory, a happy client of mine",
+    caption: "Rory, after 3 months of working together",
   },
   {
     before: require("@/assets/images/about/dave-before.png"),
     after: require("@/assets/images/about/dave-after.png"),
-    caption: "Dave, another client and football teammate",
+    caption: "Dave, 3 months progress",
   },
   {
     before: require("@/assets/images/about/claire-before.png"),
     after: require("@/assets/images/about/claire-after.png"),
-    caption: "Claire got into great running shape",
+    caption: "Claire, less than a year apart",
   },
 ];
 

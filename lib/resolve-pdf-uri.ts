@@ -1,8 +1,10 @@
 import { Directory, File, Paths } from "expo-file-system";
 import { fetch } from "expo/fetch";
+import { Asset } from "expo-asset";
 import { Platform } from "react-native";
 
 import { getPdfCatalogEntry } from "@/data/pdf-catalog";
+import { getBundledPdfModule, hasBundledPdf } from "@/lib/bundled-pdf-assets";
 import { getPdfRemoteUrl, isPdfHostingConfigured } from "@/lib/pdf-hosting";
 
 const PDF_CACHE_DIR_NAME = "pdf-cache";
@@ -48,6 +50,20 @@ async function fetchPdfToCache(remoteUrl: string, pdfKey: string): Promise<strin
   return dest.uri;
 }
 
+async function resolveBundledPdfUri(pdfKey: string): Promise<string | null> {
+  const moduleId = getBundledPdfModule(pdfKey);
+  if (!moduleId) return null;
+
+  const asset = Asset.fromModule(moduleId);
+  await asset.downloadAsync();
+
+  if (!asset.localUri) {
+    throw new Error("Bundled PDF could not be loaded");
+  }
+
+  return asset.localUri;
+}
+
 /** Public HTTPS URL for in-app viewing (WebView on Android). */
 export function getPdfViewerRemoteUrl(pdfKey: string): string | null {
   const entry = getPdfCatalogEntry(pdfKey);
@@ -68,6 +84,13 @@ export async function resolvePdfUri(pdfKey: string): Promise<string> {
   const cached = getCacheFile(pdfKey);
   if (cached.exists && cached.size > 0) {
     return cached.uri;
+  }
+
+  if (hasBundledPdf(pdfKey)) {
+    const bundledUri = await resolveBundledPdfUri(pdfKey);
+    if (bundledUri) {
+      return bundledUri;
+    }
   }
 
   if (!isPdfHostingConfigured()) {

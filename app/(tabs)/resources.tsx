@@ -1,14 +1,23 @@
 import { ArticleListCard } from "@/components/article-list-card";
 import { DownloadListCard } from "@/components/download-list-card";
+import { GymRoutineCard } from "@/components/gym-routine-card";
 import { MainTabHeader } from "@/components/main-tab-header";
 import { PageHeading } from "@/components/page-heading";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { getFeaturedArticle, getFeaturedPodcast } from "@/data/articles";
 import { getFeaturedDownload } from "@/data/downloads";
+import { getFeaturedGymRoutine } from "@/data/gym-routines";
+import { getGymRoutineGuideRoute } from "@/lib/gym-routine-route";
 import { requirePro } from "@/services/purchases";
 import { useRouter } from "expo-router";
-import { Download, FileText, Headphones, type LucideIcon } from "lucide-react-native";
+import {
+  Download,
+  Dumbbell,
+  FileText,
+  Headphones,
+  type LucideIcon,
+} from "lucide-react-native";
 import type { ReactNode } from "react";
 import {
   Platform,
@@ -22,7 +31,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const WORKBOOK_TEXT = "#1E2430";
 
-type SectionVariant = "purple" | "blue" | "yellow";
+type SectionVariant = "purple" | "blue" | "yellow" | "green";
 
 const SECTION_THEMES: Record<
   SectionVariant,
@@ -42,6 +51,7 @@ const SECTION_THEMES: Record<
       background: "#1E1E32",
       border: "#3A2E5C",
       accent: MAIN_PURPLE,
+      shadow: MAIN_PURPLE,
     },
   },
   blue: {
@@ -55,6 +65,7 @@ const SECTION_THEMES: Record<
       background: "#1A2438",
       border: "#2E4568",
       accent: "#5B8BC4",
+      shadow: "#5B8BC4",
     },
   },
   yellow: {
@@ -68,6 +79,21 @@ const SECTION_THEMES: Record<
       background: "#2A2818",
       border: "#4A4528",
       accent: "#C4A855",
+      shadow: "#C4A855",
+    },
+  },
+  green: {
+    light: {
+      background: "#EEF6F0",
+      border: "#C5DFCB",
+      accent: "#6BA87A",
+      shadow: "#4A8A5C",
+    },
+    dark: {
+      background: "#1A2820",
+      border: "#2E4A38",
+      accent: "#6BA87A",
+      shadow: "#4A8A5C",
     },
   },
 };
@@ -153,6 +179,7 @@ export default function ResourcesScreen() {
   const featuredDownload = getFeaturedDownload();
   const featuredArticle = getFeaturedArticle();
   const featuredPodcast = getFeaturedPodcast();
+  const featuredGymRoutine = getFeaturedGymRoutine();
 
   const openDownload = async (id: string, title: string) => {
     if (!(await requirePro())) return;
@@ -167,6 +194,14 @@ export default function ResourcesScreen() {
     router.push({
       pathname: "/article/[slug]",
       params: { slug },
+    });
+  };
+
+  const openGymRoutine = async (id: string) => {
+    if (!(await requirePro())) return;
+    router.push({
+      pathname: getGymRoutineGuideRoute(id),
+      params: { id },
     });
   };
 
@@ -244,6 +279,22 @@ export default function ResourcesScreen() {
           />
         </FeatureSection>
       ) : null}
+
+      <FeatureSection
+        title="Gym Routines"
+        titleIcon={Dumbbell}
+        variant="green"
+        eyebrow="Beginner Strength"
+        isDark={isDark}
+        viewAllLabel="View All Gym Routines"
+        onViewAll={() => router.push("/gym-routines")}
+      >
+        <GymRoutineCard
+          routine={featuredGymRoutine}
+          isDark={isDark}
+          onPress={() => void openGymRoutine(featuredGymRoutine.id)}
+        />
+      </FeatureSection>
     </ScrollView>
   );
 }

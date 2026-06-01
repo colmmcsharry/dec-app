@@ -312,6 +312,21 @@ export const PDF_CATALOG: Record<string, PdfCatalogEntry> = {
     title: "Additional Resource",
     remotePath: "documents/module-resources/Module2/Your-go-to-Rise-&-Shine-routine.pdf",
   },
+  "gzclp-training-guide": {
+    id: "gzclp-training-guide",
+    title: "GZCLP — Intermediate Routine",
+    remotePath: "documents/gzclp-training-guide.pdf",
+  },
+  "basic-beginner-routine": {
+    id: "basic-beginner-routine",
+    title: "3 Day Basic Beginner Routine",
+    remotePath: "documents/basic-beginner-routine.pdf",
+  },
+  "two-day-beginner-routine": {
+    id: "two-day-beginner-routine",
+    title: "2 Day Basic Beginner Routine",
+    remotePath: "documents/two-day-beginner-routine.pdf",
+  },
 };
 
 export function getPdfCatalogEntry(pdfKey: string): PdfCatalogEntry | undefined {
