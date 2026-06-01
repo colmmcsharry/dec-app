@@ -1,24 +1,17 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
-import { getPastelAccent, pastelBoxStyle, type PastelAccentVariant } from "@/constants/pastel-accents";
-import type { GymRoutine } from "@/data/gym-routines";
-import { Dumbbell, ChevronRight } from "lucide-react-native";
+import { STRENGTH_FITNESS_INTRO } from "@/data/strength-fitness-targets";
+import { ChevronRight, Target } from "lucide-react-native";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
-type GymRoutineCardProps = {
-  routine: GymRoutine;
+type StrengthFitnessTargetsCardProps = {
   isDark: boolean;
   onPress: () => void;
 };
 
-export function GymRoutineCard({
-  routine,
+export function StrengthFitnessTargetsCard({
   isDark,
   onPress,
-}: GymRoutineCardProps) {
-  const variant: PastelAccentVariant =
-    routine.level === "Beginner" ? "green" : "purple";
-  const accent = getPastelAccent(variant, isDark);
-
+}: StrengthFitnessTargetsCardProps) {
   return (
     <Pressable
       style={({ pressed }) => [
@@ -28,66 +21,37 @@ export function GymRoutineCard({
       ]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Open ${routine.title}`}
+      accessibilityLabel={`Open ${STRENGTH_FITNESS_INTRO.title}`}
     >
       <View style={styles.row}>
         <View
           style={[
             styles.iconWrap,
-            {
-              backgroundColor: accent.iconBackground,
-              borderColor: accent.border,
-            },
+            isDark ? styles.iconWrapDark : styles.iconWrapLight,
           ]}
         >
-          <Dumbbell
+          <Target
             size={32}
-            color={accent.accent}
+            color={isDark ? "#89AAD4" : "#5B8BC4"}
             strokeWidth={2.2}
           />
         </View>
 
         <View style={styles.textWrap}>
-          <View style={styles.titleRow}>
-            <Text
-              style={[styles.title, isDark && styles.textDark]}
-              numberOfLines={2}
-            >
-              {routine.title}
-            </Text>
-            <View
-              style={[
-                styles.levelPill,
-                pastelBoxStyle(
-                  routine.level === "Beginner" ? "mint" : "lavender",
-                  isDark
-                ),
-              ]}
-            >
-              <Text
-                style={[
-                  styles.levelPillText,
-                  { color: getPastelAccent(
-                    routine.level === "Beginner" ? "mint" : "lavender",
-                    isDark
-                  ).accent },
-                ]}
-              >
-                {routine.level}
-              </Text>
-            </View>
-          </View>
+          <Text style={[styles.title, isDark && styles.textDark]}>
+            {STRENGTH_FITNESS_INTRO.title}
+          </Text>
           <Text
             style={[styles.subtitle, isDark && styles.subtextDark]}
             numberOfLines={2}
           >
-            {routine.subtitle}
+            {STRENGTH_FITNESS_INTRO.subtitle}
           </Text>
           <Text
             style={[styles.excerpt, isDark && styles.subtextDark]}
             numberOfLines={2}
           >
-            {routine.description}
+            Beginner, intermediate, and advanced benchmarks — basic or detailed guides.
           </Text>
         </View>
 
@@ -139,30 +103,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexShrink: 0,
   },
+  iconWrapLight: {
+    backgroundColor: "#EDF3FB",
+    borderColor: "#C8DAF2",
+  },
+  iconWrapDark: {
+    backgroundColor: "#1A2438",
+    borderColor: "#2E4568",
+  },
   textWrap: {
     flex: 1,
     gap: 4,
   },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-  },
-  levelPill: {
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    flexShrink: 0,
-    marginTop: 1,
-  },
-  levelPillText: {
-    fontFamily: AppFonts.bodyMedium,
-    fontSize: 10,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-  },
   title: {
-    flex: 1,
     fontFamily: AppFonts.headingSemiBold,
     fontSize: 15,
     lineHeight: 20,

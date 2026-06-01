@@ -1,34 +1,35 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { getPastelAccent, pastelBoxStyle, type PastelAccentVariant } from "@/constants/pastel-accents";
-import type { GymRoutine } from "@/data/gym-routines";
-import { Dumbbell, ChevronRight } from "lucide-react-native";
+import type { StrengthStandardsOption } from "@/data/strength-standards-hub";
+import { BarChart3, ChevronRight, Target } from "lucide-react-native";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
-type GymRoutineCardProps = {
-  routine: GymRoutine;
+type StrengthStandardsOptionCardProps = {
+  option: StrengthStandardsOption;
   isDark: boolean;
   onPress: () => void;
 };
 
-export function GymRoutineCard({
-  routine,
+export function StrengthStandardsOptionCard({
+  option,
   isDark,
   onPress,
-}: GymRoutineCardProps) {
+}: StrengthStandardsOptionCardProps) {
+  const Icon = option.id === "basic" ? Target : BarChart3;
   const variant: PastelAccentVariant =
-    routine.level === "Beginner" ? "green" : "purple";
+    option.id === "basic" ? "blue" : "lavender";
   const accent = getPastelAccent(variant, isDark);
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.card,
-        isDark ? styles.cardDark : styles.cardLight,
+        pastelBoxStyle(variant, isDark),
         { opacity: pressed ? 0.85 : 1 },
       ]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Open ${routine.title}`}
+      accessibilityLabel={`Open ${option.title}`}
     >
       <View style={styles.row}>
         <View
@@ -40,54 +41,24 @@ export function GymRoutineCard({
             },
           ]}
         >
-          <Dumbbell
-            size={32}
-            color={accent.accent}
-            strokeWidth={2.2}
-          />
+          <Icon size={32} color={accent.accent} strokeWidth={2.2} />
         </View>
 
         <View style={styles.textWrap}>
-          <View style={styles.titleRow}>
-            <Text
-              style={[styles.title, isDark && styles.textDark]}
-              numberOfLines={2}
-            >
-              {routine.title}
-            </Text>
-            <View
-              style={[
-                styles.levelPill,
-                pastelBoxStyle(
-                  routine.level === "Beginner" ? "mint" : "lavender",
-                  isDark
-                ),
-              ]}
-            >
-              <Text
-                style={[
-                  styles.levelPillText,
-                  { color: getPastelAccent(
-                    routine.level === "Beginner" ? "mint" : "lavender",
-                    isDark
-                  ).accent },
-                ]}
-              >
-                {routine.level}
-              </Text>
-            </View>
-          </View>
+          <Text style={[styles.title, isDark && styles.textDark]}>
+            {option.title}
+          </Text>
           <Text
             style={[styles.subtitle, isDark && styles.subtextDark]}
             numberOfLines={2}
           >
-            {routine.subtitle}
+            {option.subtitle}
           </Text>
           <Text
             style={[styles.excerpt, isDark && styles.subtextDark]}
-            numberOfLines={2}
+            numberOfLines={3}
           >
-            {routine.description}
+            {option.description}
           </Text>
         </View>
 
@@ -106,8 +77,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -117,13 +86,6 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 2 },
     }),
-  },
-  cardLight: {
-    backgroundColor: "#FFFFFF",
-  },
-  cardDark: {
-    backgroundColor: "#1E1E32",
-    borderColor: "#3A3D55",
   },
   row: {
     flexDirection: "row",
@@ -143,26 +105,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-  },
-  levelPill: {
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    flexShrink: 0,
-    marginTop: 1,
-  },
-  levelPillText: {
-    fontFamily: AppFonts.bodyMedium,
-    fontSize: 10,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-  },
   title: {
-    flex: 1,
     fontFamily: AppFonts.headingSemiBold,
     fontSize: 15,
     lineHeight: 20,

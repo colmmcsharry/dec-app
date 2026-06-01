@@ -10,6 +10,7 @@ export const MINDFUL_EATING_ARTICLE: Article = {
   excerpt:
     "Practical mindful eating tips for weight loss — drawn from Tiddy Rowan's little book of mindfulness, with positive framing to keep you committed.",
   kind: "article",
+  thumbnailAsset: require("../../assets/images/articles/mindful-eating.png"),
   blocks: [
     {
       type: "paragraph",

@@ -20,8 +20,10 @@ export type Article = {
   publishedAt: string;
   excerpt: string;
   kind: "article" | "podcast";
-  /** Card/list thumbnail. Falls back to the first image block when omitted. */
+  /** Remote card/list thumbnail URL. */
   thumbnail?: string;
+  /** Bundled card/list thumbnail (preferred over `thumbnail` when set). */
+  thumbnailAsset?: number;
   blocks: ArticleBlock[];
   podcasts?: ArticlePodcastTrack[];
 };

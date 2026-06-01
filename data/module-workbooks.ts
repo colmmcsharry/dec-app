@@ -19,6 +19,11 @@ export interface WorkbookPlanSectionData {
 export interface ContentSection {
   heading: string;
   body: string;
+  /** Optional in-app navigation link shown below the body text. */
+  link?: {
+    label: string;
+    route: string;
+  };
 }
 
 /** A fill-in worksheet that lives alongside the reading content. */
@@ -1237,6 +1242,14 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
       {
         heading: "Silly Little Efforts Make A Big Difference",
         body: "Do not underestimate the power of mini habits. 3 minutes of stretching your hips in the morning could result in a lot more comfort as you age.\n\nBuild a new habit: see the elevator as a death trap and take the stairs the majority of the time.\n\nHow to start: 1) Start small (one push-up a day) 2) Take ownership—stop saying 'I don't have time' and admit 'I'm choosing not to give it my time' 3) Make it easy—leave your yoga mat in view 4) Use the 3 R's consistently.",
+      },
+      {
+        heading: "Gym Routines & Strength Targets",
+        body: "You'll find gym routines and strength/fitness targets in the Resources section — From Beginner to Advanced.",
+        link: {
+          label: "Go to Resources",
+          route: "/(tabs)/resources",
+        },
       },
     ],
 

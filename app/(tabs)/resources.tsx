@@ -1,8 +1,10 @@
 import { ArticleListCard } from "@/components/article-list-card";
 import { DownloadListCard } from "@/components/download-list-card";
 import { GymRoutineCard } from "@/components/gym-routine-card";
+import { StrengthFitnessTargetsCard } from "@/components/strength-fitness-targets-card";
 import { MainTabHeader } from "@/components/main-tab-header";
 import { PageHeading } from "@/components/page-heading";
+import { MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { getFeaturedArticle, getFeaturedPodcast } from "@/data/articles";
@@ -16,6 +18,7 @@ import {
   Dumbbell,
   FileText,
   Headphones,
+  Target,
   type LucideIcon,
 } from "lucide-react-native";
 import type { ReactNode } from "react";
@@ -33,69 +36,22 @@ const WORKBOOK_TEXT = "#1E2430";
 
 type SectionVariant = "purple" | "blue" | "yellow" | "green";
 
-const SECTION_THEMES: Record<
+/** Same pastel fills as Home / Worksheets module cards. */
+const SECTION_BACKGROUNDS: Record<SectionVariant, string> = {
+  purple: MODULE_THEMES.sleep.backgroundColor,
+  yellow: MODULE_THEMES["morning-routines"].backgroundColor,
+  blue: MODULE_THEMES.recovery.backgroundColor,
+  green: MODULE_THEMES["energy-management"].backgroundColor,
+};
+
+const SECTION_SHADOWS: Record<
   SectionVariant,
-  {
-    light: { background: string; border: string; accent: string; shadow: string };
-    dark: { background: string; border: string; accent: string };
-  }
+  { light: string; dark: string }
 > = {
-  purple: {
-    light: {
-      background: "#F3F2F7",
-      border: "#EADBF7",
-      accent: "#A8B4E8",
-      shadow: MAIN_PURPLE,
-    },
-    dark: {
-      background: "#1E1E32",
-      border: "#3A2E5C",
-      accent: MAIN_PURPLE,
-      shadow: MAIN_PURPLE,
-    },
-  },
-  blue: {
-    light: {
-      background: "#EDF3FB",
-      border: "#C8DAF2",
-      accent: "#89AAD4",
-      shadow: "#5B8BC4",
-    },
-    dark: {
-      background: "#1A2438",
-      border: "#2E4568",
-      accent: "#5B8BC4",
-      shadow: "#5B8BC4",
-    },
-  },
-  yellow: {
-    light: {
-      background: "#FBF7EC",
-      border: "#EDE0B8",
-      accent: "#D4B86A",
-      shadow: "#B8943A",
-    },
-    dark: {
-      background: "#2A2818",
-      border: "#4A4528",
-      accent: "#C4A855",
-      shadow: "#C4A855",
-    },
-  },
-  green: {
-    light: {
-      background: "#EEF6F0",
-      border: "#C5DFCB",
-      accent: "#6BA87A",
-      shadow: "#4A8A5C",
-    },
-    dark: {
-      background: "#1A2820",
-      border: "#2E4A38",
-      accent: "#6BA87A",
-      shadow: "#4A8A5C",
-    },
-  },
+  purple: { light: MAIN_PURPLE, dark: MAIN_PURPLE },
+  blue: { light: "#5B8BC4", dark: "#5B8BC4" },
+  yellow: { light: "#B8943A", dark: "#C4A855" },
+  green: { light: "#4A8A5C", dark: "#4A8A5C" },
 };
 
 type FeatureSectionProps = {
@@ -119,7 +75,8 @@ function FeatureSection({
   onViewAll,
   children,
 }: FeatureSectionProps) {
-  const theme = SECTION_THEMES[variant][isDark ? "dark" : "light"];
+  const background = SECTION_BACKGROUNDS[variant];
+  const shadow = SECTION_SHADOWS[variant][isDark ? "dark" : "light"];
 
   return (
     <View
@@ -127,18 +84,16 @@ function FeatureSection({
         styles.featureSection,
         styles.cardShell,
         {
-          backgroundColor: theme.background,
-          borderColor: theme.border,
+          backgroundColor: background,
           ...Platform.select({
             ios: {
-              shadowColor: isDark ? MAIN_PURPLE : theme.shadow,
+              shadowColor: shadow,
             },
             default: {},
           }),
         },
       ]}
     >
-      <View style={[styles.cardAccentBar, { backgroundColor: theme.accent }]} />
       <View style={styles.cardInner}>
         <View style={styles.sectionTitleRow}>
           <TitleIcon
@@ -203,6 +158,11 @@ export default function ResourcesScreen() {
       pathname: getGymRoutineGuideRoute(id),
       params: { id },
     });
+  };
+
+  const openStrengthTargets = async () => {
+    if (!(await requirePro())) return;
+    router.push("/strength-fitness-targets");
   };
 
   return (
@@ -295,6 +255,21 @@ export default function ResourcesScreen() {
           onPress={() => void openGymRoutine(featuredGymRoutine.id)}
         />
       </FeatureSection>
+
+      <FeatureSection
+        title="Strength/Fitness Targets"
+        titleIcon={Target}
+        variant="blue"
+        eyebrow="Benchmarks"
+        isDark={isDark}
+        viewAllLabel="View All Targets"
+        onViewAll={() => void openStrengthTargets()}
+      >
+        <StrengthFitnessTargetsCard
+          isDark={isDark}
+          onPress={() => void openStrengthTargets()}
+        />
+      </FeatureSection>
     </ScrollView>
   );
 }
@@ -315,8 +290,6 @@ const styles = StyleSheet.create({
   },
   cardShell: {
     borderRadius: 20,
-    borderWidth: 2,
-    overflow: "hidden",
     ...Platform.select({
       ios: {
         shadowOffset: { width: 0, height: 8 },
@@ -325,9 +298,6 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 4 },
     }),
-  },
-  cardAccentBar: {
-    height: 5,
   },
   cardInner: {
     padding: 20,

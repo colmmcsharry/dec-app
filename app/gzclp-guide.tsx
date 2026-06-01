@@ -4,6 +4,7 @@ import {
 } from "@/components/screen-back-button";
 import { ExternalLink } from "@/components/external-link";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
+import { getPastelAccent, pastelBoxStyle, type PastelAccentVariant } from "@/constants/pastel-accents";
 import { useTheme } from "@/context/theme-context";
 import {
   GZCLP_INTRO,
@@ -103,8 +104,20 @@ export default function GzclpGuideScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.levelBadge, isDark && styles.levelBadgeDark]}>
-            <Text style={styles.levelBadgeText}>Intermediate</Text>
+          <View
+            style={[
+              styles.levelBadge,
+              pastelBoxStyle("purple", isDark),
+            ]}
+          >
+            <Text
+              style={[
+                styles.levelBadgeText,
+                { color: getPastelAccent("purple", isDark).accent },
+              ]}
+            >
+              Intermediate
+            </Text>
           </View>
 
           <Text style={[styles.title, isDark && styles.textDark]}>
@@ -117,9 +130,18 @@ export default function GzclpGuideScreen() {
             {GZCLP_INTRO.summary}
           </Text>
 
-          <Text style={[styles.popularNote, isDark && styles.subtextDark]}>
-            {GZCLP_POPULAR_NOTE}
-          </Text>
+          <View
+            style={[styles.popularNoteWrap, pastelBoxStyle("yellow", isDark)]}
+          >
+            <Text
+              style={[
+                styles.popularNote,
+                { color: getPastelAccent("yellow", isDark).text },
+              ]}
+            >
+              {GZCLP_POPULAR_NOTE}
+            </Text>
+          </View>
 
           <ExternalLink href={GZCLP_DETAILED_GUIDE_URL}>
             <Text style={[styles.externalLink, isDark && styles.externalLinkDark]}>
@@ -215,7 +237,7 @@ export default function GzclpGuideScreen() {
             ))}
           </Section>
 
-          <Section title="Starter Tips" isDark={isDark}>
+          <Section title="Starter Tips" isDark={isDark} variant="green">
             {GZCLP_STARTER_TIPS.map((tip) => (
               <Bullet key={tip} text={tip} isDark={isDark} />
             ))}
@@ -229,16 +251,16 @@ export default function GzclpGuideScreen() {
 function Section({
   title,
   isDark,
+  variant = "blue",
   children,
 }: {
   title: string;
   isDark: boolean;
+  variant?: PastelAccentVariant;
   children: ReactNode;
 }) {
   return (
-    <View
-      style={[styles.section, isDark ? styles.sectionDark : styles.sectionLight]}
-    >
+    <View style={[styles.section, pastelBoxStyle(variant, isDark)]}>
       <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
         {title}
       </Text>
@@ -291,22 +313,14 @@ const styles = StyleSheet.create({
   },
   levelBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "#F3F0FA",
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#EADBF7",
-  },
-  levelBadgeDark: {
-    backgroundColor: "#252540",
-    borderColor: "#3A2E5C",
   },
   levelBadgeText: {
     fontFamily: AppFonts.bodyMedium,
     fontSize: 11,
-    color: MAIN_PURPLE,
     letterSpacing: 0.5,
     textTransform: "uppercase",
   },
@@ -331,12 +345,15 @@ const styles = StyleSheet.create({
     color: "#4B5563",
     marginBottom: 12,
   },
+  popularNoteWrap: {
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
   popularNote: {
     fontFamily: AppFonts.bodyRegular,
     fontSize: 14,
     lineHeight: 20,
-    color: "#4B5563",
-    marginBottom: 10,
   },
   externalLink: {
     fontFamily: AppFonts.bodyMedium,
@@ -370,15 +387,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
-    borderWidth: 1,
-  },
-  sectionLight: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E5E7EB",
-  },
-  sectionDark: {
-    backgroundColor: "#1E1E32",
-    borderColor: "#3A3D55",
   },
   sectionTitle: {
     fontFamily: AppFonts.headingSemiBold,

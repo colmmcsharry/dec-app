@@ -177,7 +177,7 @@ export default function DailyQuoteScreen() {
                   { opacity: pressed ? 0.6 : 1 },
                 ]}
                 onPress={close}
-                hitSlop={20}
+                hitSlop={22}
                 accessibilityRole="button"
                 accessibilityLabel="Close"
               >

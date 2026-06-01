@@ -3,6 +3,7 @@ import {
   ScreenBackButton,
 } from "@/components/screen-back-button";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
+import { getPastelAccent, pastelBoxStyle, type PastelAccentVariant } from "@/constants/pastel-accents";
 import { useTheme } from "@/context/theme-context";
 import {
   TWO_DAY_BEGINNER_ALTERNATIVES,
@@ -107,8 +108,17 @@ export default function TwoDayBeginnerGuideScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.levelBadge, isDark && styles.levelBadgeDark]}>
-            <Text style={styles.levelBadgeText}>Beginner</Text>
+          <View
+            style={[styles.levelBadge, pastelBoxStyle("green", isDark)]}
+          >
+            <Text
+              style={[
+                styles.levelBadgeText,
+                { color: getPastelAccent("green", isDark).accent },
+              ]}
+            >
+              Beginner
+            </Text>
           </View>
 
           <Text style={[styles.title, isDark && styles.textDark]}>
@@ -205,7 +215,7 @@ export default function TwoDayBeginnerGuideScreen() {
             )}
           </Section>
 
-          <Section title="Starting Out" isDark={isDark}>
+          <Section title="Starting Out" isDark={isDark} variant="yellow">
             {TWO_DAY_BEGINNER_STARTING_TIPS.map((line) => (
               <Bullet key={line} text={line} isDark={isDark} />
             ))}
@@ -233,7 +243,7 @@ export default function TwoDayBeginnerGuideScreen() {
             ))}
           </Section>
 
-          <Section title="Tips" isDark={isDark}>
+          <Section title="Tips" isDark={isDark} variant="green">
             {TWO_DAY_BEGINNER_TIPS.map((tip) => (
               <Bullet key={tip} text={tip} isDark={isDark} />
             ))}
@@ -247,16 +257,16 @@ export default function TwoDayBeginnerGuideScreen() {
 function Section({
   title,
   isDark,
+  variant = "blue",
   children,
 }: {
   title: string;
   isDark: boolean;
+  variant?: PastelAccentVariant;
   children: ReactNode;
 }) {
   return (
-    <View
-      style={[styles.section, isDark ? styles.sectionDark : styles.sectionLight]}
-    >
+    <View style={[styles.section, pastelBoxStyle(variant, isDark)]}>
       <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
         {title}
       </Text>
@@ -309,22 +319,14 @@ const styles = StyleSheet.create({
   },
   levelBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "#EEF6F0",
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#C5DFCB",
-  },
-  levelBadgeDark: {
-    backgroundColor: "#1A2820",
-    borderColor: "#2E4A38",
   },
   levelBadgeText: {
     fontFamily: AppFonts.bodyMedium,
     fontSize: 11,
-    color: "#4A8A5C",
     letterSpacing: 0.5,
     textTransform: "uppercase",
   },
@@ -369,15 +371,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
-    borderWidth: 1,
-  },
-  sectionLight: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E5E7EB",
-  },
-  sectionDark: {
-    backgroundColor: "#1E1E32",
-    borderColor: "#3A3D55",
   },
   sectionTitle: {
     fontFamily: AppFonts.headingSemiBold,

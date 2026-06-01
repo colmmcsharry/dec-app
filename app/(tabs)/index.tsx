@@ -47,6 +47,18 @@ interface CategoryCardProps {
   totalCount: number;
 }
 
+/** Blend `hex` toward white — e.g. 0.2 = 20% lighter. */
+function lightenHex(hex: string, amount: number): string {
+  const normalized = hex.replace("#", "");
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  const mix = (channel: number) =>
+    Math.round(channel + (255 - channel) * amount);
+  const toHex = (channel: number) => channel.toString(16).padStart(2, "0");
+  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+}
+
 /** Static copy — lives outside HomeScreen so it isn't recreated every render. */
 const CARD_TITLES: Record<(typeof MODULE_ORDER)[number], string> = {
   sleep: "Sleep",
@@ -97,6 +109,7 @@ const CategoryCard = memo(function CategoryCard({
   };
 
   const percent = totalCount > 0 ? watchedCount / totalCount : 0;
+  const progressBarColor = lightenHex(textColor, 0.2);
   const label =
     watchedCount === 0
       ? "Not started"
@@ -131,7 +144,10 @@ const CategoryCard = memo(function CategoryCard({
       <View style={styles.cardFooter}>
         <View style={styles.cardProgressBarBg}>
           <View
-            style={[styles.cardProgressBarFill, { width: `${percent * 100}%` }]}
+            style={[
+              styles.cardProgressBarFill,
+              { width: `${percent * 100}%`, backgroundColor: progressBarColor },
+            ]}
           />
         </View>
         <Text
@@ -352,6 +368,7 @@ export default function HomeScreen() {
                 onPress={openDailyQuote}
                 style={styles.dieselFullscreenBtn}
                 underlayColor="rgba(255,255,255,0.12)"
+                hitSlop={{ top: 2, bottom: 2, left: 2, right: 2 }}
                 accessibilityRole="button"
                 accessibilityLabel="View quote full screen"
               >
@@ -647,7 +664,6 @@ const styles = StyleSheet.create({
   cardProgressBarFill: {
     height: "100%",
     borderRadius: 3,
-    backgroundColor: "#5D9B8B",
   },
   cardProgressLabel: {
     fontSize: 13,

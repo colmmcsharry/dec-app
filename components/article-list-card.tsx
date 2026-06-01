@@ -39,7 +39,11 @@ export function ArticleListCard({
             ]}
           >
             <Image
-              source={{ uri: thumbnail }}
+              source={
+                typeof thumbnail === "number"
+                  ? thumbnail
+                  : { uri: thumbnail }
+              }
               style={styles.thumbnail}
               resizeMode="cover"
               accessibilityIgnoresInvertColors

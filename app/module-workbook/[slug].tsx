@@ -645,6 +645,30 @@ export default function ModuleWorkbookScreen() {
                     >
                       {cs.body}
                     </Text>
+                    {cs.link ? (
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.contentLink,
+                          { opacity: pressed ? 0.75 : 1 },
+                        ]}
+                        onPress={() => router.push(cs.link!.route as never)}
+                        accessibilityRole="link"
+                        accessibilityLabel={cs.link.label}
+                      >
+                        <Text
+                          style={[
+                            styles.contentLinkText,
+                            isDark && styles.contentLinkTextDark,
+                          ]}
+                        >
+                          {cs.link.label}
+                        </Text>
+                        <ChevronRight
+                          size={16}
+                          color={isDark ? "#B7A8E0" : MAIN_PURPLE}
+                        />
+                      </Pressable>
+                    ) : null}
                   </View>
                 ))}
               </View>
@@ -1470,6 +1494,22 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyRegular,
+  },
+  contentLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 12,
+    alignSelf: "flex-start",
+  },
+  contentLinkText: {
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 15,
+    color: MAIN_PURPLE,
+    textDecorationLine: "underline",
+  },
+  contentLinkTextDark: {
+    color: "#B7A8E0",
   },
   worksheetField: {
     marginTop: 14,

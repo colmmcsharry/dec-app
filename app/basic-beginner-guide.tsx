@@ -2,26 +2,37 @@ import {
   SCREEN_BACK_BUTTON_WIDTH,
   ScreenBackButton,
 } from "@/components/screen-back-button";
+import { WeightUnitToggle } from "@/components/weight-unit-toggle";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
+import { getPastelAccent, pastelBoxStyle, type PastelAccentVariant } from "@/constants/pastel-accents";
 import { useTheme } from "@/context/theme-context";
 import {
   BASIC_BEGINNER_CARDIO,
   BASIC_BEGINNER_FAQ,
+  getBasicBeginnerFaqAnswer,
   BASIC_BEGINNER_HOW_LONG,
   BASIC_BEGINNER_INTRO,
   BASIC_BEGINNER_LIFTS,
   BASIC_BEGINNER_PDF_KEY,
-  BASIC_BEGINNER_PROGRESSION,
+  getBasicBeginnerProgression,
   BASIC_BEGINNER_SCHEDULE,
   BASIC_BEGINNER_TIPS,
   BASIC_BEGINNER_WHO_FOR,
+  getBasicBeginnerWorkingWeightsHint,
   BASIC_BEGINNER_WORKOUT_A,
   BASIC_BEGINNER_WORKOUT_B,
+  EMPTY_BASIC_BEGINNER_WEIGHTS,
   type BasicBeginnerWeights,
 } from "@/data/basic-beginner-program";
 import {
-  getBasicBeginnerWeights,
-  saveBasicBeginnerWeights,
+  convertWeightsRecord,
+  weightUnitHint,
+  weightUnitShortLabel,
+  type WeightUnit,
+} from "@/lib/weight-unit";
+import {
+  getBasicBeginnerLog,
+  saveBasicBeginnerLog,
 } from "@/services/basic-beginner-log";
 import { requirePro } from "@/services/purchases";
 import { useRouter } from "expo-router";
@@ -45,27 +56,46 @@ export default function BasicBeginnerGuideScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [weights, setWeights] = useState<BasicBeginnerWeights | null>(null);
+  const [unit, setUnit] = useState<WeightUnit>("kg");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    void getBasicBeginnerWeights().then(setWeights);
+    void getBasicBeginnerLog().then((log) => {
+      setUnit(log.unit);
+      setWeights(log.weights);
+    });
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, []);
 
-  const persistWeights = useCallback((next: BasicBeginnerWeights) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      void saveBasicBeginnerWeights(next);
-    }, 400);
-  }, []);
+  const persistLog = useCallback(
+    (nextUnit: WeightUnit, nextWeights: BasicBeginnerWeights) => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        void saveBasicBeginnerLog({ unit: nextUnit, weights: nextWeights });
+      }, 400);
+    },
+    []
+  );
+
+  const changeUnit = (nextUnit: WeightUnit) => {
+    if (nextUnit === unit) return;
+    const previousUnit = unit;
+    setUnit(nextUnit);
+    setWeights((prev) => {
+      const base = prev ?? { ...EMPTY_BASIC_BEGINNER_WEIGHTS };
+      const converted = convertWeightsRecord(base, previousUnit, nextUnit);
+      persistLog(nextUnit, converted);
+      return converted;
+    });
+  };
 
   const updateWeight = (key: keyof BasicBeginnerWeights, value: string) => {
     setWeights((prev) => {
       if (!prev) return prev;
       const next = { ...prev, [key]: value };
-      persistWeights(next);
+      persistLog(unit, next);
       return next;
     });
   };
@@ -108,8 +138,17 @@ export default function BasicBeginnerGuideScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.levelBadge, isDark && styles.levelBadgeDark]}>
-            <Text style={styles.levelBadgeText}>Beginner</Text>
+          <View
+            style={[styles.levelBadge, pastelBoxStyle("green", isDark)]}
+          >
+            <Text
+              style={[
+                styles.levelBadgeText,
+                { color: getPastelAccent("green", isDark).accent },
+              ]}
+            >
+              Beginner
+            </Text>
           </View>
 
           <Text style={[styles.title, isDark && styles.textDark]}>
@@ -134,6 +173,11 @@ export default function BasicBeginnerGuideScreen() {
             <FileText size={20} color="#FFFFFF" />
             <Text style={styles.pdfButtonText}>Open Training Guide PDF</Text>
           </Pressable>
+
+          <WeightUnitToggle unit={unit} isDark={isDark} onChange={changeUnit} />
+          <Text style={[styles.unitHint, isDark && styles.subtextDark]}>
+            {weightUnitHint(unit)}
+          </Text>
 
           <Section title="Who Is This For?" isDark={isDark}>
             {BASIC_BEGINNER_WHO_FOR.map((line) => (
@@ -167,9 +211,7 @@ export default function BasicBeginnerGuideScreen() {
 
           <Section title="Your Working Weights" isDark={isDark}>
             <Text style={[styles.hint, isDark && styles.subtextDark]}>
-              Enter the weight you used in your last session (kg or lb — pick
-              one and stick with it). For chin-ups, log assisted weight if
-              needed.
+              {getBasicBeginnerWorkingWeightsHint(unit)}
             </Text>
             {weights === null ? (
               <ActivityIndicator color={MAIN_PURPLE} style={styles.loader} />
@@ -183,29 +225,37 @@ export default function BasicBeginnerGuideScreen() {
                     <Text
                       style={[styles.liftMeta, isDark && styles.subtextDark]}
                     >
-                      Workout {lift.workout} · {lift.setsReps}
+                      Workout {lift.workout} · {lift.setsReps} ·{" "}
+                      {lift.progression[unit]}
                     </Text>
                   </View>
-                  <TextInput
-                    style={[
-                      styles.weightInput,
-                      isDark && styles.weightInputDark,
-                    ]}
-                    value={weights[lift.id]}
-                    onChangeText={(value) => updateWeight(lift.id, value)}
-                    placeholder="0"
-                    placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-                    keyboardType="decimal-pad"
-                    returnKeyType="done"
-                    accessibilityLabel={`${lift.name} weight`}
-                  />
+                  <View style={styles.weightInputWrap}>
+                    <TextInput
+                      style={[
+                        styles.weightInput,
+                        isDark && styles.weightInputDark,
+                      ]}
+                      value={weights[lift.id]}
+                      onChangeText={(value) => updateWeight(lift.id, value)}
+                      placeholder="0"
+                      placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                      keyboardType="decimal-pad"
+                      returnKeyType="done"
+                      accessibilityLabel={`${lift.name} weight in ${weightUnitShortLabel(unit)}`}
+                    />
+                    <Text
+                      style={[styles.weightUnitLabel, isDark && styles.subtextDark]}
+                    >
+                      {weightUnitShortLabel(unit)}
+                    </Text>
+                  </View>
                 </View>
               ))
             )}
           </Section>
 
           <Section title="Progression" isDark={isDark}>
-            {BASIC_BEGINNER_PROGRESSION.map((line) => (
+            {getBasicBeginnerProgression(unit).map((line) => (
               <Bullet key={line} text={line} isDark={isDark} />
             ))}
           </Section>
@@ -223,13 +273,13 @@ export default function BasicBeginnerGuideScreen() {
                   {item.question}
                 </Text>
                 <Text style={[styles.faqAnswer, isDark && styles.subtextDark]}>
-                  {item.answer}
+                  {getBasicBeginnerFaqAnswer(item, unit)}
                 </Text>
               </View>
             ))}
           </Section>
 
-          <Section title="Tips" isDark={isDark}>
+          <Section title="Tips" isDark={isDark} variant="green">
             {BASIC_BEGINNER_TIPS.map((tip) => (
               <Bullet key={tip} text={tip} isDark={isDark} />
             ))}
@@ -243,16 +293,16 @@ export default function BasicBeginnerGuideScreen() {
 function Section({
   title,
   isDark,
+  variant = "blue",
   children,
 }: {
   title: string;
   isDark: boolean;
+  variant?: PastelAccentVariant;
   children: ReactNode;
 }) {
   return (
-    <View
-      style={[styles.section, isDark ? styles.sectionDark : styles.sectionLight]}
-    >
+    <View style={[styles.section, pastelBoxStyle(variant, isDark)]}>
       <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
         {title}
       </Text>
@@ -305,22 +355,14 @@ const styles = StyleSheet.create({
   },
   levelBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "#EEF6F0",
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#C5DFCB",
-  },
-  levelBadgeDark: {
-    backgroundColor: "#1A2820",
-    borderColor: "#2E4A38",
   },
   levelBadgeText: {
     fontFamily: AppFonts.bodyMedium,
     fontSize: 11,
-    color: "#4A8A5C",
     letterSpacing: 0.5,
     textTransform: "uppercase",
   },
@@ -361,19 +403,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#FFFFFF",
   },
+  unitHint: {
+    fontFamily: AppFonts.bodyRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#6B7280",
+    marginBottom: 16,
+  },
   section: {
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
-    borderWidth: 1,
-  },
-  sectionLight: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E5E7EB",
-  },
-  sectionDark: {
-    backgroundColor: "#1E1E32",
-    borderColor: "#3A3D55",
   },
   sectionTitle: {
     fontFamily: AppFonts.headingSemiBold,
@@ -393,7 +433,7 @@ const styles = StyleSheet.create({
   },
   liftRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
     marginBottom: 10,
   },
@@ -410,6 +450,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6B7280",
     marginTop: 2,
+  },
+  weightInputWrap: {
+    alignItems: "center",
+    gap: 4,
+    flexShrink: 0,
   },
   weightInput: {
     width: 88,
@@ -428,6 +473,12 @@ const styles = StyleSheet.create({
     borderColor: "#4B5563",
     backgroundColor: "#252540",
     color: "#ECEDEE",
+  },
+  weightUnitLabel: {
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 11,
+    color: "#6B7280",
+    textTransform: "uppercase",
   },
   faqRow: {
     marginBottom: 12,

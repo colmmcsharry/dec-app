@@ -1,7 +1,9 @@
 import { BeforeAfterCarousel } from "@/components/before-after-carousel";
 import { VideoTestimonialCarousel } from "@/components/video-testimonial-carousel";
 import { DevResetButton } from "@/components/dev-reset-button";
+import { Accordion } from "@animatereactnative/accordion";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
+import { getPastelAccent, mixHex } from "@/constants/pastel-accents";
 import { useTheme } from "@/context/theme-context";
 import { getReviewStoreLabel, requestAppReview } from "@/services/app-review";
 import {
@@ -10,7 +12,7 @@ import {
   hasProEntitlement,
 } from "@/services/purchases";
 import { useIsFocused } from "@react-navigation/native";
-import { Crown, Lock, Star, X } from "lucide-react-native";
+import { ChevronDown, ChevronUp, Crown, Lock, Star, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
@@ -58,6 +60,148 @@ function BioCollage() {
           accessibilityLabel="Photos of Declan running, with family, and on the coast"
         />
       ) : null}
+    </View>
+  );
+}
+
+function WhoAmISection({
+  isDark,
+  defaultAccentBarColor,
+}: {
+  isDark: boolean;
+  defaultAccentBarColor: string;
+}) {
+  const bodyTextStyle = [styles.bodyText, isDark && styles.bodyTextDark];
+  const toggleColor = isDark ? "#ECEDEE" : WORKBOOK_TEXT;
+  const toggleTextStyle = [
+    styles.bioToggleText,
+    isDark && styles.bioToggleTextDark,
+  ];
+
+  return (
+    <View
+      style={[
+        styles.section,
+        styles.bioCard,
+        isDark && styles.cardDark,
+        styles.cardShell,
+        isDark && styles.cardShellDark,
+        { borderTopColor: defaultAccentBarColor },
+      ]}
+    >
+      <View
+        style={[
+          styles.cardAccentBar,
+          { backgroundColor: defaultAccentBarColor },
+        ]}
+      />
+      <View style={styles.cardInner}>
+        <Text
+          style={[styles.sectionEyebrow, isDark && styles.sectionEyebrowDark]}
+        >
+          Background
+        </Text>
+        <Text
+          style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
+        >
+          So who am I?
+        </Text>
+        <Accordion.Accordion>
+          <Accordion.Header>
+            <BioCollage />
+            <Accordion.Collapsed>
+              <Text
+                style={[
+                  styles.bodyText,
+                  styles.bodyTextAfterPhoto,
+                  isDark && styles.bodyTextDark,
+                ]}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                Residing in Dublin, Ireland, I am happily married, a father and
+                a REPs accredited (Register of Exercise Professionals), fully
+                qualified Personal Trainer. This qualification includes a national
+                certificate in Nutrition for Physical Activity.
+              </Text>
+              <View style={styles.bioToggleRow} pointerEvents="none">
+                <Text style={toggleTextStyle}>Read More</Text>
+                <ChevronDown
+                  size={20}
+                  color={toggleColor}
+                  strokeWidth={2.5}
+                />
+              </View>
+            </Accordion.Collapsed>
+            <Accordion.Expanded>
+              <Text
+                style={[
+                  styles.bodyText,
+                  styles.bodyTextAfterPhoto,
+                  isDark && styles.bodyTextDark,
+                ]}
+              >
+                Residing in Dublin, Ireland, I am happily married, a father and
+                a REPs accredited (Register of Exercise Professionals), fully
+                qualified Personal Trainer. This qualification includes a national
+                certificate in Nutrition for Physical Activity.
+              </Text>
+              <Text style={bodyTextStyle}>
+                I am an enthusiast for the area of psychology and performance and
+                have completed a Sports Psychology diploma with distinction.
+              </Text>
+              <Text style={bodyTextStyle}>
+                Before these qualifications I obtained an MSc in Strategic
+                Management and Planning and a BComm in Commerce International with
+                French.
+              </Text>
+              <Text style={bodyTextStyle}>
+                As a Gaelic Footballer I was part of the Dublin Senior Team{"'"}s O
+                {"'"}Byrne Cup squad in 2012.
+              </Text>
+              <Image
+                source={require("@/assets/images/about/dubs-team.jpg")}
+                style={styles.teamPhoto}
+                resizeMode="cover"
+              />
+              <Text style={[styles.photoCaption, isDark && styles.metaTextDark]}>
+                Back row 2nd from left — Photo kindly provided by Sportsfile
+              </Text>
+              <Text
+                style={[
+                  styles.bodyText,
+                  { marginTop: 16 },
+                  isDark && styles.bodyTextDark,
+                ]}
+              >
+                My Dad got me interested in the area of performance by passing me on
+                a book called{" "}
+                <Text style={styles.bookTitle}>
+                  the Monk Who Sold His Ferrari
+                </Text>
+                . Now it{"'"}s my turn to pass something on to you!
+              </Text>
+              <Text style={bodyTextStyle}>
+                Having suffered the debilitating effects of performance anxiety
+                particularly in the field of sport I feel it important to share
+                information that can help others through such issues.
+              </Text>
+              <Text
+                style={[styles.closingText, isDark && styles.closingTextDark]}
+              >
+                Train your mind, body and soul!
+              </Text>
+              <View
+                style={[styles.bioToggleRow, styles.bioToggleRowEnd]}
+                pointerEvents="none"
+              >
+                <Text style={toggleTextStyle}>See Less</Text>
+                <ChevronUp size={20} color={toggleColor} strokeWidth={2.5} />
+              </View>
+            </Accordion.Expanded>
+          </Accordion.Header>
+        </Accordion.Accordion>
+      </View>
     </View>
   );
 }
@@ -341,6 +485,13 @@ export default function AboutScreen() {
   const { isDark } = useTheme();
   const isFocused = useIsFocused();
   const [isPremium, setIsPremium] = useState<boolean | null>(null);
+  const disclaimerAccent = getPastelAccent("red", isDark);
+  const disclaimerBackground = mixHex(
+    disclaimerAccent.background,
+    disclaimerAccent.accent,
+    0.15,
+  );
+  const defaultAccentBarColor = isDark ? MAIN_PURPLE : "#A8B4E8";
 
   useEffect(() => {
     if (!isFocused) return;
@@ -367,10 +518,14 @@ export default function AboutScreen() {
           isDark && styles.cardDark,
           styles.cardShell,
           isDark && styles.cardShellDark,
+          { borderTopColor: defaultAccentBarColor },
         ]}
       >
         <View
-          style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]}
+          style={[
+            styles.cardAccentBar,
+            { backgroundColor: defaultAccentBarColor },
+          ]}
         />
         <View style={styles.cardInner}>
           <Text style={[styles.heroEyebrow, isDark && styles.heroEyebrowDark]}>
@@ -413,14 +568,9 @@ export default function AboutScreen() {
         style={[
           styles.section,
           styles.reviewCard,
-          isDark && styles.cardDark,
-          styles.cardShell,
-          isDark && styles.cardShellDark,
+          { backgroundColor: "#D4F1E8" },
         ]}
       >
-        <View
-          style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]}
-        />
         <View style={styles.cardInner}>
           <Text
             style={[styles.sectionEyebrow, isDark && styles.sectionEyebrowDark]}
@@ -463,87 +613,12 @@ export default function AboutScreen() {
         </View>
       </View>
 
-      {/* Who Am I */}
-      <View
-        style={[
-          styles.section,
-          styles.bioCard,
-          isDark && styles.cardDark,
-          styles.cardShell,
-          isDark && styles.cardShellDark,
-        ]}
-      >
-        <View
-          style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]}
-        />
-        <View style={styles.cardInner}>
-          <Text
-            style={[styles.sectionEyebrow, isDark && styles.sectionEyebrowDark]}
-          >
-            Background
-          </Text>
-          <Text
-            style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
-          >
-            So who am I?
-          </Text>
-          <BioCollage />
-          <Text
-            style={[
-              styles.bodyText,
-              styles.bodyTextAfterPhoto,
-              isDark && styles.bodyTextDark,
-            ]}
-          >
-            Residing in Dublin, Ireland, I am happily married, a father and and
-            a REPs accredited (Register of Exercise Professionals), fully
-            qualified Personal Trainer. This qualification includes a national
-            certificate in Nutrition for Physical Activity.
-          </Text>
-          <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-            I am an enthusiast for the area of psychology and performance and
-            have completed a Sports Psychology diploma with distinction.
-          </Text>
-          <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-            Before these qualifications I obtained an MSc in Strategic
-            Management and Planning and a BComm in Commerce International with
-            French.
-          </Text>
-          <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-            As a Gaelic Footballer I was part of the Dublin Senior Team{"'"}s O
-            {"'"}Byrne Cup squad in 2012.
-          </Text>
-          <Image
-            source={require("@/assets/images/about/dubs-team.jpg")}
-            style={styles.teamPhoto}
-            resizeMode="cover"
-          />
-          <Text style={[styles.photoCaption, isDark && styles.metaTextDark]}>
-            Back row 2nd from left — Photo kindly provided by Sportsfile
-          </Text>
-          <Text
-            style={[
-              styles.bodyText,
-              { marginTop: 16 },
-              isDark && styles.bodyTextDark,
-            ]}
-          >
-            My Dad got me interested in the area of performance by passing me on
-            a book called{" "}
-            <Text style={styles.bookTitle}>the Monk Who Sold His Ferrari</Text>.
-            Now it{"'"}s my turn to pass something on to you!
-          </Text>
-          <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-            Having suffered the debilitating effects of performance anxiety
-            particularly in the field of sport I feel it important to share
-            information that can help others through such issues.
-          </Text>
-          <Text style={[styles.closingText, isDark && styles.closingTextDark]}>
-            Train your mind, body and soul!
-          </Text>
-        </View>
-      </View>
+      <WhoAmISection
+        isDark={isDark}
+        defaultAccentBarColor={defaultAccentBarColor}
+      />
 
+      <Accordion.Sibling>
       {/* Before / After */}
       <View
         style={[
@@ -552,10 +627,14 @@ export default function AboutScreen() {
           isDark && styles.cardDark,
           styles.cardShell,
           isDark && styles.cardShellDark,
+          { borderTopColor: defaultAccentBarColor },
         ]}
       >
         <View
-          style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]}
+          style={[
+            styles.cardAccentBar,
+            { backgroundColor: defaultAccentBarColor },
+          ]}
         />
         <View style={styles.cardInner}>
           <Text
@@ -603,15 +682,10 @@ export default function AboutScreen() {
         <View
           style={[
             styles.section,
-            styles.missionCard,
-            isDark && styles.cardDark,
-            styles.cardShell,
-            isDark && styles.cardShellDark,
+            styles.disclaimerCard,
+            { backgroundColor: disclaimerBackground },
           ]}
         >
-          <View
-            style={[styles.cardAccentBar, isDark && styles.cardAccentBarDark]}
-          />
           <View style={styles.cardInner}>
             <Text
               style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
@@ -637,6 +711,7 @@ export default function AboutScreen() {
       <DevResetButton variant="inline" />
 
       <View style={{ height: 40 }} />
+      </Accordion.Sibling>
     </ScrollView>
   );
 }
@@ -644,7 +719,7 @@ export default function AboutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F2F7",
+    backgroundColor: "#FFFFFF",
   },
   containerDark: {
     backgroundColor: "#121222",
@@ -766,9 +841,6 @@ const styles = StyleSheet.create({
     height: 5,
     backgroundColor: "#A8B4E8",
   },
-  cardAccentBarDark: {
-    backgroundColor: MAIN_PURPLE,
-  },
   cardInner: {
     padding: 20,
   },
@@ -810,7 +882,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontFamily: AppFonts.headingBold,
     color: WORKBOOK_TEXT,
-    marginBottom: 4,
+    marginBottom: 0,
   },
   heroTagline: {
     fontSize: 16,
@@ -823,7 +895,7 @@ const styles = StyleSheet.create({
     color: "#B7A8E0",
   },
   heroMissionText: {
-    marginTop: 16,
+    marginTop: 24,
   },
 
   section: {
@@ -841,8 +913,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   reviewCard: {
-    backgroundColor: "#FFFFFF",
     marginBottom: 24,
+    borderRadius: 20,
   },
   reviewButton: {
     flexDirection: "row",
@@ -895,6 +967,23 @@ const styles = StyleSheet.create({
   },
   bodyTextAfterPhoto: {
     marginTop: 8,
+  },
+  bioToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 10,
+  },
+  bioToggleRowEnd: {
+    marginTop: 16,
+  },
+  bioToggleText: {
+    fontFamily: AppFonts.bodyBold,
+    fontSize: 15,
+    color: WORKBOOK_TEXT,
+  },
+  bioToggleTextDark: {
+    color: "#ECEDEE",
   },
   bodyText: {
     fontSize: 16,
@@ -1050,6 +1139,9 @@ const styles = StyleSheet.create({
   },
   disclaimerWrapDark: {
     borderTopColor: "#3A3A52",
+  },
+  disclaimerCard: {
+    borderRadius: 20,
   },
   disclaimerBodyText: {
     marginBottom: 0,

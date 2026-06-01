@@ -1,3 +1,5 @@
+import type { WeightUnit } from "@/lib/weight-unit";
+
 export type BasicBeginnerWeights = {
   barbellRow: string;
   benchPress: string;
@@ -12,7 +14,12 @@ export type BasicBeginnerLift = {
   name: string;
   workout: "A" | "B";
   setsReps: string;
-  progression: string;
+  progression: Record<WeightUnit, string>;
+};
+
+export type BasicBeginnerFaqItem = {
+  question: string;
+  answer: Record<WeightUnit, string>;
 };
 
 export const BASIC_BEGINNER_PDF_KEY = "basic-beginner-routine";
@@ -21,7 +28,7 @@ export const BASIC_BEGINNER_INTRO = {
   title: "3 Day Basic Beginner Routine",
   subtitle: "Simple barbell training to get started",
   summary:
-    "A short, easy-to-follow 3-day plan built around five barbell lifts plus chin-ups. Alternate Workout A and B with a rest day between each gym day. The “+” on each lift means your last set is as many good reps as you can manage — stop when form breaks down or the bar slows.",
+    "A short, easy-to-follow 3-day plan built around five barbell lifts plus chin-ups (or equivalent). Alternate Workout A and B with a rest day between each gym day. The “+” on each lift means your last set is as many good reps as you can manage — stop when form breaks down or the bar slows.",
 };
 
 export const BASIC_BEGINNER_WHO_FOR = [
@@ -53,13 +60,26 @@ export const BASIC_BEGINNER_SCHEDULE = [
   "Rest 2–3 minutes between sets (up to 5 minutes between exercises if needed).",
 ];
 
-export const BASIC_BEGINNER_PROGRESSION = [
-  "Upper body (Row, Bench, OHP, Chin-up): add 2.5 lb / 1.25 kg each session.",
-  "Lower body (Squat, Deadlift): add 5 lb / 2.5 kg each session.",
-  "Weight is added to the total bar — not per side.",
-  "If you get more than 10 reps on your last set, add 5 lb / 2.5 kg (upper) or 10 lb / 5 kg (lower) instead.",
-  "If you fail to hit 15 total reps for a lift, deload 10% next time and build back up.",
-];
+const BASIC_BEGINNER_PROGRESSION_BY_UNIT: Record<WeightUnit, string[]> = {
+  kg: [
+    "Upper body (Row, Bench, OHP, Chin-up): add 1.25 kg each session.",
+    "Lower body (Squat, Deadlift): add 2.5 kg each session.",
+    "Weight is added to the total bar — not per side.",
+    "If you get more than 10 reps on your last set, add 2.5 kg (upper) or 5 kg (lower) instead.",
+    "If you fail to hit 15 total reps for a lift, deload 10% next time and build back up.",
+  ],
+  lb: [
+    "Upper body (Row, Bench, OHP, Chin-up): add 2.5 lb each session.",
+    "Lower body (Squat, Deadlift): add 5 lb each session.",
+    "Weight is added to the total bar — not per side.",
+    "If you get more than 10 reps on your last set, add 5 lb (upper) or 10 lb (lower) instead.",
+    "If you fail to hit 15 total reps for a lift, deload 10% next time and build back up.",
+  ],
+};
+
+export function getBasicBeginnerProgression(unit: WeightUnit): string[] {
+  return BASIC_BEGINNER_PROGRESSION_BY_UNIT[unit];
+}
 
 export const BASIC_BEGINNER_CARDIO = [
   "Do at least 2 days of cardio per week, on any days you like.",
@@ -68,23 +88,43 @@ export const BASIC_BEGINNER_CARDIO = [
   "If cardio is on a lifting day, do it after the weights.",
 ];
 
-export const BASIC_BEGINNER_FAQ = [
+export const BASIC_BEGINNER_FAQ: BasicBeginnerFaqItem[] = [
   {
     question: "How do I find starting weights?",
-    answer:
-      "Start with an empty bar for 5 reps. If it’s easy with good form, add 10–20 lb and go again. Keep adding until form breaks down or the bar slows — that’s your starting weight. Be conservative.",
+    answer: {
+      kg: "Start with an empty bar for 5 reps. If it’s easy with good form, add 5–10 kg and go again. Keep adding until form breaks down or the bar slows — that’s your starting weight. Be conservative.",
+      lb: "Start with an empty bar for 5 reps. If it’s easy with good form, add 10–20 lb and go again. Keep adding until form breaks down or the bar slows — that’s your starting weight. Be conservative.",
+    },
+  },
+  {
+    question: "What if I can't lift the empty barbell?",
+    answer: {
+      kg: "Lots of gyms have 5kg, 10kg, and 15kg barbells, use those until you can lift the empty 20kg barbell. As a last resort, use dumbells or machines.",
+      lb: "Lots of gyms have 10lb, 20lb, and 30lb barbells, use those until you can lift the empty 40lb barbell. As a last resort, use dumbells or machines.",
+    },
   },
   {
     question: "What if I can’t do chin-ups?",
-    answer:
-      "Use a lat pulldown machine or an assisted chin-up machine. Log the weight you use.",
+    answer: {
+      kg: "Use a lat pulldown machine or an assisted chin-up machine. Log the weight you use.",
+      lb: "Use a lat pulldown machine or an assisted chin-up machine. Log the weight you use.",
+    },
   },
   {
-    question: "How do I add 2.5 lb without micro plates?",
-    answer:
-      "Bring your own 1.25 lb plates, add 5 lb every other session, or add a fourth set at the same weight.",
+    question: "How do I add small increments without micro plates?",
+    answer: {
+      kg: "Bring your own 0.5 kg plates, add 2.5 kg every other session, or add a fourth set at the same weight.",
+      lb: "Bring your own 1.25 lb plates, add 5 lb every other session, or add a fourth set at the same weight.",
+    },
   },
 ];
+
+export function getBasicBeginnerFaqAnswer(
+  item: BasicBeginnerFaqItem,
+  unit: WeightUnit,
+): string {
+  return item.answer[unit];
+}
 
 export const BASIC_BEGINNER_LIFTS: BasicBeginnerLift[] = [
   {
@@ -92,45 +132,67 @@ export const BASIC_BEGINNER_LIFTS: BasicBeginnerLift[] = [
     name: "Barbell Row",
     workout: "A",
     setsReps: "3 × 5+",
-    progression: "Add 2.5 lb / 1.25 kg when you complete all sets.",
+    progression: {
+      kg: "Add 1.25 kg when you complete all sets.",
+      lb: "Add 2.5 lb when you complete all sets.",
+    },
   },
   {
     id: "benchPress",
     name: "Bench Press",
     workout: "A",
     setsReps: "3 × 5+",
-    progression: "Add 2.5 lb / 1.25 kg when you complete all sets.",
+    progression: {
+      kg: "Add 1.25 kg when you complete all sets.",
+      lb: "Add 2.5 lb when you complete all sets.",
+    },
   },
   {
     id: "squat",
     name: "Squat",
     workout: "A",
     setsReps: "3 × 5+",
-    progression: "Add 5 lb / 2.5 kg when you complete all sets.",
+    progression: {
+      kg: "Add 2.5 kg when you complete all sets.",
+      lb: "Add 5 lb when you complete all sets.",
+    },
   },
   {
     id: "chinup",
     name: "Chin-ups (or equivalent)",
     workout: "B",
     setsReps: "3 × 5+",
-    progression:
-      "Add 2.5 lb / 1.25 kg (assisted weight) or reps when you complete all sets.",
+    progression: {
+      kg: "Add 1.25 kg (assisted weight) or reps when you complete all sets.",
+      lb: "Add 2.5 lb (assisted weight) or reps when you complete all sets.",
+    },
   },
   {
     id: "overheadPress",
     name: "Overhead Press",
     workout: "B",
     setsReps: "3 × 5+",
-    progression: "Add 2.5 lb / 1.25 kg when you complete all sets.",
+    progression: {
+      kg: "Add 1.25 kg when you complete all sets.",
+      lb: "Add 2.5 lb when you complete all sets.",
+    },
   },
   {
     id: "deadlift",
     name: "Deadlift",
     workout: "B",
     setsReps: "3 × 5+",
-    progression: "Add 5 lb / 2.5 kg when you complete all sets.",
+    progression: {
+      kg: "Add 2.5 kg when you complete all sets.",
+      lb: "Add 5 lb when you complete all sets.",
+    },
   },
 ];
+
+export function getBasicBeginnerWorkingWeightsHint(unit: WeightUnit): string {
+  const label = unit === "kg" ? "kilograms (kg)" : "pounds (lbs)";
+  return `Enter the weight you used in your last session (${label}). For chin-ups, log assisted weight if needed.`;
+}
 
 export const EMPTY_BASIC_BEGINNER_WEIGHTS: BasicBeginnerWeights = {
   barbellRow: "",

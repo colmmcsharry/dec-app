@@ -41,7 +41,10 @@ export function getFeaturedArticle(): Article | undefined {
   return latestByKind("article");
 }
 
-export function getArticleThumbnail(article: Article): string | undefined {
+export function getArticleThumbnail(
+  article: Article
+): string | number | undefined {
+  if (article.thumbnailAsset != null) return article.thumbnailAsset;
   if (article.thumbnail) return article.thumbnail;
   const imageBlock = article.blocks.find((block) => block.type === "image");
   return imageBlock?.type === "image" ? imageBlock.path : undefined;

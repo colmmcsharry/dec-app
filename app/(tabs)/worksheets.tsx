@@ -24,11 +24,6 @@ const MODULE_INK_LIGHT = "#1E2430";
 const MODULE_MUTED_LIGHT = "#5C6370";
 const MODULE_ICON_LIGHT = "#374151";
 const MODULE_CHEVRON_LIGHT = "#6B7280";
-const MODULE_INK_DARK = "#ECEDEE";
-const MODULE_MUTED_DARK = "#AEB3C4";
-const MODULE_ICON_DARK = "#E5E7EB";
-const MODULE_CHEVRON_DARK = "#9090A8";
-
 export default function WorksheetsScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -72,37 +67,21 @@ export default function WorksheetsScreen() {
         return (
           <View
             key={slug}
-            style={[
-              styles.moduleCard,
-              { backgroundColor: theme.backgroundColor },
-              isDark && styles.moduleCardDark,
-            ]}
+            style={[styles.moduleCard, { backgroundColor: theme.backgroundColor }]}
           >
             <View style={styles.moduleCardHeader}>
               <View style={styles.moduleIconCircle}>
                 <Icon
                   size={26}
-                  color={isDark ? MODULE_ICON_DARK : MODULE_ICON_LIGHT}
+                  color={MODULE_ICON_LIGHT}
                   strokeWidth={2.5}
                 />
               </View>
               <View style={styles.moduleHeaderText}>
-                <Text
-                  style={[
-                    styles.moduleLabel,
-                    {
-                      color: isDark ? MODULE_MUTED_DARK : MODULE_MUTED_LIGHT,
-                    },
-                  ]}
-                >
+                <Text style={[styles.moduleLabel, { color: MODULE_MUTED_LIGHT }]}>
                   Module {def.moduleNumber} — {theme.shortName}
                 </Text>
-                <Text
-                  style={[
-                    styles.moduleTitle,
-                    { color: isDark ? MODULE_INK_DARK : MODULE_INK_LIGHT },
-                  ]}
-                >
+                <Text style={[styles.moduleTitle, { color: MODULE_INK_LIGHT }]}>
                   {def.title}
                 </Text>
               </View>
@@ -111,60 +90,38 @@ export default function WorksheetsScreen() {
             {pdfs.map((pdf) => (
               <TouchableOpacity
                 key={pdf.id}
-                style={[styles.pdfRow, isDark && styles.pdfRowDark]}
+                style={styles.pdfRow}
                 activeOpacity={0.7}
                 onPress={() => openPdf(slug, pdf)}
               >
-                <FileText
-                  size={20}
-                  color={isDark ? MODULE_ICON_DARK : MODULE_ICON_LIGHT}
-                />
+                <FileText size={20} color={MODULE_ICON_LIGHT} />
                 <Text
-                  style={[
-                    styles.pdfTitle,
-                    { color: isDark ? MODULE_INK_DARK : MODULE_INK_LIGHT },
-                  ]}
+                  style={[styles.pdfTitle, { color: MODULE_INK_LIGHT }]}
                   numberOfLines={2}
                 >
                   {pdf.title}
                 </Text>
-                <ChevronRight
-                  size={18}
-                  color={isDark ? MODULE_CHEVRON_DARK : MODULE_CHEVRON_LIGHT}
-                />
+                <ChevronRight size={18} color={MODULE_CHEVRON_LIGHT} />
               </TouchableOpacity>
             ))}
 
             <TouchableOpacity
-              style={[
-                styles.pdfRow,
-                isDark && styles.pdfRowDark,
-                styles.digitalWorkbookRow,
-              ]}
+              style={[styles.pdfRow, styles.digitalWorkbookRow]}
               activeOpacity={0.7}
               onPress={() => openDigitalWorkbook(slug)}
               accessibilityRole="button"
               accessibilityLabel={`Open module ${def.moduleNumber} digital workbook for ${def.title}`}
             >
-              <BookOpen
-                size={20}
-                color={isDark ? MODULE_ICON_DARK : MODULE_ICON_LIGHT}
-              />
+              <BookOpen size={20} color={MODULE_ICON_LIGHT} />
               <View style={styles.workbookRowText}>
                 <Text
-                  style={[
-                    styles.pdfTitle,
-                    { color: isDark ? MODULE_INK_DARK : MODULE_INK_LIGHT },
-                  ]}
+                  style={[styles.pdfTitle, { color: MODULE_INK_LIGHT }]}
                   numberOfLines={2}
                 >
                   {def.title} Workbook
                 </Text>
                 <Text
-                  style={[
-                    styles.workbookRowHint,
-                    { color: isDark ? MODULE_MUTED_DARK : MODULE_MUTED_LIGHT },
-                  ]}
+                  style={[styles.workbookRowHint, { color: MODULE_MUTED_LIGHT }]}
                   numberOfLines={2}
                 >
                   Module {def.moduleNumber} digital workbook
@@ -172,7 +129,7 @@ export default function WorksheetsScreen() {
               </View>
               <ChevronRight
                 size={18}
-                color={isDark ? MODULE_CHEVRON_DARK : MODULE_CHEVRON_LIGHT}
+                color={MODULE_CHEVRON_LIGHT}
                 style={styles.workbookRowChevron}
               />
             </TouchableOpacity>
@@ -207,9 +164,6 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 4 },
     }),
-  },
-  moduleCardDark: {
-    backgroundColor: "#1E1E32",
   },
   moduleCardHeader: {
     flexDirection: "row",
@@ -263,9 +217,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontFamily: AppFonts.bodyRegular,
-  },
-  pdfRowDark: {
-    backgroundColor: "#262940",
   },
   digitalWorkbookRow: {
     alignItems: "flex-start",

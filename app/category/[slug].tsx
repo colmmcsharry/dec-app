@@ -13,6 +13,7 @@ import { MODULE_WORKBOOKS } from '@/data/module-workbooks';
 import { MODULE_PDFS, type PdfEntry } from '@/data/pdf-assets';
 import { hrefModuleDigitalWorkbook } from '@/lib/module-workbook-route';
 import { AppFonts } from '@/constants/theme';
+import { pastelBoxStyle } from '@/constants/pastel-accents';
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -264,6 +265,48 @@ export default function CategoryScreen() {
             </Pressable>
           </View>
         )}
+
+        {slug === "recovery" && (
+          <View style={styles.resourcesCalloutWrap}>
+            <View
+              style={[
+                styles.resourcesCalloutCard,
+                pastelBoxStyle("blue", isDark),
+              ]}
+            >
+              <Text style={[styles.resourcesCalloutTitle, isDark && styles.textDark]}>
+                Gym Routines & Strength Targets
+              </Text>
+              <Text style={[styles.resourcesCalloutBody, isDark && styles.subtextDark]}>
+                You&apos;ll also find gym routines and strength & fitness targets in
+                the Resources section — useful if you want structured programmes to
+                follow or benchmark numbers to aim for.
+              </Text>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.resourcesCalloutLink,
+                  { opacity: pressed ? 0.75 : 1 },
+                ]}
+                onPress={() => router.push("/(tabs)/resources")}
+                accessibilityRole="link"
+                accessibilityLabel="Go to Resources"
+              >
+                <Text
+                  style={[
+                    styles.resourcesCalloutLinkText,
+                    isDark && styles.resourcesCalloutLinkTextDark,
+                  ]}
+                >
+                  Go to Resources
+                </Text>
+                <ChevronRight
+                  size={16}
+                  color={isDark ? "#B7A8E0" : "#7187CE"}
+                />
+              </Pressable>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </>
   );
@@ -394,6 +437,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
     marginTop: 4,
+  },
+  resourcesCalloutWrap: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  resourcesCalloutCard: {
+    borderRadius: 16,
+    padding: 20,
+  },
+  resourcesCalloutTitle: {
+    fontSize: 18,
+    fontFamily: AppFonts.headingSemiBold,
+    color: '#2C3E50',
+    marginBottom: 8,
+  },
+  resourcesCalloutBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontFamily: AppFonts.bodyRegular,
+    color: '#6B7280',
+  },
+  resourcesCalloutLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 14,
+    alignSelf: 'flex-start',
+  },
+  resourcesCalloutLinkText: {
+    fontSize: 15,
+    fontFamily: AppFonts.bodyMedium,
+    color: '#7187CE',
+    textDecorationLine: 'underline',
+  },
+  resourcesCalloutLinkTextDark: {
+    color: '#B7A8E0',
   },
   moduleResourcesWrap: {
     paddingHorizontal: 20,
