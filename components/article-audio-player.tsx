@@ -68,15 +68,12 @@ export function ArticleAudioPlayer({
   useEffect(() => {
     void Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
-      staysActiveInBackground: true,
+      staysActiveInBackground: false,
     });
 
     return () => {
       void soundRef.current?.unloadAsync();
       soundRef.current = null;
-      void Audio.setAudioModeAsync({
-        staysActiveInBackground: false,
-      });
     };
   }, []);
 
