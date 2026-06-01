@@ -5,11 +5,11 @@ import { Pause, Play } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { RectButton } from "react-native-gesture-handler";
 
 type ArticleAudioPlayerProps = {
   title: string;
@@ -31,7 +31,9 @@ export function ArticleAudioPlayer({
   isDark,
 }: ArticleAudioPlayerProps) {
   const soundRef = useRef<Audio.Sound | null>(null);
+  const loadPromiseRef = useRef<Promise<Audio.Sound | null> | null>(null);
   const [loading, setLoading] = useState(false);
+  const [startingPlayback, setStartingPlayback] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
@@ -44,6 +46,7 @@ export function ArticleAudioPlayer({
     if (!status.isLoaded) {
       if (status.error) {
         setError("Could not play this episode.");
+        setStartingPlayback(false);
       }
       return;
     }
@@ -51,9 +54,13 @@ export function ArticleAudioPlayer({
     setPositionMs(status.positionMillis);
     setDurationMs(status.durationMillis ?? 0);
     setPlaying(status.isPlaying);
+    if (status.isPlaying) {
+      setStartingPlayback(false);
+    }
 
     if (status.didJustFinish) {
       setPlaying(false);
+      setStartingPlayback(false);
       setPositionMs(status.durationMillis ?? 0);
     }
   }, []);
@@ -80,49 +87,82 @@ export function ArticleAudioPlayer({
       return null;
     }
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: false },
-        onPlaybackStatusUpdate,
-      );
-      soundRef.current = sound;
-      return sound;
-    } catch {
-      setError("Could not load this episode. Check your connection or try again later.");
-      return null;
-    } finally {
-      setLoading(false);
+    if (loadPromiseRef.current) {
+      return loadPromiseRef.current;
     }
+
+    loadPromiseRef.current = (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri },
+          { shouldPlay: false },
+          onPlaybackStatusUpdate,
+        );
+        soundRef.current = sound;
+        return sound;
+      } catch {
+        setError(
+          "Could not load this episode. Check your connection or try again later.",
+        );
+        return null;
+      } finally {
+        setLoading(false);
+        loadPromiseRef.current = null;
+      }
+    })();
+
+    return loadPromiseRef.current;
   }, [mediaReady, onPlaybackStatusUpdate, uri]);
 
-  const togglePlayback = async () => {
+  const togglePlayback = useCallback(async () => {
+    if (!mediaReady) return;
+
+    if (soundRef.current) {
+      const currentStatus = await soundRef.current.getStatusAsync();
+      if (currentStatus.isLoaded && currentStatus.isPlaying) {
+        setStartingPlayback(false);
+        await soundRef.current.pauseAsync();
+        return;
+      }
+    }
+
+    setStartingPlayback(true);
+    setError(null);
+
     const sound = await ensureSound();
-    if (!sound) return;
-
-    const status = await sound.getStatusAsync();
-    if (!status.isLoaded) return;
-
-    if (status.isPlaying) {
-      await sound.pauseAsync();
+    if (!sound) {
+      setStartingPlayback(false);
       return;
     }
 
-    if (
-      status.durationMillis != null &&
-      status.positionMillis >= status.durationMillis - 500
-    ) {
-      await sound.setPositionAsync(0);
+    const status = await sound.getStatusAsync();
+    if (!status.isLoaded) {
+      setStartingPlayback(false);
+      return;
     }
 
-    await sound.playAsync();
-  };
+    try {
+      if (
+        status.durationMillis != null &&
+        status.positionMillis >= status.durationMillis - 500
+      ) {
+        await sound.setPositionAsync(0);
+      }
+
+      await sound.playAsync();
+    } catch {
+      setStartingPlayback(false);
+      setError("Could not play this episode.");
+    }
+  }, [ensureSound, mediaReady]);
 
   const progress =
     durationMs > 0 ? Math.min(1, positionMs / durationMs) : 0;
+  const showSpinner = loading;
+  const showPause = playing || startingPlayback;
 
   return (
     <View
@@ -143,24 +183,28 @@ export function ArticleAudioPlayer({
         <Text style={styles.errorText}>{error}</Text>
       ) : (
         <View style={styles.controlsRow}>
-          <Pressable
+          <RectButton
             onPress={() => void togglePlayback()}
-            disabled={loading || !mediaReady}
-            style={({ pressed }) => [
+            enabled={mediaReady}
+            style={[
               styles.playButton,
-              { opacity: pressed ? 0.85 : loading || !mediaReady ? 0.5 : 1 },
+              !mediaReady && styles.playButtonDisabled,
             ]}
+            underlayColor="rgba(255,255,255,0.18)"
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             accessibilityRole="button"
-            accessibilityLabel={playing ? "Pause podcast" : "Play podcast"}
+            accessibilityLabel={showPause ? "Pause podcast" : "Play podcast"}
           >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : playing ? (
-              <Pause size={22} color="#FFFFFF" fill="#FFFFFF" />
-            ) : (
-              <Play size={22} color="#FFFFFF" fill="#FFFFFF" />
-            )}
-          </Pressable>
+            <View pointerEvents="none" style={styles.playButtonInner}>
+              {showSpinner ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : showPause ? (
+                <Pause size={22} color="#FFFFFF" fill="#FFFFFF" />
+              ) : (
+                <Play size={22} color="#FFFFFF" fill="#FFFFFF" />
+              )}
+            </View>
+          </RectButton>
 
           <View style={styles.progressWrap}>
             <View
@@ -233,6 +277,13 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     backgroundColor: MAIN_PURPLE,
+    overflow: "hidden",
+  },
+  playButtonDisabled: {
+    opacity: 0.5,
+  },
+  playButtonInner: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -96,34 +96,37 @@ function WhoAmISection({
         ]}
       />
       <View style={styles.cardInner}>
-        <Text
-          style={[styles.sectionEyebrow, isDark && styles.sectionEyebrowDark]}
-        >
-          Background
+        <Text style={[styles.heroEyebrow, isDark && styles.heroEyebrowDark]}>
+          About
         </Text>
+        <View style={styles.heroSection}>
+          <Image
+            source={require("@/assets/images/about/declan.png")}
+            style={[styles.heroImage, isDark && styles.heroImageDark]}
+            resizeMode="cover"
+          />
+          <Text style={[styles.heroName, isDark && styles.textDark]}>
+            Declan Treanor
+          </Text>
+          <Text
+            style={[styles.heroTagline, isDark && styles.heroTaglineDark]}
+          >
+            aka Performance Treanor
+          </Text>
+        </View>
         <Text
-          style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
+          style={[
+            styles.bodyText,
+            styles.heroMissionText,
+            isDark && styles.bodyTextDark,
+          ]}
         >
-          So who am I?
+          I want to help people get the best out of themselves.
         </Text>
+
         <Accordion.Accordion>
           <Accordion.Header>
-            <BioCollage />
             <Accordion.Collapsed>
-              <Text
-                style={[
-                  styles.bodyText,
-                  styles.bodyTextAfterPhoto,
-                  isDark && styles.bodyTextDark,
-                ]}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                Residing in Dublin, Ireland, I am happily married, a father and
-                a REPs accredited (Register of Exercise Professionals), fully
-                qualified Personal Trainer. This qualification includes a national
-                certificate in Nutrition for Physical Activity.
-              </Text>
               <View style={styles.bioToggleRow} pointerEvents="none">
                 <Text style={toggleTextStyle}>Read More</Text>
                 <ChevronDown
@@ -134,6 +137,26 @@ function WhoAmISection({
               </View>
             </Accordion.Collapsed>
             <Accordion.Expanded>
+              <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
+                This app is the culmination of my 10 years of experience in the
+                field of psychology and performance, working with high performers
+                and average Joes and Janes.
+              </Text>
+              <Text
+                style={[
+                  styles.sectionEyebrow,
+                  styles.bioExpandedEyebrow,
+                  isDark && styles.sectionEyebrowDark,
+                ]}
+              >
+                Background
+              </Text>
+              <Text
+                style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
+              >
+                So who am I?
+              </Text>
+              <BioCollage />
               <Text
                 style={[
                   styles.bodyText,
@@ -511,57 +534,10 @@ export default function AboutScreen() {
     >
       <PremiumStatusBanner isDark={isDark} isPremium={isPremium} />
 
-      {/* Hero */}
-      <View
-        style={[
-          styles.heroCard,
-          isDark && styles.cardDark,
-          styles.cardShell,
-          isDark && styles.cardShellDark,
-          { borderTopColor: defaultAccentBarColor },
-        ]}
-      >
-        <View
-          style={[
-            styles.cardAccentBar,
-            { backgroundColor: defaultAccentBarColor },
-          ]}
-        />
-        <View style={styles.cardInner}>
-          <Text style={[styles.heroEyebrow, isDark && styles.heroEyebrowDark]}>
-            About
-          </Text>
-          <View style={styles.heroSection}>
-            <Image
-              source={require("@/assets/images/about/declan.png")}
-              style={[styles.heroImage, isDark && styles.heroImageDark]}
-              resizeMode="cover"
-            />
-            <Text style={[styles.heroName, isDark && styles.textDark]}>
-              Declan Treanor
-            </Text>
-            <Text
-              style={[styles.heroTagline, isDark && styles.heroTaglineDark]}
-            >
-              aka Performance Treanor
-            </Text>
-          </View>
-          <Text
-            style={[
-              styles.bodyText,
-              styles.heroMissionText,
-              isDark && styles.bodyTextDark,
-            ]}
-          >
-            I want to help people get the best out of themselves.
-          </Text>
-          <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-            This app is the culmination of my 10 years of experience in the
-            field of psychology and performance, working with high performers
-            and average Joes and Janes.
-          </Text>
-        </View>
-      </View>
+      <WhoAmISection
+        isDark={isDark}
+        defaultAccentBarColor={defaultAccentBarColor}
+      />
 
       {/* Leave a review */}
       <View
@@ -612,11 +588,6 @@ export default function AboutScreen() {
           </Pressable>
         </View>
       </View>
-
-      <WhoAmISection
-        isDark={isDark}
-        defaultAccentBarColor={defaultAccentBarColor}
-      />
 
       <Accordion.Sibling>
       {/* Before / After */}
@@ -848,10 +819,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#1E1E32",
   },
 
-  heroCard: {
-    backgroundColor: "#FFFFFF",
-    marginBottom: 20,
-  },
   heroEyebrow: {
     fontSize: 11,
     fontFamily: AppFonts.headingBold,
@@ -951,6 +918,9 @@ const styles = StyleSheet.create({
   },
   sectionEyebrowDark: {
     color: "#B7A8E0",
+  },
+  bioExpandedEyebrow: {
+    marginTop: 20,
   },
   testimonialsEyebrow: {
     marginTop: 4,
