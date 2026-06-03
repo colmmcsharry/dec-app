@@ -11,6 +11,7 @@ import {
   hasProEntitlement,
 } from "@/services/purchases";
 import { useIsFocused } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import { ChevronDown, ChevronUp, Crown, Lock, Star, X } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -192,11 +193,6 @@ function WhoAmISection({
 
         {expanded ? (
           <>
-            <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-              This app is the culmination of my 10 years of experience in the
-              field of psychology and performance, working with high performers
-              and average Joes and Janes.
-            </Text>
             <Text
               style={[
                 styles.sectionEyebrow,
@@ -263,6 +259,11 @@ function WhoAmISection({
               Having suffered the debilitating effects of performance anxiety
               particularly in the field of sport I feel it important to share
               information that can help others through such issues.
+            </Text>
+            <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
+              This app is the culmination of my 10 years of experience in the
+              field of psychology and performance, working with high performers
+              and average Joes and Janes.
             </Text>
             <Text
               style={[styles.closingText, isDark && styles.closingTextDark]}
@@ -487,6 +488,7 @@ function PremiumStatusBanner({
   isPremium: boolean | null;
 }) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   if (isPremium === null) return null;
 
@@ -495,19 +497,33 @@ function PremiumStatusBanner({
     ? "You are on the Premium version"
     : "You are on the Basic version";
 
+  const openPaywall = () => {
+    router.push({
+      pathname: "/paywall-placeholder",
+      params: { preview: "1" },
+    });
+  };
+
   return (
     <View style={{ paddingTop: insets.top + 8, marginBottom: 20 }}>
-      <View
-        style={[
+      <Pressable
+        onPress={active ? undefined : openPaywall}
+        disabled={active}
+        style={({ pressed }) => [
           styles.premiumBanner,
           active ? styles.premiumBannerActive : styles.premiumBannerFree,
           isDark &&
             (active
               ? styles.premiumBannerActiveDark
               : styles.premiumBannerFreeDark),
+          !active && pressed && { opacity: 0.92 },
         ]}
-        accessibilityRole="text"
-        accessibilityLabel={title}
+        accessibilityRole={active ? "text" : "button"}
+        accessibilityLabel={
+          active
+            ? title
+            : `${title}. View subscription options.`
+        }
       >
         <View style={styles.premiumBannerText}>
           <View style={styles.premiumBannerTitleRow}>
@@ -545,8 +561,13 @@ function PremiumStatusBanner({
               ? "Full access to all modules, videos, and workbooks."
               : "Upgrade to Premium to unlock all modules, videos, and workbooks."}
           </Text>
+          {!active ? (
+            <View style={styles.viewAllButton}>
+              <Text style={styles.viewAllButtonText}>View subscription options</Text>
+            </View>
+          ) : null}
         </View>
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -806,7 +827,7 @@ const styles = StyleSheet.create({
     color: "#AEB3C4",
   },
   viewAllButton: {
-    marginTop: 4,
+    marginTop: 12,
     backgroundColor: MAIN_PURPLE,
     borderRadius: 12,
     paddingVertical: 14,
@@ -910,6 +931,7 @@ const styles = StyleSheet.create({
   },
   heroMissionText: {
     marginTop: 24,
+    marginBottom: 4,
   },
 
   section: {
@@ -994,11 +1016,12 @@ const styles = StyleSheet.create({
   bioToggleButton: {
     alignSelf: "flex-start",
     borderRadius: 8,
-    marginTop: 10,
+    marginTop: 2,
+    marginBottom: 0,
     marginLeft: -8,
-    paddingVertical: 14,
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    minHeight: 48,
+    minHeight: 40,
     justifyContent: "center",
   },
   bioToggleButtonPressed: {

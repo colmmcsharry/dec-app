@@ -2,7 +2,7 @@
   "expo": {
     "name": "Daily Diesel",
     "slug": "daily-diesel",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "orientation": "portrait",
     "icon": "./assets/images/logo-square.png",
     "scheme": "dailydiesel",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "14",
+      "buildNumber": "15",
       "bundleIdentifier": "com.colmmcs.dailydiesel",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.colmmcs.dailydiesel",
-      "versionCode": 9,
+      "versionCode": 10,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo-square.png",
         "backgroundColor": "#A8B5E0"
