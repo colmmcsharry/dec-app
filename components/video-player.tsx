@@ -1,6 +1,5 @@
-import { Maximize2 } from "lucide-react-native";
-import React, { useMemo, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useMemo } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 interface VideoPlayerProps {
@@ -56,23 +55,17 @@ function buildPlayerHtml(embedUrl: string) {
 <body>
   <div id="player"></div>
   <script>
-    var player = new Vimeo.Player("player", {
+    new Vimeo.Player("player", {
       url: "${safeUrl}",
       responsive: true,
       dnt: true,
     });
-
-    window.enterVideoFullscreen = function () {
-      player.requestFullscreen().catch(function () {});
-    };
   </script>
 </body>
 </html>`;
 }
 
 export const VideoPlayer = ({ videoUrl, title }: VideoPlayerProps) => {
-  const webViewRef = useRef<WebView>(null);
-
   if (!videoUrl || videoUrl.trim() === "") {
     return (
       <View style={styles.container}>
@@ -86,17 +79,9 @@ export const VideoPlayer = ({ videoUrl, title }: VideoPlayerProps) => {
   const embedUrl = useMemo(() => buildVimeoEmbedUrl(videoUrl), [videoUrl]);
   const html = useMemo(() => buildPlayerHtml(embedUrl), [embedUrl]);
 
-  const enterFullscreen = () => {
-    webViewRef.current?.injectJavaScript(`
-      window.enterVideoFullscreen && window.enterVideoFullscreen();
-      true;
-    `);
-  };
-
   return (
     <View style={styles.container} accessibilityLabel={title ?? "Video player"}>
       <WebView
-        ref={webViewRef}
         style={styles.video}
         source={{ html }}
         allowsInlineMediaPlayback
@@ -105,18 +90,6 @@ export const VideoPlayer = ({ videoUrl, title }: VideoPlayerProps) => {
         javaScriptEnabled
         domStorageEnabled
       />
-      <Pressable
-        onPress={enterFullscreen}
-        hitSlop={8}
-        style={({ pressed }) => [
-          styles.fullscreenButton,
-          { opacity: pressed ? 0.75 : 1 },
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel="Enter full screen"
-      >
-        <Maximize2 size={18} color="#FFFFFF" strokeWidth={2.2} />
-      </Pressable>
     </View>
   );
 };
@@ -133,18 +106,6 @@ const styles = StyleSheet.create({
   video: {
     width: "100%",
     height: "100%",
-  },
-  fullscreenButton: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(30, 36, 48, 0.72)",
-    zIndex: 2,
   },
   errorContainer: {
     ...StyleSheet.absoluteFillObject,

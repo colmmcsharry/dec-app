@@ -28,7 +28,7 @@ import {
   View,
   type ImageSourcePropType,
 } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
+import { ScrollView, RectButton } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Matches digital workbook body copy (`app/module-workbook/[slug].tsx`). */
@@ -64,12 +64,9 @@ function BioCollage() {
   );
 }
 
-const BIO_TOGGLE_PRESS_RETENTION = {
-  top: 28,
-  bottom: 28,
-  left: 28,
-  right: 28,
-};
+const BIO_TOGGLE_HIT_SLOP = { top: 16, bottom: 16, left: 8, right: 32 };
+/** Wide enough for "Read More" + chevron so "See Less" shares the same tap target. */
+const BIO_TOGGLE_MIN_WIDTH = 132;
 
 function BioToggleButton({
   label,
@@ -91,21 +88,19 @@ function BioToggleButton({
   ];
 
   return (
-    <Pressable
+    <RectButton
       onPress={onPress}
-      pressRetentionOffset={BIO_TOGGLE_PRESS_RETENTION}
-      style={({ pressed }) => [
-        styles.bioToggleButton,
-        pressed && styles.bioToggleButtonPressed,
-      ]}
+      style={styles.bioToggleButton}
+      underlayColor={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"}
+      hitSlop={BIO_TOGGLE_HIT_SLOP}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
     >
-      <View style={styles.bioToggleRow}>
+      <View pointerEvents="none" style={styles.bioToggleRow}>
         <Text style={toggleTextStyle}>{label}</Text>
         <Icon size={20} color={toggleColor} strokeWidth={2.5} />
       </View>
-    </Pressable>
+    </RectButton>
   );
 }
 
@@ -498,10 +493,7 @@ function PremiumStatusBanner({
     : "You are on the Basic version";
 
   const openPaywall = () => {
-    router.push({
-      pathname: "/paywall-placeholder",
-      params: { preview: "1" },
-    });
+    router.push("/paywall-placeholder");
   };
 
   return (
@@ -1018,14 +1010,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 2,
     marginBottom: 0,
-    marginLeft: -8,
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    minHeight: 40,
+    minHeight: 44,
+    minWidth: BIO_TOGGLE_MIN_WIDTH,
     justifyContent: "center",
-  },
-  bioToggleButtonPressed: {
-    opacity: 0.65,
   },
   bioToggleText: {
     fontFamily: AppFonts.bodyBold,

@@ -1,5 +1,5 @@
 import { MainTabHeader, ThemeToggle } from "@/components/main-tab-header";
-import { PageHeading } from "@/components/page-heading";
+import { PremiumCrownButton } from "@/components/premium-crown-button";
 import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -19,10 +19,11 @@ import DateTimePicker, {
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Flame, Maximize2 } from "lucide-react-native";
+import { Crown, Flame, Maximize2 } from "lucide-react-native";
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Image,
   ImageBackground,
   Modal,
   Platform,
@@ -35,6 +36,8 @@ import {
 } from "react-native";
 import { RectButton } from "react-native-gesture-handler";
 import Svg, { Circle } from "react-native-svg";
+
+const APP_LOGO = require("@/assets/images/icon-transparent.png");
 
 interface CategoryCardProps {
   title: string;
@@ -328,17 +331,31 @@ export default function HomeScreen() {
   }, [scheduleAt]);
 
   return (
-    <ScrollView
-      style={[styles.container, isDark && styles.containerDark]}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <MainTabHeader />
-      <PageHeading
-        title="Mind • Body • Soul"
-        subtitle="Your holistic journey to peak performance"
-        trailing={<ThemeToggle />}
-      />
+    <View style={[styles.container, isDark && styles.containerDark]}>
+      <View style={styles.headerSection}>
+        <MainTabHeader />
+        <View style={styles.homeHeader}>
+          <Image
+            source={APP_LOGO}
+            style={styles.homeLogo}
+            resizeMode="contain"
+            accessibilityLabel="Daily Diesel logo"
+          />
+          <View style={styles.headerActions}>
+            <View style={styles.crownButtonWrap}>
+              <PremiumCrownButton />
+            </View>
+            <ThemeToggle />
+          </View>
+        </View>
+      </View>
 
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="always"
+        showsVerticalScrollIndicator={false}
+      >
       {/* Daily Diesel Quote Card — scenic image (cover, no stretch), white text */}
       <View style={styles.dieselCardOuter}>
         <ImageBackground
@@ -485,9 +502,17 @@ export default function HomeScreen() {
       </Modal>
 
       {/* Modules Title */}
-      <Text style={[styles.modulesTitle, isDark && styles.modulesTitleDark]}>
-        Modules
-      </Text>
+      <View style={styles.modulesTitleRow}>
+        <Text style={[styles.modulesTitle, isDark && styles.modulesTitleDark]}>
+          Modules
+        </Text>
+        <Crown
+          size={18}
+          color={isDark ? "#C4B5E8" : MAIN_PURPLE}
+          strokeWidth={2.2}
+          accessibilityLabel="Premium content"
+        />
+      </View>
 
       {/* Overall Progress */}
       {(() => {
@@ -581,7 +606,8 @@ export default function HomeScreen() {
           );
         })}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -593,9 +619,36 @@ const styles = StyleSheet.create({
   containerDark: {
     backgroundColor: "#121222",
   },
-  contentContainer: {
-    padding: 20,
+  headerSection: {
+    paddingHorizontal: 20,
     paddingTop: 8,
+  },
+  scroll: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  homeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    gap: 12,
+  },
+  homeLogo: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 24,
+  },
+  crownButtonWrap: {
+    marginLeft: -10,
   },
   grid: {
     flexDirection: "row",
@@ -682,13 +735,18 @@ const styles = StyleSheet.create({
       : {}),
   },
 
+  modulesTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 14,
+    marginLeft: 4,
+  },
   modulesTitle: {
     fontSize: 22,
     fontFamily: AppFonts.headingBold,
     color: "#2C3E50",
-    marginTop: 8,
-    marginBottom: 14,
-    marginLeft: 4,
   },
   modulesTitleDark: {
     color: "#ECEDEE",

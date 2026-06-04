@@ -1,5 +1,6 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { setOnboardingComplete } from "@/services/onboarding-storage";
+import { hasProEntitlement } from "@/services/purchases";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Activity,
@@ -477,6 +478,20 @@ export default function OnboardingScreen() {
   const [progressActive, setProgressActive] = useState(false);
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (isPreview) return;
+    let cancelled = false;
+    void (async () => {
+      const pro = await hasProEntitlement();
+      if (cancelled || !pro) return;
+      void setOnboardingComplete();
+      router.replace("/(tabs)");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isPreview, router]);
+
   const toggleGoal = useCallback((id: string) => {
     setSelectedGoals((prev) =>
       prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id],
@@ -488,19 +503,29 @@ export default function OnboardingScreen() {
     currentSlideId === "goals" && selectedGoals.length === 0;
 
   const goPaywall = useCallback(() => {
-    // Navigate first, persist later. AsyncStorage writes can take 500ms+ on
-    // real devices (especially fresh installs) and awaiting that before
-    // navigation makes the Continue button feel broken — users tap multiple
-    // times. The paywall route also calls setOnboardingComplete() defensively
-    // when its dismiss path runs, so this fire-and-forget is safe even if it
-    // hasn't finished by the time the paywall is dismissed.
-    router.replace({
-      pathname: "/paywall-placeholder",
-      params: isPreview ? { preview: "1" } : {},
-    });
-    if (!isPreview) {
-      void setOnboardingComplete();
-    }
+    void (async () => {
+      if (!isPreview) {
+        const pro = await hasProEntitlement();
+        if (pro) {
+          void setOnboardingComplete();
+          router.replace("/(tabs)");
+          return;
+        }
+      }
+      // Navigate first, persist later. AsyncStorage writes can take 500ms+ on
+      // real devices (especially fresh installs) and awaiting that before
+      // navigation makes the Continue button feel broken — users tap multiple
+      // times. The paywall route also calls setOnboardingComplete() defensively
+      // when its dismiss path runs, so this fire-and-forget is safe even if it
+      // hasn't finished by the time the paywall is dismissed.
+      router.replace({
+        pathname: "/paywall-placeholder",
+        params: isPreview ? { preview: "1" } : {},
+      });
+      if (!isPreview) {
+        void setOnboardingComplete();
+      }
+    })();
   }, [router, isPreview]);
 
   const skip = useCallback(() => {

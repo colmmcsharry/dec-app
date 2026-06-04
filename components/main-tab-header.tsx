@@ -1,3 +1,4 @@
+import { MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { Moon, Sun } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
@@ -19,9 +20,9 @@ export function ThemeToggle() {
     >
       <View pointerEvents="none">
         {isDark ? (
-          <Sun size={22} color="#FDB813" strokeWidth={2.5} />
+          <Sun size={22} color="#C4B5E8" strokeWidth={2.5} />
         ) : (
-          <Moon size={22} color="#6B5B8C" strokeWidth={2.5} />
+          <Moon size={22} color={MAIN_PURPLE} strokeWidth={2.5} />
         )}
       </View>
     </TouchableOpacity>

@@ -33,6 +33,8 @@ export default function PaywallScreen() {
   const isPreview = preview === "1" || preview === "true";
 
   const routedRef = useRef(false);
+  /** Pro entitlement when this paywall opened (after RC sync). */
+  const hadProAtOpenRef = useRef(false);
   const [snapshotReady, setSnapshotReady] = useState(isPreview);
   /** True while a native purchase/restore flow is in progress (started → completed/error/cancel). */
   const billingFlowActiveRef = useRef(false);
@@ -43,14 +45,24 @@ export default function PaywallScreen() {
     void (async () => {
       // Wait for RevenueCat's initial customer-info sync before mounting the
       // paywall UI so entitlement state is stable.
-      await hasProEntitlement();
+      const pro = await hasProEntitlement();
       if (cancelled) return;
+      hadProAtOpenRef.current = pro;
       setSnapshotReady(true);
     })();
     return () => {
       cancelled = true;
     };
   }, [isPreview]);
+
+  useEffect(() => {
+    if (!snapshotReady || isPreview || !hadProAtOpenRef.current) return;
+    if (routedRef.current) return;
+    routedRef.current = true;
+    log("already Pro when paywall opened — skipping to tabs");
+    void setOnboardingComplete();
+    router.replace("/(tabs)");
+  }, [isPreview, router, snapshotReady]);
 
   /**
    * Defer the navigation until *after* RC's paywall sheet has finished its
@@ -113,29 +125,56 @@ export default function PaywallScreen() {
     }
   }, [router]);
 
+  const finishBillingSuccess = useCallback(
+    async (fromBillingCallback = false) => {
+      const userInitiatedBilling =
+        billingFlowActiveRef.current || fromBillingCallback;
+      billingFlowActiveRef.current = false;
+
+      if (!userInitiatedBilling) {
+        log(
+          "purchase/restore completed callback without a started event — ignoring",
+        );
+        return;
+      }
+
+      const pro = await hasProEntitlement();
+      if (!pro) {
+        log(
+          "billing flow finished but Pro entitlement is inactive — not routing",
+        );
+        return;
+      }
+
+      if (hadProAtOpenRef.current) {
+        log(
+          "Pro was already active when paywall opened — closing without welcome",
+        );
+        goBackOrTabs();
+        return;
+      }
+
+      if (isPreview) {
+        if (routedRef.current) return;
+        routedRef.current = true;
+        router.back();
+        return;
+      }
+
+      goWelcome();
+    },
+    [goBackOrTabs, goWelcome, isPreview, router],
+  );
+
   const onPurchaseCompleted = useCallback(() => {
     log("onPurchaseCompleted");
-    billingFlowActiveRef.current = false;
-    if (isPreview) {
-      if (routedRef.current) return;
-      routedRef.current = true;
-      router.back();
-      return;
-    }
-    goWelcome();
-  }, [goWelcome, isPreview, router]);
+    void finishBillingSuccess(true);
+  }, [finishBillingSuccess]);
 
   const onRestoreCompleted = useCallback(() => {
     log("onRestoreCompleted");
-    billingFlowActiveRef.current = false;
-    if (isPreview) {
-      if (routedRef.current) return;
-      routedRef.current = true;
-      router.back();
-      return;
-    }
-    goWelcome();
-  }, [goWelcome, isPreview, router]);
+    void finishBillingSuccess(true);
+  }, [finishBillingSuccess]);
 
   const onPurchaseStarted = useCallback(() => {
     log("onPurchaseStarted");
