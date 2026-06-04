@@ -1,6 +1,6 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
+import { isTestFlightInstall } from "@/lib/is-testflight-install";
 import { resetSubscriptionAndOnboardingForTestFlight } from "@/services/purchases";
-import { isTestFlight } from "expo-testflight";
 import { RotateCcw } from "lucide-react-native";
 import { useState } from "react";
 import { Alert, Platform, StyleSheet, Text, View } from "react-native";
@@ -13,7 +13,7 @@ import { RectButton } from "react-native-gesture-handler";
 export function TestFlightResetSection({ isDark }: { isDark: boolean }) {
   const [busy, setBusy] = useState(false);
 
-  if (__DEV__ || Platform.OS !== "ios" || !isTestFlight) {
+  if (__DEV__ || Platform.OS !== "ios" || !isTestFlightInstall()) {
     return null;
   }
 

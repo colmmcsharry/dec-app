@@ -11,7 +11,6 @@ import { useTheme } from "@/context/theme-context";
 import { getFeaturedArticle, getFeaturedPodcast } from "@/data/articles";
 import { getFeaturedDownload } from "@/data/downloads";
 import { getFeaturedGymRoutine } from "@/data/gym-routines";
-import { getGymRoutineGuideRoute } from "@/lib/gym-routine-route";
 import { requirePro } from "@/services/purchases";
 import { useRouter } from "expo-router";
 import {
@@ -144,30 +143,6 @@ export default function ResourcesScreen() {
   const featuredPodcast = getFeaturedPodcast();
   const featuredGymRoutine = getFeaturedGymRoutine();
 
-  const openDownload = async (id: string, title: string) => {
-    if (!(await requirePro())) return;
-    router.push({
-      pathname: "/pdf-viewer",
-      params: { pdfKey: id, title },
-    });
-  };
-
-  const openArticle = async (slug: string) => {
-    if (!(await requirePro())) return;
-    router.push({
-      pathname: "/article/[slug]",
-      params: { slug },
-    });
-  };
-
-  const openGymRoutine = async (id: string) => {
-    if (!(await requirePro())) return;
-    router.push({
-      pathname: getGymRoutineGuideRoute(id),
-      params: { id },
-    });
-  };
-
   const openStrengthTargets = async () => {
     if (!(await requirePro())) return;
     router.push("/strength-fitness-targets");
@@ -177,6 +152,22 @@ export default function ResourcesScreen() {
     if (!(await requirePro())) return;
     router.push("/hiit-workouts");
   };
+
+  const openDownloads = () => router.push("/downloads");
+
+  const openArticles = () =>
+    router.push({
+      pathname: "/articles",
+      params: { kind: "article" },
+    });
+
+  const openPodcasts = () =>
+    router.push({
+      pathname: "/articles",
+      params: { kind: "podcast" },
+    });
+
+  const openGymRoutines = () => router.push("/gym-routines");
 
   return (
     <ScrollView
@@ -196,14 +187,12 @@ export default function ResourcesScreen() {
         eyebrow="Latest Download"
         isDark={isDark}
         viewAllLabel="View All Downloads"
-        onViewAll={() => router.push("/downloads")}
+        onViewAll={openDownloads}
       >
         <DownloadListCard
           download={featuredDownload}
           isDark={isDark}
-          onPress={() =>
-            void openDownload(featuredDownload.id, featuredDownload.title)
-          }
+          onPress={openDownloads}
         />
       </FeatureSection>
 
@@ -215,17 +204,12 @@ export default function ResourcesScreen() {
           eyebrow="Latest Article"
           isDark={isDark}
           viewAllLabel="View All Articles"
-          onViewAll={() =>
-            router.push({
-              pathname: "/articles",
-              params: { kind: "article" },
-            })
-          }
+          onViewAll={openArticles}
         >
           <ArticleListCard
             article={featuredArticle}
             isDark={isDark}
-            onPress={() => void openArticle(featuredArticle.slug)}
+            onPress={openArticles}
           />
         </FeatureSection>
       ) : null}
@@ -238,17 +222,12 @@ export default function ResourcesScreen() {
           eyebrow="Latest Podcast"
           isDark={isDark}
           viewAllLabel="View All Podcasts"
-          onViewAll={() =>
-            router.push({
-              pathname: "/articles",
-              params: { kind: "podcast" },
-            })
-          }
+          onViewAll={openPodcasts}
         >
           <ArticleListCard
             article={featuredPodcast}
             isDark={isDark}
-            onPress={() => void openArticle(featuredPodcast.slug)}
+            onPress={openPodcasts}
           />
         </FeatureSection>
       ) : null}
@@ -260,12 +239,12 @@ export default function ResourcesScreen() {
         eyebrow="Beginner Strength"
         isDark={isDark}
         viewAllLabel="View All Gym Routines"
-        onViewAll={() => router.push("/gym-routines")}
+        onViewAll={openGymRoutines}
       >
         <GymRoutineCard
           routine={featuredGymRoutine}
           isDark={isDark}
-          onPress={() => void openGymRoutine(featuredGymRoutine.id)}
+          onPress={openGymRoutines}
         />
       </FeatureSection>
 
