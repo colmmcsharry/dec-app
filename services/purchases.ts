@@ -1,4 +1,5 @@
 import { PRO_ENTITLEMENT_ID } from "@/constants/revenuecat";
+import { clearOnboardingComplete } from "@/services/onboarding-storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { router } from "expo-router";
@@ -138,6 +139,31 @@ export async function requirePro(): Promise<boolean> {
  *
  * Returns an unsubscribe function.
  */
+/**
+ * TestFlight QA helper: clears onboarding and RevenueCat customer identity so
+ * the app re-runs first-launch routing. Does not remove App Store sandbox
+ * purchases tied to the device Apple ID — use a fresh sandbox account or clear
+ * sandbox purchase history in Settings if you need a truly free tier.
+ */
+export async function resetSubscriptionAndOnboardingForTestFlight(): Promise<void> {
+  await clearOnboardingComplete();
+
+  if (Platform.OS !== "web" && configurePurchases()) {
+    try {
+      const isAnonymous = await Purchases.isAnonymous();
+      if (!isAnonymous) {
+        await Purchases.logOut();
+      } else {
+        await Purchases.invalidateCustomerInfoCache();
+      }
+    } catch (e) {
+      console.warn("[Purchases] TestFlight reset failed", e);
+    }
+  }
+
+  router.replace("/");
+}
+
 export function addCustomerInfoListener(
   listener: (info: CustomerInfo) => void,
 ): () => void {

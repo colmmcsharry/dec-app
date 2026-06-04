@@ -107,6 +107,14 @@ function AppContent() {
           }}
         />
         <Stack.Screen
+          name="hiit-workouts"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
           name="two-day-beginner-guide"
           options={{
             headerShown: false,

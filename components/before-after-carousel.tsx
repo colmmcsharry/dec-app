@@ -16,11 +16,6 @@ const SLIDE_ASPECT_RATIO = 3 / 4;
 
 const TRANSFORMATION_SLIDES: TransformationSlide[] = [
   {
-    before: require("@/assets/images/about/roux-before.png"),
-    after: require("@/assets/images/about/roux-after.png"),
-    caption: "Rory, after 3 months",
-  },
-  {
     before: require("@/assets/images/about/dave-before.png"),
     after: require("@/assets/images/about/dave-after.png"),
     caption: "Dave, 3 months progress",
@@ -29,6 +24,11 @@ const TRANSFORMATION_SLIDES: TransformationSlide[] = [
     before: require("@/assets/images/about/claire-before.png"),
     after: require("@/assets/images/about/claire-after.png"),
     caption: "Claire, less than a year apart",
+  },
+  {
+    before: require("@/assets/images/about/roux-before.png"),
+    after: require("@/assets/images/about/roux-after.png"),
+    caption: "Rory, after 3 months",
   },
 ];
 

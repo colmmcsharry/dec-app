@@ -1,0 +1,33 @@
+---
+description: Reliable touch targets on iOS — avoid double-tap bugs with buttons, modals, and icons
+alwaysApply: true
+---
+
+# Reliable touch targets (Daily Diesel / React Native)
+
+iOS TestFlight builds have repeatedly failed when taps need 2+ presses. Follow this on **every new button, modal, overlay, or tappable image**.
+
+## Do
+
+- **Screen chrome** (back, header actions, scroll content): use `RectButton` from `react-native-gesture-handler` with `underlayColor`.
+- **Overlays that unmount on tap** (dismiss sheets, full-screen viewers): use React Native `Pressable`, not `RectButton` — RNGH can stay “stuck” after the overlay unmounts and block the page underneath.
+- **Never use React Native `Modal`** for in-app dismissible UI. Render a root-level `View` with `StyleSheet.absoluteFillObject`, high `zIndex`, and `backgroundColor` — see `PremiumStatusModal`, `FullscreenImageViewer`.
+- **Icons inside buttons**: wrap chevron/SVG/lucide in `<View pointerEvents="none">` so the parent button owns the full hit area (chevron + label).
+- **Centered header titles** next to buttons: `pointerEvents="none"` on title and spacer so they cannot steal taps.
+- **Minimum target**: 44–48pt height/width; add `hitSlop` on small controls.
+- **Shared back control**: use `ScreenBackButton` — do not hand-roll chevron + “Back”.
+- **Defer overlay unmount** one frame after close: `requestAnimationFrame(() => onClose())` so the press gesture finishes before the tree unmounts.
+
+## Don’t
+
+- Don’t put `RectButton` inside RN `Modal`.
+- Don’t nest tappable `Pressable`/`Image`/SVG without `pointerEvents="none"` on children.
+- Don’t use lucide/SVG as the only touch target without a wrapping button.
+
+## Quick checklist for new UI
+
+1. One parent button owns the whole tap area.
+2. Children use `pointerEvents="none"`.
+3. Overlays = absolute root view, not Modal.
+4. Overlay dismiss actions = `Pressable`; list/header/scroll taps = `RectButton` where needed.
+5. Test on device: open overlay → close → tap something immediately below (must work first tap).

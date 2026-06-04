@@ -1,6 +1,7 @@
 import { BeforeAfterCarousel } from "@/components/before-after-carousel";
 import { VideoTestimonialCarousel } from "@/components/video-testimonial-carousel";
 import { DevResetButton } from "@/components/dev-reset-button";
+import { TestFlightResetSection } from "@/components/testflight-reset-section";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { getPastelAccent, mixHex } from "@/constants/pastel-accents";
 import { useTheme } from "@/context/theme-context";
@@ -514,7 +515,7 @@ function PremiumStatusBanner({
         accessibilityLabel={
           active
             ? title
-            : `${title}. View subscription options.`
+            : `${title}. View Premium Plans.`
         }
       >
         <View style={styles.premiumBannerText}>
@@ -555,7 +556,8 @@ function PremiumStatusBanner({
           </Text>
           {!active ? (
             <View style={styles.viewAllButton}>
-              <Text style={styles.viewAllButtonText}>View subscription options</Text>
+              <Crown size={18} color="#FFFFFF" strokeWidth={2.2} />
+              <Text style={styles.viewAllButtonText}>View Premium Plans</Text>
             </View>
           ) : null}
         </View>
@@ -740,6 +742,8 @@ export default function AboutScreen() {
         </View>
       </View>
 
+      <TestFlightResetSection isDark={isDark} />
+
       <DevResetButton variant="inline" />
 
       <View style={{ height: 40 }} />
@@ -820,11 +824,14 @@ const styles = StyleSheet.create({
   },
   viewAllButton: {
     marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     backgroundColor: MAIN_PURPLE,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 20,
-    alignItems: "center",
   },
   viewAllButtonText: {
     fontFamily: AppFonts.bodyMedium,

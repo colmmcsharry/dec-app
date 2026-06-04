@@ -1,7 +1,8 @@
 import { AppFonts } from "@/constants/theme";
 import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { RectButton } from "react-native-gesture-handler";
 
 type ScreenBackButtonProps = {
   onPress?: () => void;
@@ -10,8 +11,8 @@ type ScreenBackButtonProps = {
 };
 
 /**
- * Wide "Back" control with expanded hit area — not a tiny chevron-only target.
- * Matches `app/video/[id].tsx` and `app/pdf-viewer.tsx`.
+ * Wide "Back" control — chevron + label share one RectButton target.
+ * Inner content uses pointerEvents="none" so SVG icons never steal taps.
  */
 export function ScreenBackButton({
   onPress,
@@ -21,13 +22,11 @@ export function ScreenBackButton({
   const router = useRouter();
 
   return (
-    <Pressable
+    <RectButton
       onPress={onPress ?? (() => router.back())}
-      hitSlop={16}
-      style={({ pressed }) => [
-        styles.button,
-        { opacity: pressed ? 0.65 : 1 },
-      ]}
+      hitSlop={{ top: 16, bottom: 16, left: 12, right: 24 }}
+      style={styles.button}
+      underlayColor="rgba(0,0,0,0.06)"
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
     >
@@ -35,25 +34,27 @@ export function ScreenBackButton({
         <ChevronLeft size={26} color={color} strokeWidth={2.5} />
         <Text style={[styles.label, { color }]}>Back</Text>
       </View>
-    </Pressable>
+    </RectButton>
   );
 }
 
 /** Use on the opposite side of a centered header title. */
-export const SCREEN_BACK_BUTTON_WIDTH = 72;
+export const SCREEN_BACK_BUTTON_WIDTH = 96;
 
 const styles = StyleSheet.create({
   button: {
     minWidth: SCREEN_BACK_BUTTON_WIDTH,
-    height: 44,
-    alignItems: "center",
+    height: 48,
     justifyContent: "center",
-    paddingHorizontal: 4,
+    alignItems: "flex-start",
+    paddingLeft: 4,
+    paddingRight: 8,
+    zIndex: 50,
+    elevation: 50,
   },
   content: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
   },
   label: {
     fontSize: 13,

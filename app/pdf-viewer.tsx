@@ -16,8 +16,12 @@ import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SymbolView } from "expo-symbols";
-import { ChevronLeft } from "lucide-react-native";
 
+import {
+  SCREEN_BACK_BUTTON_WIDTH,
+  ScreenBackButton,
+} from "@/components/screen-back-button";
+import { NativePdfView } from "@/components/native-pdf-view";
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { getPdfCatalogEntry } from "@/data/pdf-catalog";
@@ -25,7 +29,6 @@ import { hasBundledPdf } from "@/lib/bundled-pdf-assets";
 import { canUseNativePdfViewer } from "@/lib/native-pdf-capability";
 import { getPdfViewerRemoteUrl, resolvePdfUri } from "@/lib/resolve-pdf-uri";
 import { getPdfWebViewSource } from "@/lib/pdf-viewer-source";
-import { NativePdfView } from "@/components/native-pdf-view";
 import { requirePro } from "@/services/purchases";
 
 const LARGE_PDF_LOADING_MESSAGE =
@@ -252,30 +255,9 @@ export default function PdfViewerScreen() {
             { zIndex: 10, elevation: 10 },
           ]}
         >
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={16}
-            style={({ pressed }) => [
-              styles.backRow,
-              { opacity: pressed ? 0.65 : 1 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <View pointerEvents="none">
-              <ChevronLeft
-                size={26}
-                color={isDark ? "#ECEDEE" : "#2C3E50"}
-                strokeWidth={2.5}
-              />
-            </View>
-            <Text
-              style={[styles.backLabel, { color: isDark ? "#ECEDEE" : "#2C3E50" }]}
-            >
-              Back
-            </Text>
-          </Pressable>
+          <ScreenBackButton color={isDark ? "#ECEDEE" : "#2C3E50"} />
           <Text
+            pointerEvents="none"
             style={[styles.headerTitle, isDark && styles.headerTitleDark]}
             numberOfLines={1}
           >
@@ -428,24 +410,12 @@ const styles = StyleSheet.create({
   headerDark: {
     borderBottomColor: "#2D3044",
   },
-  backRow: {
-    minWidth: 72,
-    height: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 4,
-  },
-  backLabel: {
-    fontSize: 13,
-    fontFamily: AppFonts.bodyBold,
-    marginLeft: 2,
-  },
   shareHit: {
-    minWidth: 72,
-    height: 44,
+    minWidth: SCREEN_BACK_BUTTON_WIDTH,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 50,
   },
   iconBtnDisabled: {
     opacity: 0.6,

@@ -18,3 +18,11 @@ export async function setOnboardingComplete(): Promise<void> {
     /* ignore */
   }
 }
+
+export async function clearOnboardingComplete(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(KEY);
+  } catch {
+    /* ignore */
+  }
+}

@@ -1,5 +1,9 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import {
+  SCREEN_BACK_BUTTON_WIDTH,
+  ScreenBackButton,
+} from "@/components/screen-back-button";
+import {
   createInitialWorkbookData,
   EVENING_AUDIT_PRESET_TIMES,
   mergeModuleWorkbookData,
@@ -16,7 +20,7 @@ import {
 import { Image } from "expo-image";
 import { Picker } from "@react-native-picker/picker";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronDown, ChevronLeft, ChevronRight, Check } from "lucide-react-native";
+import { ChevronDown, ChevronRight, Check } from "lucide-react-native";
 import { RectButton } from "react-native-gesture-handler";
 import {
   Fragment,
@@ -450,31 +454,9 @@ export default function ModuleWorkbookScreen() {
             },
           ]}
         >
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={16}
-            style={({ pressed }) => [
-              styles.customBackButton,
-              { opacity: pressed ? 0.6 : 1 },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <ChevronLeft
-              size={26}
-              color={isDark ? "#ECEDEE" : "#FFFFFF"}
-              strokeWidth={2.5}
-            />
-            <Text
-              style={[
-                styles.customBackText,
-                { color: isDark ? "#ECEDEE" : "#FFFFFF" },
-              ]}
-            >
-              Back
-            </Text>
-          </Pressable>
+          <ScreenBackButton color={isDark ? "#ECEDEE" : "#FFFFFF"} />
           <Text
+            pointerEvents="none"
             style={[
               styles.customHeaderTitle,
               { color: isDark ? "#ECEDEE" : "#FFFFFF" },
@@ -485,7 +467,7 @@ export default function ModuleWorkbookScreen() {
           >
             Module {definition.moduleNumber} Workbook
           </Text>
-          <View style={styles.customHeaderSpacer} />
+          <View pointerEvents="none" style={styles.customHeaderSpacer} />
         </View>
 
         <KeyboardAvoidingView
@@ -1149,18 +1131,6 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     zIndex: 20,
   },
-  customBackButton: {
-    minWidth: 72,
-    height: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  customBackText: {
-    fontSize: 13,
-    fontFamily: AppFonts.bodyBold,
-    marginLeft: 2,
-  },
   customHeaderTitle: {
     fontSize: 17,
     fontFamily: AppFonts.headingSemiBold,
@@ -1168,7 +1138,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customHeaderSpacer: {
-    minWidth: 72,
+    minWidth: SCREEN_BACK_BUTTON_WIDTH,
   },
   container: {
     flex: 1,

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, Stack, router, useRouter } from 'expo-router';
+import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
-import { Check, ChevronLeft, ChevronRight, FileText } from 'lucide-react-native';
+import { Check, ChevronRight, FileText } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
 import { requirePro } from '@/services/purchases';
@@ -14,6 +14,10 @@ import { MODULE_PDFS, type PdfEntry } from '@/data/pdf-assets';
 import { hrefModuleDigitalWorkbook } from '@/lib/module-workbook-route';
 import { AppFonts } from '@/constants/theme';
 import { pastelBoxStyle } from '@/constants/pastel-accents';
+import {
+  SCREEN_BACK_BUTTON_WIDTH,
+  ScreenBackButton,
+} from '@/components/screen-back-button';
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -38,7 +42,6 @@ export default function CategoryScreen() {
   const { slug, title } = useLocalSearchParams<{ slug: string; title: string }>();
   const info = categoryInfo[slug] || { title: title || 'Videos', color: '#E5D9F2', moduleNumber: 0 };
   const { isDark } = useTheme();
-  const appRouter = useRouter();
   const insets = useSafeAreaInsets();
 
   const videos: VideoEntry[] = MODULE_VIDEOS[slug] || [];
@@ -73,23 +76,14 @@ export default function CategoryScreen() {
     <>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: isDark ? '#1A1A2E' : info.color }]}>
-        <Pressable
-          onPress={() => appRouter.back()}
-          hitSlop={16}
-          style={({ pressed }) => [
-            styles.customBackButton,
-            { opacity: pressed ? 0.6 : 1 },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+        <ScreenBackButton color={isDark ? '#ECEDEE' : '#2C3E50'} />
+        <Text
+          pointerEvents="none"
+          style={[styles.customHeaderTitle, { color: isDark ? '#ECEDEE' : '#2C3E50' }]}
         >
-          <ChevronLeft size={26} color={isDark ? '#ECEDEE' : '#2C3E50'} strokeWidth={2.5} />
-          <Text style={[styles.customBackText, { color: isDark ? '#ECEDEE' : '#2C3E50' }]}>
-            Back
-          </Text>
-        </Pressable>
-        <Text style={[styles.customHeaderTitle, { color: isDark ? '#ECEDEE' : '#2C3E50' }]}>{info.title}</Text>
-        <View style={styles.customHeaderSpacer} />
+          {info.title}
+        </Text>
+        <View pointerEvents="none" style={styles.customHeaderSpacer} />
       </View>
       <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
         {/* Progress Card */}
@@ -321,18 +315,6 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     zIndex: 20,
   },
-  customBackButton: {
-    minWidth: 72,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  customBackText: {
-    fontSize: 13,
-    fontFamily: AppFonts.bodyBold,
-    marginLeft: 2,
-  },
   customHeaderTitle: {
     fontSize: 17,
     fontFamily: AppFonts.headingSemiBold,
@@ -340,7 +322,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customHeaderSpacer: {
-    minWidth: 72,
+    minWidth: SCREEN_BACK_BUTTON_WIDTH,
   },
   container: {
     flex: 1,

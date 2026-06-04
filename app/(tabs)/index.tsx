@@ -1,5 +1,6 @@
 import { MainTabHeader, ThemeToggle } from "@/components/main-tab-header";
 import { PremiumCrownButton } from "@/components/premium-crown-button";
+import { PremiumStatusModal } from "@/components/premium-status-modal";
 import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -188,6 +189,7 @@ const MODULE_CATEGORY_ROWS = MODULE_ORDER.map((slug) => {
 export default function HomeScreen() {
   const { isDark } = useTheme();
 
+  const [showPremiumStatus, setShowPremiumStatus] = useState(false);
   const [quoteDate, setQuoteDate] = useState(() => new Date());
   const dailyQuote = useMemo(() => getQuoteOfTheDay(quoteDate), [quoteDate]);
   const quoteBackground = useMemo(
@@ -343,7 +345,9 @@ export default function HomeScreen() {
           />
           <View style={styles.headerActions}>
             <View style={styles.crownButtonWrap}>
-              <PremiumCrownButton />
+              <PremiumCrownButton
+                onShowPremiumStatus={() => setShowPremiumStatus(true)}
+              />
             </View>
             <ThemeToggle />
           </View>
@@ -607,6 +611,11 @@ export default function HomeScreen() {
         })}
       </View>
       </ScrollView>
+
+      <PremiumStatusModal
+        visible={showPremiumStatus}
+        onClose={() => setShowPremiumStatus(false)}
+      />
     </View>
   );
 }

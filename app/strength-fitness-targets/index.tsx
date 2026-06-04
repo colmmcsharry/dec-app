@@ -27,10 +27,13 @@ export default function StrengthFitnessTargetsHubScreen() {
         ]}
       >
         <ScreenBackButton color={isDark ? "#ECEDEE" : "#2C3E50"} />
-        <Text style={[styles.headerTitle, isDark && styles.textDark]}>
+        <Text
+          pointerEvents="none"
+          style={[styles.headerTitle, isDark && styles.textDark]}
+        >
           Fitness Targets
         </Text>
-        <View style={styles.headerSpacer} />
+        <View pointerEvents="none" style={styles.headerSpacer} />
       </View>
 
       <ScrollView

@@ -1,4 +1,8 @@
 import { CelebrationBadge } from "@/components/celebration-badge";
+import {
+  SCREEN_BACK_BUTTON_WIDTH,
+  ScreenBackButton,
+} from "@/components/screen-back-button";
 import { VideoPlayer } from "@/components/video-player";
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -11,7 +15,7 @@ import {
   markVideoWatched,
 } from "@/services/progress";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { ChevronRight } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -208,23 +212,14 @@ export default function VideoDetailScreen() {
     <>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
       <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor }]}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={16}
-          style={({ pressed }) => [
-            styles.customBackButton,
-            { opacity: pressed ? 0.6 : 1 },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+        <ScreenBackButton color={isDark ? "#ECEDEE" : "#2C3E50"} />
+        <Text
+          pointerEvents="none"
+          style={[styles.customHeaderTitle, { color: isDark ? "#ECEDEE" : "#2C3E50" }]}
         >
-          <ChevronLeft size={26} color={isDark ? "#ECEDEE" : "#2C3E50"} strokeWidth={2.5} />
-          <Text style={[styles.customBackText, { color: isDark ? "#ECEDEE" : "#2C3E50" }]}>
-            Back
-          </Text>
-        </Pressable>
-        <Text style={[styles.customHeaderTitle, { color: isDark ? "#ECEDEE" : "#2C3E50" }]}>Now Playing</Text>
-        <View style={styles.customHeaderSpacer} />
+          Now Playing
+        </Text>
+        <View pointerEvents="none" style={styles.customHeaderSpacer} />
       </View>
       <ScrollView
         ref={scrollRef}
@@ -435,18 +430,6 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     zIndex: 20,
   },
-  customBackButton: {
-    minWidth: 72,
-    height: 44,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  customBackText: {
-    fontSize: 13,
-    fontFamily: AppFonts.bodyBold,
-    marginLeft: 2,
-  },
   customHeaderTitle: {
     fontSize: 17,
     fontFamily: AppFonts.headingSemiBold,
@@ -454,7 +437,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   customHeaderSpacer: {
-    minWidth: 72,
+    minWidth: SCREEN_BACK_BUTTON_WIDTH,
   },
   container: {
     flex: 1,

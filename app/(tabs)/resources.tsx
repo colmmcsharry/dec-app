@@ -1,6 +1,7 @@
 import { ArticleListCard } from "@/components/article-list-card";
 import { DownloadListCard } from "@/components/download-list-card";
 import { GymRoutineCard } from "@/components/gym-routine-card";
+import { HiitWorkoutsCard } from "@/components/hiit-workouts-card";
 import { StrengthFitnessTargetsCard } from "@/components/strength-fitness-targets-card";
 import { MainTabHeader } from "@/components/main-tab-header";
 import { PageHeading } from "@/components/page-heading";
@@ -19,6 +20,7 @@ import {
   FileText,
   Headphones,
   Target,
+  Zap,
   type LucideIcon,
 } from "lucide-react-native";
 import type { ReactNode } from "react";
@@ -34,7 +36,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const WORKBOOK_TEXT = "#1E2430";
 
-type SectionVariant = "purple" | "blue" | "yellow" | "green";
+type SectionVariant = "purple" | "blue" | "yellow" | "green" | "coral";
 
 /** Same pastel fills as Home / Worksheets module cards. */
 const SECTION_BACKGROUNDS: Record<SectionVariant, string> = {
@@ -42,6 +44,7 @@ const SECTION_BACKGROUNDS: Record<SectionVariant, string> = {
   yellow: MODULE_THEMES["morning-routines"].backgroundColor,
   blue: MODULE_THEMES.recovery.backgroundColor,
   green: MODULE_THEMES["energy-management"].backgroundColor,
+  coral: MODULE_THEMES["fuel-2-perform"].backgroundColor,
 };
 
 const SECTION_SHADOWS: Record<
@@ -52,16 +55,17 @@ const SECTION_SHADOWS: Record<
   blue: { light: "#5B8BC4", dark: "#5B8BC4" },
   yellow: { light: "#B8943A", dark: "#C4A855" },
   green: { light: "#4A8A5C", dark: "#4A8A5C" },
+  coral: { light: "#D97B7B", dark: "#D97B7B" },
 };
 
 type FeatureSectionProps = {
   title: string;
   titleIcon: LucideIcon;
-  eyebrow: string;
   variant: SectionVariant;
   isDark: boolean;
-  viewAllLabel: string;
-  onViewAll: () => void;
+  eyebrow?: string;
+  viewAllLabel?: string;
+  onViewAll?: () => void;
   children: ReactNode;
 };
 
@@ -105,23 +109,27 @@ function FeatureSection({
             {title}
           </Text>
         </View>
-        <Text
-          style={[styles.sectionEyebrow, isDark && styles.sectionEyebrowDark]}
-        >
-          {eyebrow}
-        </Text>
+        {eyebrow ? (
+          <Text
+            style={[styles.sectionEyebrow, isDark && styles.sectionEyebrowDark]}
+          >
+            {eyebrow}
+          </Text>
+        ) : null}
         {children}
-        <Pressable
-          style={({ pressed }) => [
-            styles.viewAllButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-          onPress={onViewAll}
-          accessibilityRole="button"
-          accessibilityLabel={viewAllLabel}
-        >
-          <Text style={styles.viewAllButtonText}>{viewAllLabel}</Text>
-        </Pressable>
+        {viewAllLabel && onViewAll ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.viewAllButton,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+            onPress={onViewAll}
+            accessibilityRole="button"
+            accessibilityLabel={viewAllLabel}
+          >
+            <Text style={styles.viewAllButtonText}>{viewAllLabel}</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -163,6 +171,11 @@ export default function ResourcesScreen() {
   const openStrengthTargets = async () => {
     if (!(await requirePro())) return;
     router.push("/strength-fitness-targets");
+  };
+
+  const openHiitWorkouts = async () => {
+    if (!(await requirePro())) return;
+    router.push("/hiit-workouts");
   };
 
   return (
@@ -268,6 +281,21 @@ export default function ResourcesScreen() {
         <StrengthFitnessTargetsCard
           isDark={isDark}
           onPress={() => void openStrengthTargets()}
+        />
+      </FeatureSection>
+
+      <FeatureSection
+        title="HIIT Workouts"
+        titleIcon={Zap}
+        variant="coral"
+        eyebrow="No Equipment"
+        isDark={isDark}
+        viewAllLabel="View HIIT Workouts"
+        onViewAll={() => void openHiitWorkouts()}
+      >
+        <HiitWorkoutsCard
+          isDark={isDark}
+          onPress={() => void openHiitWorkouts()}
         />
       </FeatureSection>
     </ScrollView>

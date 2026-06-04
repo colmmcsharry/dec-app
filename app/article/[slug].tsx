@@ -203,9 +203,7 @@ export default function ArticleScreen() {
         <Text style={[styles.errorTitle, isDark && styles.textDark]}>
           Article not found
         </Text>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Text style={styles.backLink}>Go back</Text>
-        </Pressable>
+        <ScreenBackButton color={isDark ? "#ECEDEE" : "#1E2430"} />
       </View>
     );
   }
