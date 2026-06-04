@@ -1,4 +1,5 @@
 import { PRO_ENTITLEMENT_ID } from "@/constants/revenuecat";
+import { isTestFlightInstall } from "@/lib/is-testflight-install";
 import { clearOnboardingComplete } from "@/services/onboarding-storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
@@ -14,6 +15,43 @@ import Purchases, {
  * can still open gated content. Never honored when `__DEV__` is false.
  */
 const DEV_PREMIUM_UNLOCK_KEY = "__dd_dev_premium_unlock";
+/** TestFlight-only: pretend the user is on the free tier for QA. */
+const TESTFLIGHT_FORCE_FREE_KEY = "__dd_testflight_force_free";
+
+let testFlightForceFreeCached: boolean | null = null;
+
+async function readTestFlightForceFreeFlag(): Promise<boolean> {
+  if (__DEV__ || Platform.OS !== "ios" || !isTestFlightInstall()) {
+    testFlightForceFreeCached = false;
+    return false;
+  }
+  if (testFlightForceFreeCached !== null) return testFlightForceFreeCached;
+  try {
+    testFlightForceFreeCached =
+      (await AsyncStorage.getItem(TESTFLIGHT_FORCE_FREE_KEY)) === "1";
+  } catch {
+    testFlightForceFreeCached = false;
+  }
+  return testFlightForceFreeCached;
+}
+
+export async function isTestFlightForceFreeActive(): Promise<boolean> {
+  return readTestFlightForceFreeFlag();
+}
+
+async function setTestFlightForceFreeFlag(enabled: boolean): Promise<void> {
+  if (__DEV__ || Platform.OS !== "ios" || !isTestFlightInstall()) return;
+  testFlightForceFreeCached = enabled;
+  try {
+    if (enabled) {
+      await AsyncStorage.setItem(TESTFLIGHT_FORCE_FREE_KEY, "1");
+    } else {
+      await AsyncStorage.removeItem(TESTFLIGHT_FORCE_FREE_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 async function readDevPremiumUnlockFlag(): Promise<boolean> {
   if (!__DEV__) return false;
@@ -98,20 +136,31 @@ export function customerInfoHasPro(info: CustomerInfo | null | undefined): boole
 }
 
 /**
- * Fetch the latest customer info from RevenueCat and check if the Pro entitlement is active.
- * Returns false on web or if the SDK isn't configured / network fails.
+ * Premium status for UI and routing. Honors TestFlight force-free QA override.
  */
-export async function hasProEntitlement(): Promise<boolean> {
+export async function resolvePremiumStatus(
+  info?: CustomerInfo | null,
+): Promise<boolean> {
   if (await readDevPremiumUnlockFlag()) return true;
+  if (await readTestFlightForceFreeFlag()) return false;
+  if (info !== undefined) return customerInfoHasPro(info);
   if (Platform.OS === "web") return false;
   if (!configurePurchases()) return false;
   try {
-    const info = await Purchases.getCustomerInfo();
-    return customerInfoHasPro(info);
+    const customerInfo = await Purchases.getCustomerInfo();
+    return customerInfoHasPro(customerInfo);
   } catch (e) {
     console.warn("[Purchases] getCustomerInfo failed", e);
     return false;
   }
+}
+
+/**
+ * Fetch the latest customer info from RevenueCat and check if the Pro entitlement is active.
+ * Returns false on web or if the SDK isn't configured / network fails.
+ */
+export async function hasProEntitlement(): Promise<boolean> {
+  return resolvePremiumStatus();
 }
 
 /**
@@ -134,30 +183,36 @@ export async function requirePro(): Promise<boolean> {
 }
 
 /**
- * Subscribe to customer info changes so the app can react when a purchase
- * completes, a subscription expires, or the user is restored.
- *
- * Returns an unsubscribe function.
- */
-/**
- * TestFlight QA helper: clears onboarding and RevenueCat customer identity so
- * the app re-runs first-launch routing. Does not remove App Store sandbox
- * purchases tied to the device Apple ID — use a fresh sandbox account or clear
- * sandbox purchase history in Settings if you need a truly free tier.
+ * TestFlight QA: simulate the free tier and restart from first-launch routing.
+ * RevenueCat / Apple may still have a sandbox subscription on the device — this
+ * sets a local TestFlight-only override so the app behaves as Basic until cleared.
  */
 export async function resetSubscriptionAndOnboardingForTestFlight(): Promise<void> {
+  await setTestFlightForceFreeFlag(true);
   await clearOnboardingComplete();
 
   if (Platform.OS !== "web" && configurePurchases()) {
     try {
-      const isAnonymous = await Purchases.isAnonymous();
-      if (!isAnonymous) {
-        await Purchases.logOut();
-      } else {
-        await Purchases.invalidateCustomerInfoCache();
-      }
+      await Purchases.logIn(`$tfqa_${Date.now()}`);
+      await Purchases.invalidateCustomerInfoCache();
     } catch (e) {
       console.warn("[Purchases] TestFlight reset failed", e);
+    }
+  }
+
+  router.replace("/");
+}
+
+/** TestFlight QA: stop simulating free tier and use real RevenueCat status again. */
+export async function restoreRealSubscriptionStatusForTestFlight(): Promise<void> {
+  await setTestFlightForceFreeFlag(false);
+
+  if (Platform.OS !== "web" && configurePurchases()) {
+    try {
+      await Purchases.invalidateCustomerInfoCache();
+      await Purchases.getCustomerInfo();
+    } catch (e) {
+      console.warn("[Purchases] TestFlight restore status failed", e);
     }
   }
 

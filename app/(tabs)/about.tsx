@@ -8,8 +8,8 @@ import { useTheme } from "@/context/theme-context";
 import { getReviewStoreLabel, requestAppReview } from "@/services/app-review";
 import {
   addCustomerInfoListener,
-  customerInfoHasPro,
   hasProEntitlement,
+  resolvePremiumStatus,
 } from "@/services/purchases";
 import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -585,7 +585,7 @@ export default function AboutScreen() {
 
   useEffect(() => {
     return addCustomerInfoListener((info) => {
-      setIsPremium(customerInfoHasPro(info));
+      void resolvePremiumStatus(info).then(setIsPremium);
     });
   }, []);
 
