@@ -1,3 +1,4 @@
+import { APP_NAME, DAILY_QUOTE_BRAND } from "@/constants/app-branding";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import {
   DAILY_DIESEL_QUOTES,
@@ -139,7 +140,7 @@ export default function DailyQuoteScreen() {
           {/* Top bar — must stay above quote/CTA for hit-testing (later siblings paint on top). */}
           <View style={styles.topBar}>
             <Text style={styles.brand} pointerEvents="none">
-              Daily Diesel
+              {DAILY_QUOTE_BRAND}
             </Text>
             <View style={styles.topBarRight}>
               {__DEV__ && (
@@ -217,7 +218,7 @@ export default function DailyQuoteScreen() {
             <View style={styles.cta}>
               <View style={styles.upgradeWrap}>
                 <Text style={styles.upgradeLead}>
-                  Want access to the whole Daily Diesel course? 10 Modules, 300+
+                  Want access to the whole {APP_NAME} course? 10 Modules, 300+
                   Videos, Plus Additional Resources.
                 </Text>
                 <Pressable

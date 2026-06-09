@@ -3,7 +3,7 @@
  * @see docs/ANDROID_REVENUECAT_SETUP.md
  */
 
-/** Entitlement ID (RevenueCat → Product catalog → Entitlements). */
+/** Entitlement ID (RevenueCat → Product catalog → Entitlements). Legacy name — do not change without updating RevenueCat. */
 export const PRO_ENTITLEMENT_ID = "Daily Diesel Pro";
 
 /** Default offering shown by RevenueCatUI.Paywall (RevenueCat → Offerings). */

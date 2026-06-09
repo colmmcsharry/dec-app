@@ -232,7 +232,7 @@ async function main() {
     y -= 22;
   }
 
-  page.drawText("Daily Diesel · 3 Day Basic Beginner Routine", {
+  page.drawText("Peak Performance Code · 3 Day Basic Beginner Routine", {
     x: MARGIN,
     y: MARGIN - 10,
     size: 9,

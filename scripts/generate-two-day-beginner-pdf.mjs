@@ -234,7 +234,7 @@ async function main() {
     y -= 22;
   }
 
-  page.drawText("Daily Diesel · 2 Day Basic Beginner Routine", {
+  page.drawText("Peak Performance Code · 2 Day Basic Beginner Routine", {
     x: MARGIN,
     y: MARGIN - 10,
     size: 9,

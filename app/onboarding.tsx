@@ -357,7 +357,7 @@ function TestimonialCard({ testimonial }: { testimonial: (typeof TESTIMONIALS)[n
           source={APP_LOGO}
           style={styles.testimonialLogo}
           resizeMode="contain"
-          accessibilityLabel="Daily Diesel logo"
+          accessibilityLabel="Peak Performance Code logo"
         />
       </View>
     </View>

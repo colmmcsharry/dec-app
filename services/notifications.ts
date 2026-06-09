@@ -52,14 +52,14 @@ function warnIfDoNotDisturb(
   if (filter == null || filter === INTERRUPTION_FILTER_ALL) return;
   Alert.alert(
     'Do Not Disturb is on',
-    'Your phone is in Do Not Disturb mode, so reminders may not appear on the lock screen or while you use other apps. Turn off Do Not Disturb, or allow Daily Diesel as an exception.',
+    'Your phone is in Do Not Disturb mode, so reminders may not appear on the lock screen or while you use other apps. Turn off Do Not Disturb, or allow Peak Performance Code as an exception.',
   );
 }
 
 function promptOpenNotificationSettings(): void {
   Alert.alert(
     'Turn on notifications',
-    'Enable notifications for Daily Diesel in Settings, then try setting your reminder again.',
+    'Enable notifications for Peak Performance Code in Settings, then try setting your reminder again.',
     [
       { text: 'Not now', style: 'cancel' },
       {
@@ -132,7 +132,7 @@ export async function scheduleDailyReminder(
   const identifier = await Notifications.scheduleNotificationAsync({
     identifier: DAILY_REMINDER_ID,
     content: {
-      title: 'Your Daily Diesel is ready!',
+      title: "Your Daily Diesel is ready!",
       body: "Tap to read today's motivational quote.",
       sound: true,
       ...(Platform.OS === 'android'
@@ -152,7 +152,7 @@ export async function scheduleDailyReminder(
       }
       Alert.alert(
         'Allow alarms & reminders',
-        'On Android 12+, open Settings → Daily Diesel → Alarms & reminders and turn it on so your daily reminder fires when the app is in the background.',
+        'On Android 12+, open Settings → Peak Performance Code → Alarms & reminders and turn it on so your daily reminder fires when the app is in the background.',
         [
           { text: 'Not now', style: 'cancel' },
           {

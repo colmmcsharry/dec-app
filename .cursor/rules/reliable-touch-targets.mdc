@@ -3,7 +3,7 @@ description: Reliable touch targets on iOS — avoid double-tap bugs with button
 alwaysApply: true
 ---
 
-# Reliable touch targets (Daily Diesel / React Native)
+# Reliable touch targets (Peak Performance Code / React Native)
 
 iOS TestFlight builds have repeatedly failed when taps need 2+ presses. Follow this on **every new button, modal, overlay, or tappable image**.
 

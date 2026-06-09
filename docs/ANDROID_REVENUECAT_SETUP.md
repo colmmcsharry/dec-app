@@ -1,4 +1,4 @@
-# Android + RevenueCat setup (Daily Diesel)
+# Android + RevenueCat setup (Peak Performance Code)
 
 Use this checklist to ship the **same subscription** on Google Play as on iOS. The app code is already cross-platform — `services/purchases.ts`, `app/paywall-placeholder.tsx`, and `requirePro()` work on both platforms once the stores and RevenueCat are configured.
 
@@ -19,9 +19,9 @@ Shared identifiers live in [`constants/revenuecat.ts`](../constants/revenuecat.t
 
    | Product ID | Type | iOS name in RevenueCat |
    |------------|------|------------------------|
-   | `dailydiesel_monthly` | Subscription | Daily Diesel Monthly |
-   | `dailydiesel_yearly` | Subscription | Daily Diesel Yearly |
-   | `dailydiesel_lifetime` | One-time / non-subscription IAP | Daily Diesel Lifetime |
+   | `dailydiesel_monthly` | Subscription | Peak Performance Code Monthly |
+   | `dailydiesel_yearly` | Subscription | Peak Performance Code Yearly |
+   | `dailydiesel_lifetime` | One-time / non-subscription IAP | Peak Performance Code Lifetime |
 
 6. Activate each product and configure pricing.
 7. Add **License testers** under **Setup → License testing** (your Gmail accounts) for sandbox purchases before going live.
@@ -30,7 +30,7 @@ Shared identifiers live in [`constants/revenuecat.ts`](../constants/revenuecat.t
 
 ## 2. RevenueCat dashboard
 
-1. Open [RevenueCat](https://app.revenuecat.com) → your **Daily Diesel** project.
+1. Open [RevenueCat](https://app.revenuecat.com) → your **Peak Performance Code** project.
 2. **Apps** → **+ New** → **Google Play Store**.
    - Package name: `com.colmmcs.dailydiesel`
 3. Link Google Play (service account):
@@ -41,7 +41,7 @@ Shared identifiers live in [`constants/revenuecat.ts`](../constants/revenuecat.t
 
 ### Products & entitlement (same as iOS)
 
-5. **Product catalog → Entitlements** — confirm **`Daily Diesel Pro`** exists (same ID as iOS).
+5. **Product catalog → Entitlements** — confirm **`Daily Diesel Pro`** exists (same ID as iOS; legacy RevenueCat identifier).
 6. **Products** — import/link your Google Play subscription product IDs.
 7. Attach **both** iOS and Android products to the **`Daily Diesel Pro`** entitlement.
 8. **Offerings → default** — add Google Play products to each package:

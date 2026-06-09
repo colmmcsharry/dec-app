@@ -139,7 +139,7 @@ export default function WelcomeScreen() {
             Welcome aboard!
           </Text>
           <Text style={styles.subtitle}>
-            Your Daily Diesel journey starts now
+            Your Peak Performance Code journey starts now
           </Text>
           <Text style={[styles.body, isDark && styles.bodyDark]}>
             You&apos;ve unlocked all 10 modules, every video, and the full

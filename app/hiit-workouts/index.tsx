@@ -95,7 +95,7 @@ export default function HiitWorkoutsHubScreen() {
 
         <FullscreenImageThumbnail
           source={HIIT_WORKOUTS_IMAGE}
-          accessibilityLabel="Daily Diesel HIIT workout circuits"
+          accessibilityLabel="Peak Performance Code HIIT workout circuits"
           style={styles.workoutChart}
           isDark={isDark}
           hint="Tap to view full screen · Download to save"
@@ -108,8 +108,8 @@ export default function HiitWorkoutsHubScreen() {
         onClose={() => setViewerOpen(false)}
         source={HIIT_WORKOUTS_IMAGE}
         shareAssetModule={HIIT_WORKOUTS_IMAGE}
-        shareTitle="Daily Diesel HIIT Workouts"
-        accessibilityLabel="Daily Diesel HIIT workout circuits"
+        shareTitle="Peak Performance Code HIIT Workouts"
+        accessibilityLabel="Peak Performance Code HIIT workout circuits"
       />
     </View>
   );

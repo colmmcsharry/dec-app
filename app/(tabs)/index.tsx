@@ -1,3 +1,4 @@
+import { APP_NAME, DAILY_QUOTE_BRAND, QUOTE_AUTHOR } from "@/constants/app-branding";
 import { MainTabHeader, ThemeToggle } from "@/components/main-tab-header";
 import { PremiumCrownButton } from "@/components/premium-crown-button";
 import { PremiumStatusModal } from "@/components/premium-status-modal";
@@ -341,7 +342,7 @@ export default function HomeScreen() {
             source={APP_LOGO}
             style={styles.homeLogo}
             resizeMode="contain"
-            accessibilityLabel="Daily Diesel logo"
+            accessibilityLabel={`${APP_NAME} logo`}
           />
           <View style={styles.headerActions}>
             <View style={styles.crownButtonWrap}>
@@ -360,7 +361,7 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
-      {/* Daily Diesel Quote Card — scenic image (cover, no stretch), white text */}
+      {/* Daily quote card — scenic image (cover, no stretch), white text */}
       <View style={styles.dieselCardOuter}>
         <ImageBackground
           source={quoteBackground}
@@ -383,7 +384,7 @@ export default function HomeScreen() {
                 <View style={styles.dieselIconWrap}>
                   <Flame size={22} color="#fff" strokeWidth={2.5} />
                 </View>
-                <Text style={styles.dieselLabel}>Daily Diesel</Text>
+                <Text style={styles.dieselLabel}>{DAILY_QUOTE_BRAND}</Text>
               </View>
               <RectButton
                 onPress={openDailyQuote}
@@ -402,14 +403,14 @@ export default function HomeScreen() {
               <Text
                 style={[
                   styles.dieselQuote,
-                  dailyQuote.author === "Daily Diesel" &&
+                  dailyQuote.author === QUOTE_AUTHOR &&
                     styles.dieselQuoteNoAuthor,
                 ]}
                 numberOfLines={3}
               >
                 &ldquo;{dailyQuote.text}&rdquo;
               </Text>
-              {dailyQuote.author !== "Daily Diesel" ? (
+              {dailyQuote.author !== QUOTE_AUTHOR ? (
                 <Text style={styles.dieselAuthor}>— {dailyQuote.author}</Text>
               ) : null}
             </View>

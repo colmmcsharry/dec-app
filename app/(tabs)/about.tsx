@@ -620,7 +620,7 @@ export default function AboutScreen() {
           <Text
             style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
           >
-            Enjoying Daily Diesel?
+            Enjoying Peak Performance Code?
           </Text>
           <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
             If the app is helping you, a quick review on the{" "}

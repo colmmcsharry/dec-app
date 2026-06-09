@@ -211,7 +211,7 @@ async function main() {
     y -= 22;
   }
 
-  page.drawText("Daily Diesel · GZCLP beginner guide", {
+  page.drawText("Peak Performance Code · GZCLP beginner guide", {
     x: MARGIN,
     y: MARGIN - 10,
     size: 9,

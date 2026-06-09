@@ -101,7 +101,7 @@ export const HIIT_WORKOUTS: HiitWorkout[] = [
 export const HIIT_IMAGE_FOOTER =
   "Want all these workouts in one image? Download or Print this!";
 
-export const HIIT_WORKOUTS_IMAGE = require("@/assets/images/hiit-workouts.png");
+export const HIIT_WORKOUTS_IMAGE = require("@/assets/images/hiit-workouts.jpg");
 
 export function getHiitWorkout(id: string): HiitWorkout | undefined {
   return HIIT_WORKOUTS.find((workout) => workout.id === id);
