@@ -1,6 +1,16 @@
 [build]
   publish = "."
 
+[functions]
+  directory = "netlify/functions"
+
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Methods = "POST, OPTIONS"
+
 [[headers]]
   for = "/media/*"
   [headers.values]
