@@ -3,19 +3,28 @@ import {
   SCREEN_BACK_BUTTON_WIDTH,
   ScreenBackButton,
 } from "@/components/screen-back-button";
-import { VideoPlayer } from "@/components/video-player";
+import { VideoPlayer, buildVimeoEmbedUrl, type VideoPlayerHandle } from "@/components/video-player";
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_VIDEOS } from "@/data/module-videos";
 import { MODULE_WORKBOOKS } from "@/data/module-workbooks";
 import { SUPPLEMENTAL_RESOURCES } from "@/data/supplemental-resources";
 import {
-  getWatchedVideos,
   isVideoWatched,
   markVideoWatched,
 } from "@/services/progress";
+import {
+  getVideoAutoplayEnabled,
+  setVideoAutoplayEnabled,
+} from "@/services/video-autoplay";
+import { maybeRequestReviewAfterFirstVideoCompleted } from "@/services/app-review";
+import {
+  hasProEntitlement,
+  requirePro,
+} from "@/services/purchases";
+import { isFreePreviewVideo } from "@/lib/free-preview-video";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
+import { Check, ChevronRight } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -26,6 +35,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -62,30 +72,67 @@ export default function VideoDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView | null>(null);
+  const videoPlayerRef = useRef<VideoPlayerHandle>(null);
+  const [streamIndex, setStreamIndex] = useState<number | null>(null);
   const [watched, setWatched] = useState(false);
+  const [autoplayEnabled, setAutoplayEnabled] = useState(true);
+  const [hasPro, setHasPro] = useState(false);
   const [openingResourceKey, setOpeningResourceKey] = useState<string | null>(null);
   const [showCompletion, setShowCompletion] = useState(false);
 
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const cardAnim = useRef(new Animated.Value(0)).current;
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endedHandledRef = useRef(false);
+  const autoplayEnabledRef = useRef(autoplayEnabled);
+  autoplayEnabledRef.current = autoplayEnabled;
 
   const backgroundColor = isDark ? "#1A1A2E" : categoryColor || "#E5D9F2";
+
+  const moduleVideos = categorySlug ? (MODULE_VIDEOS[categorySlug] ?? []) : [];
+  const routeVideoIndex = useMemo(
+    () => moduleVideos.findIndex((v) => v.id === id),
+    [id, moduleVideos],
+  );
+  const currentIndex =
+    streamIndex ?? (routeVideoIndex >= 0 ? routeVideoIndex : 0);
+  const activeVideo = moduleVideos[currentIndex] ?? {
+    id: id ?? "",
+    title: title ?? "",
+    url: url ?? "",
+  };
+  const activeVideoId = activeVideo.id;
+  const activeVideoTitle = activeVideo.title;
+  const activeVideoUrl = activeVideo.url;
+
   const supplementalResources =
-    SUPPLEMENTAL_RESOURCES[`${categorySlug ?? ""}:${id ?? ""}`] ?? [];
+    SUPPLEMENTAL_RESOURCES[`${categorySlug ?? ""}:${activeVideoId}`] ?? [];
 
   const nextVideo = useMemo(() => {
-    if (!categorySlug || !id) return null;
-    const list = MODULE_VIDEOS[categorySlug];
-    if (!list) return null;
-    const index = list.findIndex((v) => v.id === id);
-    if (index === -1 || index >= list.length - 1) return null;
-    return list[index + 1];
-  }, [categorySlug, id]);
+    if (moduleVideos.length === 0) return null;
+    if (currentIndex < 0 || currentIndex >= moduleVideos.length - 1) return null;
+    return moduleVideos[currentIndex + 1];
+  }, [currentIndex, moduleVideos]);
+
+  const isWatchingFreePreview = isFreePreviewVideo(categorySlug, activeVideoId);
+  const canChainToNextVideo = hasPro || !isWatchingFreePreview;
+
+  const nextVideoEmbedUrl = useMemo(() => {
+    if (isWatchingFreePreview) return null;
+    if (!autoplayEnabled || !nextVideo || !canChainToNextVideo) return null;
+    return buildVimeoEmbedUrl(nextVideo.url);
+  }, [
+    autoplayEnabled,
+    canChainToNextVideo,
+    isWatchingFreePreview,
+    nextVideo,
+  ]);
 
   const moduleDef = categorySlug ? MODULE_WORKBOOKS[categorySlug] : undefined;
 
   useEffect(() => {
+    endedHandledRef.current = false;
+    setStreamIndex(null);
     setWatched(false);
     setOpeningResourceKey(null);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
@@ -94,6 +141,36 @@ export default function VideoDetailScreen() {
       isVideoWatched(categorySlug, id).then(setWatched);
     }
   }, [categorySlug, id]);
+
+  useEffect(() => {
+    if (streamIndex === null) return;
+
+    endedHandledRef.current = false;
+    setWatched(false);
+    setOpeningResourceKey(null);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+
+    if (categorySlug && activeVideoId) {
+      isVideoWatched(categorySlug, activeVideoId).then(setWatched);
+    }
+  }, [activeVideoId, categorySlug, streamIndex]);
+
+  useEffect(() => {
+    void getVideoAutoplayEnabled().then(setAutoplayEnabled);
+  }, []);
+
+  useEffect(() => {
+    void hasProEntitlement().then(setHasPro);
+  }, [activeVideoId, categorySlug, streamIndex]);
+
+  useEffect(() => {
+    if (!categorySlug || !activeVideoId) return;
+    if (isFreePreviewVideo(categorySlug, activeVideoId)) return;
+    void (async () => {
+      const pro = await hasProEntitlement();
+      if (!pro) router.replace("/paywall-placeholder");
+    })();
+  }, [activeVideoId, categorySlug, router]);
 
   useEffect(() => {
     return () => {
@@ -146,33 +223,89 @@ export default function VideoDetailScreen() {
     }, 4400);
   }, [backdropAnim, cardAnim, dismissCompletion]);
 
-  const handleMarkWatched = async () => {
-    if (!categorySlug || !id) return;
-    await markVideoWatched(categorySlug, id);
+  const handleNextVideo = useCallback(() => {
+    if (!nextVideo || moduleVideos.length === 0) return;
+    const embedUrl = buildVimeoEmbedUrl(nextVideo.url);
+    setStreamIndex((prev) => {
+      const base = prev ?? (routeVideoIndex >= 0 ? routeVideoIndex : 0);
+      return base + 1;
+    });
+    videoPlayerRef.current?.loadAndPlay(embedUrl);
+  }, [moduleVideos.length, nextVideo, routeVideoIndex]);
+
+  const markCurrentVideoWatched = useCallback(async () => {
+    if (!categorySlug || !activeVideoId) {
+      return { finishedLastVideo: false, promptFirstVideoReview: false };
+    }
+
+    const wasAlreadyWatched = await isVideoWatched(categorySlug, activeVideoId);
+    await markVideoWatched(categorySlug, activeVideoId);
     setWatched(true);
 
-    const list = MODULE_VIDEOS[categorySlug];
-    if (!list || list.length === 0) return;
-    const allWatched = await getWatchedVideos(categorySlug);
-    const watchedSet = new Set(allWatched);
-    const moduleNowComplete = list.every((v) => watchedSet.has(v.id));
-    if (moduleNowComplete) {
-      triggerCompletion();
+    const promptFirstVideoReview =
+      !wasAlreadyWatched && isFreePreviewVideo(categorySlug, activeVideoId);
+
+    if (promptFirstVideoReview) {
+      void maybeRequestReviewAfterFirstVideoCompleted();
     }
+
+    const isLastVideoInModule =
+      moduleVideos.length > 0 &&
+      moduleVideos[moduleVideos.length - 1].id === activeVideoId;
+
+    if (isLastVideoInModule) {
+      triggerCompletion();
+      return { finishedLastVideo: true, promptFirstVideoReview };
+    }
+    return { finishedLastVideo: false, promptFirstVideoReview };
+  }, [activeVideoId, categorySlug, moduleVideos, triggerCompletion]);
+
+  const handleMarkWatched = async () => {
+    await markCurrentVideoWatched();
   };
 
-  const handleNextVideo = () => {
-    if (!nextVideo) return;
-    router.replace({
-      pathname: "/video/[id]",
-      params: {
-        id: nextVideo.id,
-        title: nextVideo.title,
-        url: nextVideo.url,
-        categoryColor: categoryColor ?? "",
-        categorySlug: categorySlug ?? "",
-      },
-    });
+  const handleVideoEnded = useCallback(
+    async (continued: boolean) => {
+      if (endedHandledRef.current || !categorySlug || !activeVideoId) return;
+      endedHandledRef.current = true;
+
+      const { finishedLastVideo } = await markCurrentVideoWatched();
+      if (finishedLastVideo) return;
+
+      if (isWatchingFreePreview) return;
+
+      if (continued && canChainToNextVideo) {
+        setStreamIndex((prev) => {
+          const base = prev ?? (routeVideoIndex >= 0 ? routeVideoIndex : 0);
+          return base + 1;
+        });
+        return;
+      }
+
+      if (autoplayEnabledRef.current && nextVideo && canChainToNextVideo) {
+        handleNextVideo();
+      }
+    },
+    [
+      activeVideoId,
+      canChainToNextVideo,
+      categorySlug,
+      handleNextVideo,
+      isWatchingFreePreview,
+      markCurrentVideoWatched,
+      nextVideo,
+      routeVideoIndex,
+    ],
+  );
+
+  const handlePlayNextVideo = async () => {
+    if (!(await requirePro())) return;
+    handleNextVideo();
+  };
+
+  const handleAutoplayToggle = (enabled: boolean) => {
+    setAutoplayEnabled(enabled);
+    void setVideoAutoplayEnabled(enabled);
   };
 
   const handleOpenResource = async (
@@ -219,7 +352,19 @@ export default function VideoDetailScreen() {
         >
           Now Playing
         </Text>
-        <View pointerEvents="none" style={styles.customHeaderSpacer} />
+        {moduleVideos.length > 0 ? (
+          <Text
+            pointerEvents="none"
+            style={[
+              styles.videoCounter,
+              { color: isDark ? "#ECEDEE" : "#2C3E50" },
+            ]}
+          >
+            {currentIndex + 1}/{moduleVideos.length}
+          </Text>
+        ) : (
+          <View pointerEvents="none" style={styles.customHeaderSpacer} />
+        )}
       </View>
       <ScrollView
         ref={scrollRef}
@@ -228,7 +373,7 @@ export default function VideoDetailScreen() {
       >
         <View style={[styles.header, { backgroundColor }]}>
           <Text style={[styles.videoTitle, isDark && styles.textDark]}>
-            {title}
+            {activeVideoTitle}
           </Text>
         </View>
 
@@ -240,25 +385,65 @@ export default function VideoDetailScreen() {
         />
 
         <View style={styles.videoContainer}>
-          <VideoPlayer videoUrl={url} />
+          <VideoPlayer
+            ref={videoPlayerRef}
+            key={`${categorySlug ?? ""}-${id ?? ""}`}
+            videoUrl={activeVideoUrl}
+            nextVideoEmbedUrl={nextVideoEmbedUrl}
+            onEnded={handleVideoEnded}
+          />
         </View>
 
         <View style={styles.infoSection}>
-          <TouchableOpacity
-            style={[styles.watchedButton, watched && styles.watchedButtonDone]}
-            onPress={handleMarkWatched}
-            disabled={watched}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.watchedButtonText,
-                watched && styles.watchedButtonTextDone,
-              ]}
+          {!isWatchingFreePreview ? (
+            <View style={[styles.autoplayRow, isDark && styles.autoplayRowDark]}>
+              <View style={styles.autoplayCopy}>
+                <Text style={[styles.autoplayLabel, isDark && styles.textDark]}>
+                  Autoplay next video
+                </Text>
+                <Text style={[styles.autoplayHint, isDark && styles.subtextDark]}>
+                  Plays the next lesson when this one finishes
+                </Text>
+              </View>
+              <Switch
+                value={autoplayEnabled}
+                onValueChange={handleAutoplayToggle}
+                trackColor={{ false: "#D1D5DB", true: "#A8B8E8" }}
+                thumbColor={autoplayEnabled ? "#7187CE" : "#F4F4F5"}
+                accessibilityLabel="Autoplay next video"
+                accessibilityRole="switch"
+              />
+            </View>
+          ) : null}
+
+          {watched ? (
+            <View
+              style={styles.watchedStatus}
+              accessibilityRole="text"
             >
-              {watched ? "✓  Marked as Watched" : "Mark as Watched"}
-            </Text>
-          </TouchableOpacity>
+              <Check
+                size={18}
+                color={isDark ? "#7CB8A8" : "#5D9B8B"}
+                strokeWidth={3}
+              />
+              <Text
+                style={[
+                  styles.watchedStatusText,
+                  isDark && styles.watchedStatusTextDark,
+                ]}
+              >
+                Watched
+              </Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.watchedButton}
+              onPress={handleMarkWatched}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.watchedButtonText}>Mark as Watched</Text>
+            </TouchableOpacity>
+          )}
 
           {watched && (
             nextVideo ? (
@@ -267,12 +452,18 @@ export default function VideoDetailScreen() {
                   styles.nextVideoButton,
                   { opacity: pressed ? 0.85 : 1 },
                 ]}
-                onPress={handleNextVideo}
+                onPress={() => void handlePlayNextVideo()}
                 accessibilityRole="button"
-                accessibilityLabel={`Play next video, ${nextVideo.title}`}
+                accessibilityLabel={
+                  canChainToNextVideo
+                    ? `Play next video, ${nextVideo.title}`
+                    : "Unlock premium to continue"
+                }
               >
                 <Text style={styles.nextVideoTitle} numberOfLines={1}>
-                  Next: {nextVideo.title}
+                  {canChainToNextVideo
+                    ? `Next: ${nextVideo.title}`
+                    : "Unlock premium to continue"}
                 </Text>
                 <ChevronRight size={20} color="#FFFFFF" strokeWidth={2.5} />
               </Pressable>
@@ -309,7 +500,7 @@ export default function VideoDetailScreen() {
                     style={[styles.resourceCard, isDark && styles.resourceCardDark]}
                   >
                     <Text
-                      style={[styles.resourceLabel, isDark && styles.subtextDark]}
+                      style={[styles.resourceLabel, isDark && styles.textDark]}
                     >
                       {resource.title}
                     </Text>
@@ -439,6 +630,12 @@ const styles = StyleSheet.create({
   customHeaderSpacer: {
     minWidth: SCREEN_BACK_BUTTON_WIDTH,
   },
+  videoCounter: {
+    minWidth: SCREEN_BACK_BUTTON_WIDTH,
+    fontSize: 15,
+    fontFamily: AppFonts.bodyBold,
+    textAlign: "right",
+  },
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
@@ -473,6 +670,35 @@ const styles = StyleSheet.create({
   infoSection: {
     padding: 20,
   },
+  autoplayRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    backgroundColor: "#F5F5F7",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+  },
+  autoplayRowDark: {
+    backgroundColor: "#1E1E32",
+  },
+  autoplayCopy: {
+    flex: 1,
+  },
+  autoplayLabel: {
+    fontSize: 15,
+    fontFamily: AppFonts.bodyBold,
+    color: "#2C3E50",
+    marginBottom: 2,
+  },
+  autoplayHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: AppFonts.bodyRegular,
+    color: "#6B7280",
+  },
   watchedButton: {
     backgroundColor: "#7187CE",
     paddingVertical: 14,
@@ -480,16 +706,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  watchedButtonDone: {
-    backgroundColor: "#5D9B8B",
-  },
   watchedButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontFamily: AppFonts.bodyBold,
   },
-  watchedButtonTextDone: {
-    opacity: 0.9,
+  watchedStatus: {
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+    marginBottom: 20,
+  },
+  watchedStatusText: {
+    fontSize: 15,
+    fontFamily: AppFonts.bodyBold,
+    color: "#5D9B8B",
+  },
+  watchedStatusTextDark: {
+    color: "#7CB8A8",
   },
   nextVideoButton: {
     backgroundColor: "#7187CE",
@@ -547,9 +783,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#1E1E32",
   },
   resourceLabel: {
-    fontSize: 14,
-    fontFamily: AppFonts.bodyMedium,
-    color: "#6B7280",
+    fontSize: 15,
+    fontFamily: AppFonts.bodyBold,
+    color: "#2C3E50",
     marginBottom: 8,
   },
   resourceDescription: {

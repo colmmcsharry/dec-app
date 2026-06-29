@@ -4,10 +4,11 @@ import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
-import { Check, ChevronRight, FileText } from 'lucide-react-native';
+import { Check, ChevronRight, FileText, Lock } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
-import { requirePro } from '@/services/purchases';
+import { requirePro, requireVideoAccess, hasProEntitlement } from '@/services/purchases';
+import { isFreePreviewVideo } from '@/lib/free-preview-video';
 import { MODULE_VIDEOS, VideoEntry } from '@/data/module-videos';
 import { MODULE_WORKBOOKS } from '@/data/module-workbooks';
 import { MODULE_PDFS, type PdfEntry } from '@/data/pdf-assets';
@@ -48,6 +49,7 @@ export default function CategoryScreen() {
   const workbookDef = slug ? MODULE_WORKBOOKS[slug] : undefined;
   const modulePdfs: PdfEntry[] = slug ? (MODULE_PDFS[slug] ?? []) : [];
   const [watchedIds, setWatchedIds] = useState<string[]>([]);
+  const [hasPro, setHasPro] = useState(false);
 
   const isFocused = useIsFocused();
 
@@ -56,6 +58,7 @@ export default function CategoryScreen() {
       getWatchedVideos(slug).then((watched) => {
         setWatchedIds([...watched]);
       });
+      void hasProEntitlement().then(setHasPro);
     }
   }, [isFocused, slug]);
 
@@ -132,12 +135,14 @@ export default function CategoryScreen() {
           <View style={styles.videoList}>
             {videos.map((video, index) => {
               const isWatched = watchedIds.includes(video.id);
+              const isFreePreview = isFreePreviewVideo(slug, video.id);
+              const isLocked = !hasPro && !isFreePreview;
               return (
                 <TouchableOpacity
                   key={video.id}
                   style={[styles.videoCard, isDark && styles.videoCardDark]}
                   onPress={async () => {
-                    if (!(await requirePro())) return;
+                    if (!(await requireVideoAccess(slug ?? "", video.id))) return;
                     router.push({
                       pathname: '/video/[id]',
                       params: {
@@ -158,12 +163,31 @@ export default function CategoryScreen() {
                         resizeMode="cover"
                       />
                     ) : null}
-                    <View style={styles.playIconCircle}>
-                      <Text style={styles.playIcon}>▶</Text>
-                    </View>
+                    {isLocked ? (
+                      <>
+                        <View
+                          style={[
+                            styles.lockedOverlay,
+                            isDark && styles.lockedOverlayDark,
+                          ]}
+                        />
+                        <View style={styles.lockIconCircle}>
+                          <Lock size={26} color="#FFFFFF" strokeWidth={2.2} />
+                        </View>
+                      </>
+                    ) : (
+                      <View style={styles.playIconCircle}>
+                        <Text style={styles.playIcon}>▶</Text>
+                      </View>
+                    )}
                     {video.duration ? (
                       <View style={styles.durationBadge}>
                         <Text style={styles.durationText}>{formatDuration(video.duration)}</Text>
+                      </View>
+                    ) : null}
+                    {isFreePreview && !isWatched ? (
+                      <View style={styles.freePreviewBadge}>
+                        <Text style={styles.freePreviewBadgeText}>Free</Text>
                       </View>
                     ) : null}
                     {isWatched && (
@@ -573,6 +597,27 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  lockedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(120, 120, 128, 0.55)',
+    zIndex: 1,
+  },
+  lockedOverlayDark: {
+    backgroundColor: 'rgba(20, 20, 32, 0.65)',
+  },
+  lockIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
   playIconCircle: {
     width: 56,
     height: 56,
@@ -594,6 +639,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
+    zIndex: 3,
   },
   durationText: {
     color: '#FFFFFF',
@@ -608,8 +654,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
+    zIndex: 3,
   },
   watchedBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: AppFonts.bodyBold,
+  },
+  freePreviewBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(113, 135, 206, 0.95)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    zIndex: 3,
+  },
+  freePreviewBadgeText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontFamily: AppFonts.bodyBold,

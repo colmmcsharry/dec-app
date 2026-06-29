@@ -1,4 +1,5 @@
 import { PRO_ENTITLEMENT_ID } from "@/constants/revenuecat";
+import { isFreePreviewVideo } from "@/lib/free-preview-video";
 import { isTestFlightInstall } from "@/lib/is-testflight-install";
 import { clearOnboardingComplete } from "@/services/onboarding-storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -181,6 +182,20 @@ export async function requirePro(): Promise<boolean> {
   router.push("/paywall-placeholder");
   return false;
 }
+
+/**
+ * Pro gate for a module video. The first video in Module 1 (Sleep) is free
+ * for everyone as a preview.
+ */
+export async function requireVideoAccess(
+  categorySlug: string,
+  videoId: string,
+): Promise<boolean> {
+  if (isFreePreviewVideo(categorySlug, videoId)) return true;
+  return requirePro();
+}
+
+export { isFreePreviewVideo } from "@/lib/free-preview-video";
 
 /**
  * TestFlight QA: simulate the free tier and restart from first-launch routing.

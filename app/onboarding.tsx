@@ -1,4 +1,5 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
+import { EmailUpdatesSection } from "@/components/email-updates-section";
 import { setOnboardingComplete } from "@/services/onboarding-storage";
 import { hasProEntitlement } from "@/services/purchases";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -68,7 +69,8 @@ type SlideId =
   | "goals"
   | "match"
   | "videos"
-  | "workbooks";
+  | "workbooks"
+  | "email";
 
 type Slide = {
   id: SlideId;
@@ -84,6 +86,7 @@ const SLIDES: Slide[] = [
   { id: "match", key: "match" },
   { id: "videos", key: "videos" },
   { id: "workbooks", key: "workbooks" },
+  { id: "email", key: "email" },
 ];
 
 const GOALS_SLIDE_INDEX = SLIDES.findIndex((s) => s.id === "goals");
@@ -837,6 +840,12 @@ export default function OnboardingScreen() {
               </Animated.View>
             </View>
             </View>
+          </View>
+        );
+      case "email":
+        return (
+          <View style={styles.slide}>
+            <EmailUpdatesSection source="onboarding" variant="slide" />
           </View>
         );
       default:

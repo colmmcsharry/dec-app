@@ -1,4 +1,5 @@
 import { BeforeAfterCarousel } from "@/components/before-after-carousel";
+import { EmailUpdatesSection } from "@/components/email-updates-section";
 import { VideoTestimonialCarousel } from "@/components/video-testimonial-carousel";
 import { DevResetButton } from "@/components/dev-reset-button";
 import { TestFlightResetSection } from "@/components/testflight-reset-section";
@@ -652,6 +653,8 @@ export default function AboutScreen() {
           </Pressable>
         </View>
       </View>
+
+      <EmailUpdatesSection source="about" />
 
       {/* Before / After */}
       <View

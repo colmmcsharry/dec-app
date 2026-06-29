@@ -1,14 +1,18 @@
-import React, { useMemo } from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { WebView } from "react-native-webview";
+import { WebView, WebViewMessageEvent } from "react-native-webview";
 
 interface VideoPlayerProps {
   videoUrl: string;
   title?: string;
+  /** Embed URL for the next video — queued inside the WebView for gapless autoplay. */
+  nextVideoEmbedUrl?: string | null;
+  /** Called when the Vimeo player fires `ended`. `continued` is true if the WebView started the next video. */
+  onEnded?: (continued: boolean) => void;
 }
 
 const PLAYER_PARAMS: Record<string, string> = {
-  autoplay: "1",
+  autoplay: "0",
   title: "0",
   byline: "0",
   portrait: "0",
@@ -19,7 +23,7 @@ const PLAYER_PARAMS: Record<string, string> = {
   playsinline: "1",
 };
 
-function buildVimeoEmbedUrl(url: string) {
+export function buildVimeoEmbedUrl(url: string) {
   if (url.includes("player.vimeo.com")) {
     const [base, existingQuery = ""] = url.split("?");
     const merged = new URLSearchParams(existingQuery);
@@ -55,18 +59,124 @@ function buildPlayerHtml(embedUrl: string) {
 <body>
   <div id="player"></div>
   <script>
-    new Vimeo.Player("player", {
-      url: "${safeUrl}",
-      responsive: true,
-      dnt: true,
-    });
+    (function () {
+      var player = new Vimeo.Player("player", {
+        url: "${safeUrl}",
+        responsive: true,
+        dnt: true,
+      });
+
+      window.__setPendingAutoplay = function (url) {
+        if (url) {
+          window.__pendingAutoplay = { url: url };
+        } else {
+          window.__pendingAutoplay = null;
+        }
+      };
+
+      window.__loadAndPlay = function (url) {
+        window.__pendingAutoplay = null;
+        return player.loadVideo(url).then(function () {
+          return player.play();
+        });
+      };
+
+      player.on("ended", function () {
+        var continued = false;
+        if (window.__pendingAutoplay && window.__pendingAutoplay.url) {
+          var target = window.__pendingAutoplay.url;
+          window.__pendingAutoplay = null;
+          continued = true;
+          player.loadVideo(target).then(function () {
+            return player.play();
+          });
+        }
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({ type: "ended", continued: continued })
+          );
+        }
+      });
+    })();
   </script>
 </body>
 </html>`;
 }
 
-export const VideoPlayer = ({ videoUrl, title }: VideoPlayerProps) => {
-  if (!videoUrl || videoUrl.trim() === "") {
+export type VideoPlayerHandle = {
+  loadAndPlay: (embedUrl: string) => void;
+};
+
+export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
+  function VideoPlayer({ videoUrl, title, nextVideoEmbedUrl, onEnded }, ref) {
+  const webViewRef = useRef<WebView>(null);
+  const initialEmbedUrlRef = useRef<string | null>(null);
+  const hasUrl = Boolean(videoUrl?.trim());
+  const embedUrl = useMemo(
+    () => (hasUrl ? buildVimeoEmbedUrl(videoUrl) : ""),
+    [hasUrl, videoUrl],
+  );
+
+  if (initialEmbedUrlRef.current === null && embedUrl) {
+    initialEmbedUrlRef.current = embedUrl;
+  }
+
+  const html = useMemo(
+    () =>
+      initialEmbedUrlRef.current
+        ? buildPlayerHtml(initialEmbedUrlRef.current)
+        : "",
+    [],
+  );
+
+  const syncPendingAutoplay = (nextUrl: string | null | undefined) => {
+    const script = `
+      (function () {
+        if (window.__setPendingAutoplay) {
+          window.__setPendingAutoplay(${nextUrl ? JSON.stringify(nextUrl) : "null"});
+        }
+      })();
+      true;
+    `;
+    webViewRef.current?.injectJavaScript(script);
+  };
+
+  useImperativeHandle(ref, () => ({
+    loadAndPlay(embedUrl: string) {
+      const script = `
+        (function () {
+          if (window.__loadAndPlay) {
+            window.__loadAndPlay(${JSON.stringify(embedUrl)});
+          }
+        })();
+        true;
+      `;
+      webViewRef.current?.injectJavaScript(script);
+    },
+  }));
+
+  useEffect(() => {
+    syncPendingAutoplay(nextVideoEmbedUrl);
+  }, [nextVideoEmbedUrl]);
+
+  const handleMessage = (event: WebViewMessageEvent) => {
+    if (!onEnded) return;
+    try {
+      const data = JSON.parse(event.nativeEvent.data) as {
+        type?: string;
+        continued?: boolean;
+      };
+      if (data.type === "ended") onEnded(Boolean(data.continued));
+    } catch {
+      /* ignore malformed messages */
+    }
+  };
+
+  const handleLoadEnd = () => {
+    syncPendingAutoplay(nextVideoEmbedUrl);
+  };
+
+  if (!hasUrl) {
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
@@ -76,12 +186,10 @@ export const VideoPlayer = ({ videoUrl, title }: VideoPlayerProps) => {
     );
   }
 
-  const embedUrl = useMemo(() => buildVimeoEmbedUrl(videoUrl), [videoUrl]);
-  const html = useMemo(() => buildPlayerHtml(embedUrl), [embedUrl]);
-
   return (
     <View style={styles.container} accessibilityLabel={title ?? "Video player"}>
       <WebView
+        ref={webViewRef}
         style={styles.video}
         source={{ html }}
         allowsInlineMediaPlayback
@@ -89,10 +197,13 @@ export const VideoPlayer = ({ videoUrl, title }: VideoPlayerProps) => {
         allowsFullscreenVideo
         javaScriptEnabled
         domStorageEnabled
+        onMessage={handleMessage}
+        onLoadEnd={handleLoadEnd}
       />
     </View>
   );
-};
+  },
+);
 
 const styles = StyleSheet.create({
   container: {
