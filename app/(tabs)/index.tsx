@@ -1,5 +1,10 @@
 import { APP_NAME, DAILY_QUOTE_BRAND, QUOTE_AUTHOR } from "@/constants/app-branding";
+import { HomeGreetingArt } from "@/components/home-greeting-art";
 import { MainTabHeader, ThemeToggle } from "@/components/main-tab-header";
+import {
+  MODULE_CARD_BACKGROUNDS,
+  MODULE_CARD_SCRIMS,
+} from "@/components/module-card-art";
 import { PremiumCrownButton } from "@/components/premium-crown-button";
 import { PremiumStatusModal } from "@/components/premium-status-modal";
 import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
@@ -21,7 +26,7 @@ import DateTimePicker, {
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Crown, Flame, Maximize2 } from "lucide-react-native";
+import { ChevronRight, Flame, Maximize2 } from "lucide-react-native";
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -45,37 +50,30 @@ interface CategoryCardProps {
   title: string;
   guideCount: number;
   icon: React.ReactNode;
-  backgroundColor: string;
-  textColor: string;
   slug: string;
   watchedCount: number;
   totalCount: number;
 }
 
-/** Blend `hex` toward white — e.g. 0.2 = 20% lighter. */
-function lightenHex(hex: string, amount: number): string {
-  const normalized = hex.replace("#", "");
-  const r = parseInt(normalized.slice(0, 2), 16);
-  const g = parseInt(normalized.slice(2, 4), 16);
-  const b = parseInt(normalized.slice(4, 6), 16);
-  const mix = (channel: number) =>
-    Math.round(channel + (255 - channel) * amount);
-  const toHex = (channel: number) => channel.toString(16).padStart(2, "0");
-  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+function greetingForNow(date = new Date()): string {
+  const hour = date.getHours();
+  if (hour < 12) return "Good morning.";
+  if (hour < 17) return "Good afternoon.";
+  return "Good evening.";
 }
 
 /** Static copy — lives outside HomeScreen so it isn't recreated every render. */
 const CARD_TITLES: Record<(typeof MODULE_ORDER)[number], string> = {
   sleep: "Sleep",
-  "morning-routines": "Morning\nRoutines",
-  "energy-management": "Energy\nManagement",
+  "morning-routines": "Morning Routines",
+  "energy-management": "Energy Management",
   mindfulness: "Creativity",
   "move-2-perform": "Recovery",
-  "thinking-2-perform": "Thinking 2\nPerform",
-  recovery: "Move 2\nPerform",
-  "fuel-2-perform": "Fuel 2\nPerform",
-  "stress-management": "Most Authentic\nYou",
-  habits: "Building\nHabits",
+  "thinking-2-perform": "Thinking 2 Perform",
+  recovery: "Move 2 Perform",
+  "fuel-2-perform": "Fuel 2 Perform",
+  "stress-management": "Most Authentic You",
+  habits: "Building Habits",
 };
 
 const GUIDE_COUNTS: Record<(typeof MODULE_ORDER)[number], number> = {
@@ -100,8 +98,6 @@ const CategoryCard = memo(function CategoryCard({
   title,
   guideCount,
   icon,
-  backgroundColor,
-  textColor,
   slug,
   watchedCount,
   totalCount,
@@ -113,64 +109,80 @@ const CategoryCard = memo(function CategoryCard({
     });
   };
 
-  const percent = totalCount > 0 ? watchedCount / totalCount : 0;
-  const progressBarColor = lightenHex(textColor, 0.2);
   const label =
     watchedCount === 0
       ? "Not started"
       : watchedCount >= totalCount
         ? "Complete!"
-        : `${watchedCount}/${totalCount}`;
+        : `${watchedCount} / ${totalCount} lessons`;
 
   const metaLine = `${totalCount} videos${
     guideCount > 0 ? ` • ${guideCount} guides` : ""
   }`;
 
+  const background = MODULE_CARD_BACKGROUNDS[slug];
+  const scrim = MODULE_CARD_SCRIMS[slug] ?? [
+    "rgba(40, 30, 70, 0.2)",
+    "rgba(20, 15, 40, 0.7)",
+  ];
+
   return (
-    <TouchableOpacity
-      style={[styles.card, { backgroundColor }]}
-      activeOpacity={0.7}
+    <RectButton
+      style={styles.card}
+      underlayColor="rgba(255,255,255,0.12)"
       onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${label}. ${metaLine}`}
     >
-      <View style={styles.cardHeader}>
+      {background ? (
+        <ImageBackground
+          source={background}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
+        />
+      ) : (
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            { backgroundColor: MAIN_PURPLE },
+          ]}
+        />
+      )}
+      <LinearGradient
+        colors={[scrim[0], scrim[1]]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
+      />
+      <View style={styles.cardBody} pointerEvents="none">
         <View style={styles.iconContainer}>{icon}</View>
-        <Text
-          style={[styles.cardTitle, { color: textColor }]}
-          numberOfLines={4}
-          adjustsFontSizeToFit
-          minimumFontScale={0.55}
-          {...(Platform.OS === "android"
-            ? ({ textBreakStrategy: "simple" } as const)
-            : {})}
-        >
+        <Text style={styles.cardTitle} numberOfLines={2}>
           {title}
         </Text>
-      </View>
-      <View style={styles.cardFooter}>
+        <Text style={styles.cardProgressLabel} numberOfLines={1}>
+          {label}
+        </Text>
         <View style={styles.cardProgressBarBg}>
           <View
             style={[
               styles.cardProgressBarFill,
-              { width: `${percent * 100}%`, backgroundColor: progressBarColor },
+              {
+                width: `${
+                  totalCount > 0 ? (watchedCount / totalCount) * 100 : 0
+                }%`,
+              },
             ]}
           />
         </View>
-        <Text
-          style={[styles.cardProgressLabel, { color: textColor, opacity: 0.7 }]}
-          numberOfLines={2}
-        >
-          {label}
-        </Text>
-        <Text
-          style={[styles.cardSubtitle, { color: textColor, opacity: 0.7 }]}
-          numberOfLines={2}
-          adjustsFontSizeToFit
-          minimumFontScale={0.85}
-        >
+      </View>
+      <View style={styles.cardBottomBar} pointerEvents="none">
+        <Text style={styles.cardBottomMeta} numberOfLines={1}>
           {metaLine}
         </Text>
+        <ChevronRight size={16} color="rgba(255,255,255,0.92)" strokeWidth={2.4} />
       </View>
-    </TouchableOpacity>
+    </RectButton>
   );
 });
 
@@ -181,9 +193,7 @@ const MODULE_CATEGORY_ROWS = MODULE_ORDER.map((slug) => {
     title: CARD_TITLES[slug],
     slug,
     guideCount: GUIDE_COUNTS[slug],
-    icon: <Icon size={28} color={theme.iconColor} strokeWidth={2.5} />,
-    backgroundColor: theme.backgroundColor,
-    textColor: theme.textColor,
+    icon: <Icon size={22} color={theme.iconColor} strokeWidth={2.4} />,
   };
 });
 
@@ -506,16 +516,29 @@ export default function HomeScreen() {
         </Pressable>
       </Modal>
 
-      {/* Modules Title */}
-      <View style={styles.modulesTitleRow}>
-        <Text style={[styles.modulesTitle, isDark && styles.modulesTitleDark]}>
-          Modules
-        </Text>
-        <Crown
-          size={18}
-          color={isDark ? "#C4B5E8" : MAIN_PURPLE}
-          strokeWidth={2.2}
-          accessibilityLabel="Premium content"
+      {/* Greeting + mountain art */}
+      <View style={styles.greetingSection}>
+        <View style={styles.greetingCopy}>
+          <Text
+            style={[styles.greetingTitle, isDark && styles.greetingTitleDark]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
+            {greetingForNow()}
+          </Text>
+          <Text
+            style={[styles.greetingSubtitle, isDark && styles.greetingSubtitleDark]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            Small daily actions. Peak performance.
+          </Text>
+        </View>
+        <HomeGreetingArt
+          fadeColor={isDark ? "#121222" : "#F7F6FA"}
+          style={styles.greetingArt}
         />
       </View>
 
@@ -530,8 +553,8 @@ export default function HomeScreen() {
           0,
         );
         const pct = allTotal > 0 ? allWatched / allTotal : 0;
-        const gaugeSize = 100;
-        const strokeWidth = 10;
+        const gaugeSize = 84;
+        const strokeWidth = 9;
         const radius = (gaugeSize - strokeWidth) / 2;
         const circumference = 2 * Math.PI * radius;
         const strokeDashoffset = circumference * (1 - pct);
@@ -549,7 +572,7 @@ export default function HomeScreen() {
                     cx={gaugeSize / 2}
                     cy={gaugeSize / 2}
                     r={radius}
-                    stroke={isDark ? "#2A2A3E" : "#E8E8EE"}
+                    stroke={isDark ? "#2A2A3E" : "#EDE9FE"}
                     strokeWidth={strokeWidth}
                     fill="none"
                   />
@@ -557,7 +580,7 @@ export default function HomeScreen() {
                     cx={gaugeSize / 2}
                     cy={gaugeSize / 2}
                     r={radius}
-                    stroke="#5D9B8B"
+                    stroke={MAIN_PURPLE}
                     strokeWidth={strokeWidth}
                     fill="none"
                     strokeLinecap="round"
@@ -567,11 +590,21 @@ export default function HomeScreen() {
                     origin={`${gaugeSize / 2}, ${gaugeSize / 2}`}
                   />
                 </Svg>
-                <Text
-                  style={[styles.gaugePctText, isDark && { color: "#ECEDEE" }]}
-                >
-                  {Math.round(pct * 100)}%
-                </Text>
+                <View style={styles.gaugePctWrap} pointerEvents="none">
+                  <Text
+                    style={[styles.gaugePctText, isDark && { color: "#ECEDEE" }]}
+                  >
+                    {Math.round(pct * 100)}%
+                  </Text>
+                  <Text
+                    style={[
+                      styles.gaugePctCaption,
+                      isDark && styles.overallProgressCountDark,
+                    ]}
+                  >
+                    Complete
+                  </Text>
+                </View>
               </View>
               <View style={styles.overallProgressInfo}>
                 <Text
@@ -590,15 +623,34 @@ export default function HomeScreen() {
                 >
                   {allWatched} of {allTotal} videos watched
                 </Text>
+                <View
+                  style={[
+                    styles.overallProgressBarBg,
+                    isDark && styles.overallProgressBarBgDark,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.overallProgressBarFill,
+                      { width: `${Math.max(pct * 100, pct > 0 ? 4 : 0)}%` },
+                    ]}
+                  />
+                </View>
               </View>
             </View>
           </View>
         );
       })()}
 
+      <View style={styles.modulesTitleRow}>
+        <Text style={[styles.modulesTitle, isDark && styles.modulesTitleDark]}>
+          Continue your journey
+        </Text>
+      </View>
+
       {/* Categories Grid */}
       <View style={styles.grid}>
-        {MODULE_CATEGORY_ROWS.map((category, index) => {
+        {MODULE_CATEGORY_ROWS.map((category) => {
           const totalCount = (MODULE_VIDEOS[category.slug] || []).length;
           const watchedCount = (progress[category.slug] || []).length;
           return (
@@ -624,7 +676,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F7F6FA",
   },
   containerDark: {
     backgroundColor: "#121222",
@@ -639,6 +691,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+    overflow: "visible",
   },
   homeHeader: {
     flexDirection: "row",
@@ -660,117 +713,166 @@ const styles = StyleSheet.create({
   crownButtonWrap: {
     marginLeft: -10,
   },
+  greetingSection: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 18,
+    minHeight: 128,
+    overflow: "visible",
+  },
+  greetingCopy: {
+    flex: 1,
+    maxWidth: "58%",
+    paddingRight: 8,
+    zIndex: 2,
+  },
+  greetingTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontFamily: AppFonts.headingBold,
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  greetingTitleDark: {
+    color: "#F3F4F6",
+  },
+  greetingSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: AppFonts.bodyRegular,
+    color: "#6B7280",
+    paddingRight: 4,
+  },
+  greetingSubtitleDark: {
+    color: "#A1A1B5",
+  },
+  /** Bleed past ScrollView horizontal padding to the true screen edge. */
+  greetingArt: {
+    position: "absolute",
+    right: -20,
+    top: 0,
+    width: 210,
+    height: 128,
+    zIndex: 1,
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 16,
+    gap: 14,
     alignItems: "stretch",
   },
   card: {
-    width: "47%",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    paddingBottom: 16,
-    justifyContent: "space-between",
+    width: "47.5%",
+    borderRadius: 22,
+    overflow: "hidden",
     alignSelf: "stretch",
-    minHeight: 168,
-    shadowColor: "#000",
+    minHeight: 210,
+    shadowColor: "#2C1850",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 6,
     },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  cardHeader: {
-    flexGrow: 0,
-    flexShrink: 1,
-  },
-  cardFooter: {
-    marginTop: 10,
-    gap: 5,
-    paddingTop: 2,
+  cardBody: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 10,
   },
   iconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: AppFonts.headingSemiBold,
-    lineHeight: 21,
-    minHeight: 40,
-    ...(Platform.OS === "web"
-      ? ({
-          wordBreak: "normal",
-          overflowWrap: "normal",
-          whiteSpace: "pre-line",
-        } as object)
-      : {}),
-  },
-  cardProgressBarBg: {
-    height: 6,
-    backgroundColor: "rgba(255,255,255,0.5)",
-    borderRadius: 3,
-    overflow: "hidden",
-    marginTop: 0,
-    marginBottom: 0,
-  },
-  cardProgressBarFill: {
-    height: "100%",
-    borderRadius: 3,
+    lineHeight: 20,
+    color: "#FFFFFF",
+    marginBottom: 4,
   },
   cardProgressLabel: {
     fontSize: 13,
     lineHeight: 17,
-    fontFamily: AppFonts.bodyRegular,
+    fontFamily: AppFonts.bodyMedium,
+    color: "rgba(255,255,255,0.82)",
+    marginBottom: 8,
   },
-  cardSubtitle: {
-    fontSize: 12,
-    lineHeight: 15,
-    fontFamily: AppFonts.bodyRegular,
-    ...(Platform.OS === "web"
-      ? ({
-          wordBreak: "normal",
-          overflowWrap: "normal",
-        } as object)
-      : {}),
+  cardProgressBarBg: {
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.28)",
+    overflow: "hidden",
+  },
+  cardProgressBarFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.95)",
+  },
+  cardBottomBar: {
+    marginHorizontal: 10,
+    marginBottom: 10,
+    marginTop: "auto",
+    minHeight: 36,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+  },
+  cardBottomMeta: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: AppFonts.bodyMedium,
+    color: "rgba(255,255,255,0.95)",
   },
 
   modulesTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginTop: 8,
+    justifyContent: "space-between",
+    marginTop: 4,
     marginBottom: 14,
-    marginLeft: 4,
+    marginLeft: 2,
   },
   modulesTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontFamily: AppFonts.headingBold,
-    color: "#2C3E50",
+    color: "#1F2937",
   },
   modulesTitleDark: {
     color: "#ECEDEE",
   },
   overallProgressCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    borderRadius: 24,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    marginBottom: 20,
+    shadowColor: "#4C3F8F",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 3,
   },
   overallProgressCardDark: {
     backgroundColor: "#1E1E32",
@@ -784,21 +886,33 @@ const styles = StyleSheet.create({
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
+    width: 84,
+    height: 84,
+  },
+  gaugePctWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
   },
   gaugePctText: {
-    position: "absolute",
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: AppFonts.headingBold,
-    color: "#2C3E50",
+    color: "#1F2937",
+  },
+  gaugePctCaption: {
+    fontSize: 10,
+    fontFamily: AppFonts.bodyMedium,
+    color: "#8E8EA0",
+    marginTop: -1,
   },
   overallProgressInfo: {
     flex: 1,
-    gap: 4,
+    gap: 6,
   },
   overallProgressLabel: {
     fontSize: 17,
     fontFamily: AppFonts.headingSemiBold,
-    color: "#2C3E50",
+    color: "#1F2937",
   },
   overallProgressLabelDark: {
     color: "#ECEDEE",
@@ -811,10 +925,25 @@ const styles = StyleSheet.create({
   overallProgressCountDark: {
     color: "#9090A8",
   },
+  overallProgressBarBg: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#EDE9FE",
+    overflow: "hidden",
+    marginTop: 4,
+  },
+  overallProgressBarBgDark: {
+    backgroundColor: "#2A2A3E",
+  },
+  overallProgressBarFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: MAIN_PURPLE,
+  },
   dieselCardOuter: {
     width: "100%",
     borderRadius: 20,
-    marginBottom: 30,
+    marginBottom: 18,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
