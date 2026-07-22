@@ -33,7 +33,7 @@ import { pastelBoxStyle } from '@/constants/pastel-accents';
 import {
   MODULE_CARD_BACKGROUNDS,
   MODULE_CARD_BRIGHTEN_SCRIMS,
-  MODULE_CARD_SCRIMS,
+  MODULE_CARD_DARK_SCRIMS,
 } from '@/components/module-card-art';
 import {
   SCREEN_BACK_BUTTON_WIDTH,
@@ -92,9 +92,15 @@ export default function CategoryScreen() {
   const moduleTheme = slug ? MODULE_THEMES[slug] : undefined;
   const ModuleIcon = moduleTheme?.Icon;
   const moduleBackground = slug ? MODULE_CARD_BACKGROUNDS[slug] : undefined;
-  const sleepScrim = slug ? MODULE_CARD_SCRIMS[slug] : undefined;
-  const brightenScrim = slug ? MODULE_CARD_BRIGHTEN_SCRIMS[slug] : undefined;
-  const lightOnArt = slug === 'sleep' && !isDark;
+  const isSleep = slug === 'sleep';
+  // Sleep art is always dark — white type, no wash either way.
+  const lightOnArt = isDark || isSleep;
+  const overlayScrim =
+    !slug || isSleep
+      ? undefined
+      : isDark
+        ? MODULE_CARD_DARK_SCRIMS[slug]
+        : MODULE_CARD_BRIGHTEN_SCRIMS[slug];
 
   const openModulePdf = async (pdf: PdfEntry) => {
     if (!slug) return;
@@ -140,48 +146,19 @@ export default function CategoryScreen() {
                 resizeMode="cover"
               />
             ) : null}
-            {slug === 'sleep' && sleepScrim ? (
+            {overlayScrim ? (
               <LinearGradient
-                colors={[sleepScrim[0], 'rgba(10, 6, 22, 0.55)']}
+                colors={[overlayScrim[0], overlayScrim[1]]}
                 start={{ x: 0.5, y: 0 }}
                 end={{ x: 0.5, y: 1 }}
                 style={[StyleSheet.absoluteFillObject, styles.progressCardImage]}
                 pointerEvents="none"
-              />
-            ) : null}
-            {slug !== 'sleep' && brightenScrim ? (
-              <LinearGradient
-                colors={['rgba(255,255,255,0.55)', 'rgba(255,255,255,0.78)']}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={[StyleSheet.absoluteFillObject, styles.progressCardImage]}
-                pointerEvents="none"
-              />
-            ) : null}
-            {isDark ? (
-              <View
-                pointerEvents="none"
-                style={[
-                  StyleSheet.absoluteFillObject,
-                  styles.progressCardImage,
-                  styles.progressCardDarkWash,
-                ]}
               />
             ) : null}
 
             <View style={styles.progressCardTop}>
               {ModuleIcon ? (
-                <View
-                  style={[
-                    styles.progressIconWrap,
-                    {
-                      backgroundColor: lightOnArt
-                        ? 'rgba(255,255,255,0.16)'
-                        : 'rgba(255,255,255,0.72)',
-                    },
-                    isDark && styles.progressIconWrapDark,
-                  ]}
-                >
+                <View style={styles.progressIconWrap}>
                   <ModuleIcon
                     size={22}
                     color={moduleTheme?.iconColor ?? '#2C3E50'}
@@ -192,8 +169,7 @@ export default function CategoryScreen() {
               <Text
                 style={[
                   styles.moduleLabel,
-                  isDark && styles.subtextDark,
-                  lightOnArt && styles.moduleLabelOnArt,
+                  lightOnArt ? styles.moduleLabelOnArt : null,
                 ]}
               >
                 MODULE {info.moduleNumber}
@@ -203,8 +179,7 @@ export default function CategoryScreen() {
               <Text
                 style={[
                   styles.progressTitle,
-                  isDark && styles.textDark,
-                  lightOnArt && styles.textOnArt,
+                  lightOnArt ? styles.textOnArt : null,
                 ]}
               >
                 {info.title}
@@ -213,8 +188,7 @@ export default function CategoryScreen() {
                 <Text
                   style={[
                     styles.progressNumber,
-                    isDark && styles.textDark,
-                    lightOnArt && styles.textOnArt,
+                    lightOnArt ? styles.textOnArt : null,
                   ]}
                 >
                   {watchedCount}
@@ -222,8 +196,7 @@ export default function CategoryScreen() {
                 <Text
                   style={[
                     styles.progressTotal,
-                    isDark && styles.subtextDark,
-                    lightOnArt && styles.subtextOnArt,
+                    lightOnArt ? styles.textOnArt : null,
                   ]}
                 >
                   /{totalCount}
@@ -233,8 +206,7 @@ export default function CategoryScreen() {
             <Text
               style={[
                 styles.progressLabel,
-                isDark && styles.subtextDark,
-                lightOnArt && styles.subtextOnArt,
+                lightOnArt ? styles.textOnArt : null,
               ]}
             >
               watched
@@ -242,8 +214,7 @@ export default function CategoryScreen() {
             <View
               style={[
                 styles.progressBarBg,
-                isDark && { backgroundColor: '#2A2A3E' },
-                lightOnArt && styles.progressBarBgOnArt,
+                lightOnArt ? styles.progressBarBgOnArt : null,
               ]}
             >
               <View
@@ -251,9 +222,7 @@ export default function CategoryScreen() {
                   styles.progressBarFill,
                   {
                     width: `${progressPercent * 100}%`,
-                    backgroundColor: lightOnArt
-                      ? '#A8D5C5'
-                      : '#5D9B8B',
+                    backgroundColor: lightOnArt ? '#A8D5C5' : '#5D9B8B',
                   },
                 ]}
               />
@@ -582,9 +551,6 @@ const styles = StyleSheet.create({
   progressCardImage: {
     borderRadius: 16,
   },
-  progressCardDarkWash: {
-    backgroundColor: 'rgba(18, 18, 34, 0.72)',
-  },
   progressCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -597,9 +563,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  progressIconWrapDark: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: '#FFFFFF',
   },
   progressHeader: {
     flexDirection: 'row',
@@ -641,13 +605,13 @@ const styles = StyleSheet.create({
   },
   progressTotal: {
     fontSize: 16,
-    color: '#8E8EA0',
+    color: '#2C3E50',
     marginTop: -4,
     fontFamily: AppFonts.bodyRegular,
   },
   progressLabel: {
     fontSize: 12,
-    color: '#8E8EA0',
+    color: '#2C3E50',
     textAlign: 'right',
     marginTop: 0,
     marginBottom: 4,

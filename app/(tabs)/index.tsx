@@ -3,7 +3,7 @@ import { MainTabHeader, ThemeToggle } from "@/components/main-tab-header";
 import {
     MODULE_CARD_BACKGROUNDS,
     MODULE_CARD_BRIGHTEN_SCRIMS,
-    MODULE_CARD_SCRIMS,
+    MODULE_CARD_DARK_SCRIMS,
 } from "@/components/module-card-art";
 import { PremiumCrownButton } from "@/components/premium-crown-button";
 import { PremiumStatusModal } from "@/components/premium-status-modal";
@@ -59,15 +59,11 @@ interface CategoryCardProps {
   icon: React.ReactNode;
   iconColor: string;
   textColor: string;
-  /** True when the card art is dark enough for light foreground text. */
-  lightForeground: boolean;
   slug: string;
   watchedCount: number;
   totalCount: number;
+  isDark: boolean;
 }
-
-/** Modules whose background art is dark — keep light tinted text. */
-const DARK_CARD_SLUGS = new Set<string>(["sleep"]);
 
 /** Blend `hex` toward white — e.g. 0.2 = 20% lighter. */
 function lightenHex(hex: string, amount: number): string {
@@ -167,9 +163,8 @@ const CARD_TITLES: Record<(typeof MODULE_ORDER)[number], string> = {
 };
 
 /**
- * Module cards never depend on light/dark theme — only on progress.
- * Memoised so toggling theme does not re-render all 10 cards (that was
- * causing multi-frame jank on device).
+ * Module cards follow light/dark theme for overlay + type, but only
+ * re-render when progress or theme changes (memoised).
  */
 const CategoryCard = memo(function CategoryCard({
   title,
@@ -177,10 +172,10 @@ const CategoryCard = memo(function CategoryCard({
   icon,
   iconColor,
   textColor,
-  lightForeground,
   slug,
   watchedCount,
   totalCount,
+  isDark,
 }: CategoryCardProps) {
   const handlePress = () => {
     router.push({
@@ -200,29 +195,32 @@ const CategoryCard = memo(function CategoryCard({
     guideCount > 0 ? ` • ${guideCount} guides` : ""
   }`;
 
-  // Dark cards → light tint. Light cards → darker theme text for contrast.
-  const titleColor = lightForeground
-    ? lightenHex(iconColor, 0.78)
-    : darkenHex(textColor, 0.27);
-  const labelColor = lightForeground
-    ? lightenHex(iconColor, 0.62)
+  const background = MODULE_CARD_BACKGROUNDS[slug];
+  const isSleep = slug === "sleep";
+  // Sleep art is always dark — white type, no wash either way.
+  const useLightType = isDark || isSleep;
+  const overlayScrim = isSleep
+    ? undefined
+    : isDark
+      ? MODULE_CARD_DARK_SCRIMS[slug]
+      : MODULE_CARD_BRIGHTEN_SCRIMS[slug];
+
+  const titleColor = useLightType ? "#FFFFFF" : darkenHex(textColor, 0.27);
+  const labelColor = useLightType
+    ? "rgba(255,255,255,0.88)"
     : darkenHex(textColor, 0.17);
-  const barFillColor = lightForeground
+  const barFillColor = useLightType
     ? lightenHex(iconColor, 0.35)
     : darkenHex(iconColor, 0.23);
-  const barTrackColor = lightForeground
-    ? lightenHex(iconColor, 0.12)
+  const barTrackColor = useLightType
+    ? "rgba(255,255,255,0.28)"
     : lightenHex(iconColor, 0.45);
-  const metaColor = lightForeground
-    ? lightenHex(iconColor, 0.68)
+  const metaColor = useLightType
+    ? "rgba(255,255,255,0.82)"
     : darkenHex(textColor, 0.23);
-  const chevronColor = lightForeground
-    ? lightenHex(iconColor, 0.55)
+  const chevronColor = useLightType
+    ? "rgba(255,255,255,0.75)"
     : darkenHex(iconColor, 0.17);
-
-  const background = MODULE_CARD_BACKGROUNDS[slug];
-  const sleepScrim = MODULE_CARD_SCRIMS[slug];
-  const brightenScrim = MODULE_CARD_BRIGHTEN_SCRIMS[slug];
 
   return (
     <RectButton
@@ -250,18 +248,9 @@ const CategoryCard = memo(function CategoryCard({
             ]}
           />
         )}
-        {slug === "sleep" && sleepScrim ? (
+        {overlayScrim ? (
           <LinearGradient
-            colors={[sleepScrim[0], sleepScrim[1]]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={[StyleSheet.absoluteFillObject, styles.cardImage]}
-            pointerEvents="none"
-          />
-        ) : null}
-        {slug !== "sleep" && brightenScrim ? (
-          <LinearGradient
-            colors={[brightenScrim[0], brightenScrim[1]]}
+            colors={[overlayScrim[0], overlayScrim[1]]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={[StyleSheet.absoluteFillObject, styles.cardImage]}
@@ -324,7 +313,6 @@ const MODULE_CATEGORY_ROWS = MODULE_ORDER.map((slug) => {
     guideCount: (MODULE_PDFS[slug] ?? []).length,
     iconColor: theme.iconColor,
     textColor: theme.textColor,
-    lightForeground: DARK_CARD_SLUGS.has(slug),
     icon: <Icon size={22} color={theme.iconColor} strokeWidth={2.4} />,
   };
 });
@@ -867,6 +855,7 @@ export default function HomeScreen() {
                 {...category}
                 totalCount={totalCount}
                 watchedCount={watchedCount}
+                isDark={isDark}
               />
             );
           })}
@@ -1086,14 +1075,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   cardBottomBar: {
-    marginHorizontal: 10,
-    marginBottom: 10,
+    marginHorizontal: 14,
+    marginBottom: 12,
     marginTop: "auto",
-    minHeight: 36,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: "rgba(255,255,255,0.28)",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
