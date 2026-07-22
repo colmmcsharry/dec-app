@@ -4,7 +4,8 @@ import {
   ScreenBackButton,
 } from "@/components/screen-back-button";
 import { VideoPlayer, buildVimeoEmbedUrl, type VideoPlayerHandle } from "@/components/video-player";
-import { AppFonts } from "@/constants/theme";
+import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
+import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_VIDEOS } from "@/data/module-videos";
 import { MODULE_WORKBOOKS } from "@/data/module-workbooks";
@@ -31,7 +32,6 @@ import {
   Animated,
   Easing,
   Linking,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -44,6 +44,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 const YT_PROXY_BASE = "https://irishslang.ie/yt.html";
+const COMPLETION_COUNTDOWN_SECONDS = 5;
 
 function getYouTubeEmbedUrl(url: string) {
   const match = url.match(
@@ -79,10 +80,17 @@ export default function VideoDetailScreen() {
   const [hasPro, setHasPro] = useState(false);
   const [openingResourceKey, setOpeningResourceKey] = useState<string | null>(null);
   const [showCompletion, setShowCompletion] = useState(false);
+  const [completionCountdown, setCompletionCountdown] = useState(
+    COMPLETION_COUNTDOWN_SECONDS,
+  );
 
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const cardAnim = useRef(new Animated.Value(0)).current;
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
+  const completionNavigatedRef = useRef(false);
   const endedHandledRef = useRef(false);
   const autoplayEnabledRef = useRef(autoplayEnabled);
   autoplayEnabledRef.current = autoplayEnabled;
@@ -130,6 +138,19 @@ export default function VideoDetailScreen() {
 
   const moduleDef = categorySlug ? MODULE_WORKBOOKS[categorySlug] : undefined;
 
+  const nextModuleInfo = useMemo(() => {
+    if (!categorySlug) return null;
+    const idx = (MODULE_ORDER as readonly string[]).indexOf(categorySlug);
+    if (idx < 0 || idx >= MODULE_ORDER.length - 1) return null;
+    const slug = MODULE_ORDER[idx + 1];
+    const theme = MODULE_THEMES[slug];
+    return {
+      slug,
+      title: theme.shortName,
+      moduleNumber: idx + 2,
+    };
+  }, [categorySlug]);
+
   useEffect(() => {
     endedHandledRef.current = false;
     setStreamIndex(null);
@@ -172,35 +193,71 @@ export default function VideoDetailScreen() {
     })();
   }, [activeVideoId, categorySlug, router]);
 
-  useEffect(() => {
-    return () => {
-      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-    };
-  }, []);
-
-  const dismissCompletion = useCallback(() => {
+  const clearCompletionTimers = useCallback(() => {
     if (dismissTimerRef.current) {
       clearTimeout(dismissTimerRef.current);
       dismissTimerRef.current = null;
     }
-    Animated.parallel([
-      Animated.timing(backdropAnim, {
-        toValue: 0,
-        duration: 280,
-        useNativeDriver: true,
-      }),
-      Animated.timing(cardAnim, {
-        toValue: 0,
-        duration: 280,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start(() => setShowCompletion(false));
-  }, [backdropAnim, cardAnim]);
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearCompletionTimers();
+    };
+  }, [clearCompletionTimers]);
+
+  const hideCompletionOverlay = useCallback(
+    (afterHide?: () => void) => {
+      clearCompletionTimers();
+      Animated.parallel([
+        Animated.timing(backdropAnim, {
+          toValue: 0,
+          duration: 280,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardAnim, {
+          toValue: 0,
+          duration: 280,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setShowCompletion(false);
+        requestAnimationFrame(() => {
+          afterHide?.();
+        });
+      });
+    },
+    [backdropAnim, cardAnim, clearCompletionTimers],
+  );
+
+  const goToNextModule = useCallback(() => {
+    if (completionNavigatedRef.current || !nextModuleInfo) return;
+    completionNavigatedRef.current = true;
+    hideCompletionOverlay(() => {
+      router.replace({
+        pathname: "/category/[slug]",
+        params: {
+          slug: nextModuleInfo.slug,
+          title: nextModuleInfo.title,
+        },
+      });
+    });
+  }, [hideCompletionOverlay, nextModuleInfo, router]);
+
+  const dismissCompletion = useCallback(() => {
+    hideCompletionOverlay();
+  }, [hideCompletionOverlay]);
 
   const triggerCompletion = useCallback(() => {
+    completionNavigatedRef.current = false;
     backdropAnim.setValue(0);
     cardAnim.setValue(0);
+    setCompletionCountdown(COMPLETION_COUNTDOWN_SECONDS);
     setShowCompletion(true);
 
     Animated.parallel([
@@ -217,11 +274,45 @@ export default function VideoDetailScreen() {
       }),
     ]).start();
 
-    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-    dismissTimerRef.current = setTimeout(() => {
-      dismissCompletion();
-    }, 4400);
-  }, [backdropAnim, cardAnim, dismissCompletion]);
+    clearCompletionTimers();
+
+    if (nextModuleInfo) {
+      countdownIntervalRef.current = setInterval(() => {
+        setCompletionCountdown((prev) => {
+          if (prev <= 1) {
+            if (countdownIntervalRef.current) {
+              clearInterval(countdownIntervalRef.current);
+              countdownIntervalRef.current = null;
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      dismissTimerRef.current = setTimeout(() => {
+        dismissCompletion();
+      }, COMPLETION_COUNTDOWN_SECONDS * 1000);
+    }
+  }, [
+    backdropAnim,
+    cardAnim,
+    clearCompletionTimers,
+    dismissCompletion,
+    nextModuleInfo,
+  ]);
+
+  useEffect(() => {
+    if (!showCompletion || !nextModuleInfo) return;
+    if (completionCountdown === 0) {
+      goToNextModule();
+    }
+  }, [
+    completionCountdown,
+    goToNextModule,
+    nextModuleInfo,
+    showCompletion,
+  ]);
 
   const handleNextVideo = useCallback(() => {
     if (!nextVideo || moduleVideos.length === 0) return;
@@ -344,6 +435,7 @@ export default function VideoDetailScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
+      <View style={{ flex: 1, backgroundColor }}>
       <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor }]}>
         <ScreenBackButton color={isDark ? "#ECEDEE" : "#2C3E50"} />
         <Text
@@ -550,20 +642,25 @@ export default function VideoDetailScreen() {
         </View>
       </ScrollView>
 
-      <Modal
-        visible={showCompletion}
-        transparent
-        animationType="none"
-        statusBarTranslucent
-        onRequestClose={dismissCompletion}
-      >
-        <Pressable style={styles.completionRoot} onPress={dismissCompletion}>
+      {showCompletion ? (
+        <View
+          style={styles.completionOverlay}
+          accessibilityViewIsModal
+          pointerEvents="box-none"
+        >
           <Animated.View
+            pointerEvents="none"
             style={[
               StyleSheet.absoluteFillObject,
               styles.completionBackdrop,
               { opacity: backdropAnim },
             ]}
+          />
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={dismissCompletion}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss"
           />
           <Animated.View
             style={[
@@ -582,32 +679,84 @@ export default function VideoDetailScreen() {
               },
             ]}
           >
-            <View style={styles.completionBadgeWrap}>
+            <View style={styles.completionBadgeWrap} pointerEvents="none">
               <CelebrationBadge active={showCompletion} />
             </View>
             <Text
+              pointerEvents="none"
               style={[styles.completionTitle, isDark && styles.textDark]}
             >
-              Module Complete!
+              {moduleDef
+                ? `Congrats on finishing Module ${moduleDef.moduleNumber}`
+                : "Module Complete!"}
             </Text>
-            {moduleDef && (
-              <Text
-                style={[
-                  styles.completionSubtitle,
-                  isDark && styles.subtextDark,
-                ]}
-              >
-                Module {moduleDef.moduleNumber} · {moduleDef.title}
-              </Text>
-            )}
             <Text
+              pointerEvents="none"
               style={[styles.completionBody, isDark && styles.subtextDark]}
             >
-              You&apos;ve finished every video in this module. Thanks for showing up — keep the momentum going!
+              Be sure to complete the exercises in the Worksheets to solidify
+              your learnings.
             </Text>
+            {nextModuleInfo ? (
+              <>
+                <View style={styles.completionCountdownWrap} pointerEvents="none">
+                  <Text
+                    style={[
+                      styles.completionCountdownLabel,
+                      isDark && styles.subtextDark,
+                    ]}
+                  >
+                    {completionCountdown > 0
+                      ? `Module ${nextModuleInfo.moduleNumber} starting in`
+                      : `Starting Module ${nextModuleInfo.moduleNumber}`}
+                  </Text>
+                  {completionCountdown > 0 ? (
+                    <Text
+                      style={[
+                        styles.completionCountdownNumber,
+                        isDark && styles.textDark,
+                      ]}
+                    >
+                      {completionCountdown}
+                    </Text>
+                  ) : null}
+                </View>
+                <Pressable
+                  onPress={goToNextModule}
+                  style={({ pressed }) => [
+                    styles.completionButton,
+                    { opacity: pressed ? 0.88 : 1 },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Continue to Module ${nextModuleInfo.moduleNumber}`}
+                >
+                  <View pointerEvents="none" style={styles.completionButtonInner}>
+                    <Text style={styles.completionButtonText}>
+                      Continue to Module {nextModuleInfo.moduleNumber}
+                    </Text>
+                    <ChevronRight size={18} color="#FFFFFF" strokeWidth={2.4} />
+                  </View>
+                </Pressable>
+              </>
+            ) : (
+              <Pressable
+                onPress={dismissCompletion}
+                style={({ pressed }) => [
+                  styles.completionButton,
+                  { opacity: pressed ? 0.88 : 1 },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Done"
+              >
+                <Text style={styles.completionButtonText} pointerEvents="none">
+                  Done
+                </Text>
+              </Pressable>
+            )}
           </Animated.View>
-        </Pressable>
-      </Modal>
+        </View>
+      ) : null}
+      </View>
     </>
   );
 }
@@ -817,8 +966,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: AppFonts.bodyBold,
   },
-  completionRoot: {
-    flex: 1,
+  completionOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+    elevation: 1000,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 28,
@@ -829,6 +980,7 @@ const styles = StyleSheet.create({
   completionCard: {
     width: "100%",
     maxWidth: 360,
+    zIndex: 1,
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
     paddingTop: 28,
@@ -852,21 +1004,54 @@ const styles = StyleSheet.create({
     fontFamily: AppFonts.headingBold,
     color: "#2C3E50",
     textAlign: "center",
-    marginBottom: 6,
-  },
-  completionSubtitle: {
-    fontSize: 13,
-    fontFamily: AppFonts.bodyBold,
-    color: "#5D9B8B",
-    textAlign: "center",
-    marginBottom: 12,
-    letterSpacing: 0.3,
+    marginBottom: 10,
   },
   completionBody: {
     fontSize: 15,
     lineHeight: 22,
     fontFamily: AppFonts.bodyRegular,
-    color: "#6B7280",
+    color: "#2C3E50",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  completionCountdownWrap: {
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  completionCountdownLabel: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: AppFonts.bodyBold,
+    color: "#5D9B8B",
+    textAlign: "center",
+  },
+  completionCountdownNumber: {
+    marginTop: 6,
+    fontSize: 40,
+    lineHeight: 46,
+    fontFamily: AppFonts.headingBold,
+    color: "#2C3E50",
+    textAlign: "center",
+  },
+  completionButton: {
+    alignSelf: "stretch",
+    minHeight: 48,
+    backgroundColor: MAIN_PURPLE,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  completionButtonInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  completionButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: AppFonts.bodyBold,
     textAlign: "center",
   },
 });

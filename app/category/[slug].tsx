@@ -274,7 +274,7 @@ export default function CategoryScreen() {
               Video links
             </Text>
             <Text style={[styles.resourcesSub, isDark && styles.subtextDark]}>
-              YouTube and talks linked from lessons in this module.
+              Videos linked from lessons in this module.
             </Text>
             {moduleLinks.map((link) => (
               <TouchableOpacity

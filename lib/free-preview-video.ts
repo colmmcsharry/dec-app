@@ -4,7 +4,7 @@ import { MODULE_VIDEOS } from "@/data/module-videos";
 /** First module in canonical order (Module 1 — Sleep). */
 export const FREE_PREVIEW_MODULE_SLUG = MODULE_ORDER[0];
 
-/** First video in that module — "Course Intro". */
+/** First video in that module (free preview for non‑Pro users). */
 export const FREE_PREVIEW_VIDEO_ID =
   MODULE_VIDEOS[FREE_PREVIEW_MODULE_SLUG][0]?.id ?? "";
 

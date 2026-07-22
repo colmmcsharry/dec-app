@@ -1,5 +1,7 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { EmailUpdatesSection } from "@/components/email-updates-section";
+import { VideoPlayer } from "@/components/video-player";
+import { COURSE_INTRO_VIDEO } from "@/data/course-intro-video";
 import { setOnboardingComplete } from "@/services/onboarding-storage";
 import { hasProEntitlement } from "@/services/purchases";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -70,6 +72,7 @@ type SlideId =
   | "match"
   | "videos"
   | "workbooks"
+  | "courseIntro"
   | "email";
 
 type Slide = {
@@ -86,6 +89,7 @@ const SLIDES: Slide[] = [
   { id: "match", key: "match" },
   { id: "videos", key: "videos" },
   { id: "workbooks", key: "workbooks" },
+  { id: "courseIntro", key: "courseIntro" },
   { id: "email", key: "email" },
 ];
 
@@ -842,6 +846,30 @@ export default function OnboardingScreen() {
             </View>
           </View>
         );
+      case "courseIntro":
+        return (
+          <View style={styles.slide}>
+            <View style={styles.slideContent}>
+              <View style={styles.slideCopy}>
+                <Text style={styles.slideTitle}>{COURSE_INTRO_VIDEO.title}</Text>
+                <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
+                  A quick message from Declan.
+                </Text>
+              </View>
+              <View style={styles.slideVisual}>
+                <Animated.View
+                  entering={FadeInUp.duration(450)}
+                  style={styles.courseIntroPlayerWrap}
+                >
+                  <VideoPlayer
+                    videoUrl={COURSE_INTRO_VIDEO.url}
+                    title={COURSE_INTRO_VIDEO.title}
+                  />
+                </Animated.View>
+              </View>
+            </View>
+          </View>
+        );
       case "email":
         return (
           <View style={styles.slide}>
@@ -1269,5 +1297,12 @@ const styles = StyleSheet.create({
     width: "80%",
     height: 432,
     alignSelf: "center",
+  },
+  courseIntroPlayerWrap: {
+    width: "100%",
+    marginTop: 8,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#000",
   },
 });

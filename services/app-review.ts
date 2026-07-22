@@ -48,8 +48,8 @@ export function getReviewStoreLabel(): string {
 }
 
 /**
- * One-time native review prompt after the user completes the first app video
- * (Course Intro). Safe to call repeatedly — only runs once per install.
+ * One-time native review prompt after the user completes their first module
+ * video. Safe to call repeatedly — only runs once per install.
  */
 export async function maybeRequestReviewAfterFirstVideoCompleted(): Promise<void> {
   if (Platform.OS === "web") return;
