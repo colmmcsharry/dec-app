@@ -613,17 +613,13 @@ export default function AboutScreen() {
         ]}
       >
         <View style={styles.cardInner}>
-          <Text
-            style={[styles.sectionEyebrow, isDark && styles.sectionEyebrowDark]}
-          >
+          <Text style={styles.sectionEyebrow}>
             Feedback
           </Text>
-          <Text
-            style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
-          >
+          <Text style={styles.sectionTitle}>
             Enjoying Peak Performance Code?
           </Text>
-          <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
+          <Text style={styles.bodyText}>
             If the app is helping you, a quick review on the{" "}
             {getReviewStoreLabel()} makes a big difference.
           </Text>
@@ -631,7 +627,6 @@ export default function AboutScreen() {
             onPress={() => void requestAppReview()}
             style={({ pressed }) => [
               styles.reviewButton,
-              isDark && styles.reviewButtonDark,
               pressed && styles.reviewButtonPressed,
             ]}
             accessibilityRole="button"
@@ -639,15 +634,10 @@ export default function AboutScreen() {
           >
             <Star
               size={18}
-              color={isDark ? "#1E2430" : "#FFFFFF"}
-              fill={isDark ? "#C4B5E8" : "#FFFFFF"}
+              color="#FFFFFF"
+              fill="#FFFFFF"
             />
-            <Text
-              style={[
-                styles.reviewButtonText,
-                isDark && styles.reviewButtonTextDark,
-              ]}
-            >
+            <Text style={styles.reviewButtonText}>
               Leave a review
             </Text>
           </Pressable>

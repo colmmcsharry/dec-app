@@ -101,17 +101,15 @@ function FeatureSection({
         <View style={styles.sectionTitleRow}>
           <TitleIcon
             size={24}
-            color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
+            color={WORKBOOK_TEXT}
             strokeWidth={2.25}
           />
-          <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+          <Text style={styles.sectionTitle}>
             {title}
           </Text>
         </View>
         {eyebrow ? (
-          <Text
-            style={[styles.sectionEyebrow, isDark && styles.sectionEyebrowDark]}
-          >
+          <Text style={styles.sectionEyebrow}>
             {eyebrow}
           </Text>
         ) : null}

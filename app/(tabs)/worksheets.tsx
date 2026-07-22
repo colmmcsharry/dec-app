@@ -1,4 +1,5 @@
 import { MainTabHeader } from "@/components/main-tab-header";
+import { MODULE_CARD_BACKGROUNDS } from "@/components/module-card-art";
 import { PageHeading } from "@/components/page-heading";
 import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts } from "@/constants/theme";
@@ -11,6 +12,7 @@ import { requirePro } from "@/services/purchases";
 import { useRouter } from "expo-router";
 import { AlignLeft, BookOpen, ChevronRight, FileText } from "lucide-react-native";
 import {
+  ImageBackground,
   Platform,
   ScrollView,
   StyleSheet,
@@ -20,11 +22,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-/** Module worksheet cards: neutral ink (pastel card bg only; no theme-coloured type). */
+/** Module worksheet cards: neutral ink over illustrated art. */
 const MODULE_INK_LIGHT = "#1E2430";
 const MODULE_MUTED_LIGHT = "#5C6370";
 const MODULE_ICON_LIGHT = "#374151";
 const MODULE_CHEVRON_LIGHT = "#6B7280";
+/** Sleep art stays dark — light type for headings only. */
+const SLEEP_TITLE = "#FFFFFF";
+const SLEEP_MUTED = "rgba(255,255,255,0.78)";
 
 export default function WorksheetsScreen() {
   const { isDark } = useTheme();
@@ -74,12 +79,23 @@ export default function WorksheetsScreen() {
         const summary = MODULE_SUMMARIES[slug] ?? [];
         if (!def || !theme) return null;
         const Icon = theme.Icon;
+        const background = MODULE_CARD_BACKGROUNDS[slug];
+        const isSleep = slug === "sleep";
+        const headingColor = isSleep ? SLEEP_TITLE : MODULE_INK_LIGHT;
+        const headingMuted = isSleep ? SLEEP_MUTED : MODULE_MUTED_LIGHT;
 
         return (
-          <View
+          <ImageBackground
             key={slug}
-            style={[styles.moduleCard, { backgroundColor: theme.backgroundColor }]}
+            source={background}
+            style={[
+              styles.moduleCard,
+              { backgroundColor: theme.backgroundColor },
+            ]}
+            imageStyle={styles.moduleCardImage}
+            resizeMode="cover"
           >
+            <View style={styles.moduleCardContent}>
             <View style={styles.moduleCardHeader}>
               <View style={styles.moduleIconCircle}>
                 <View pointerEvents="none">
@@ -91,10 +107,10 @@ export default function WorksheetsScreen() {
                 </View>
               </View>
               <View style={styles.moduleHeaderText}>
-                <Text style={[styles.moduleLabel, { color: MODULE_MUTED_LIGHT }]}>
+                <Text style={[styles.moduleLabel, { color: headingMuted }]}>
                   Module {def.moduleNumber} — {theme.shortName}
                 </Text>
-                <Text style={[styles.moduleTitle, { color: MODULE_INK_LIGHT }]}>
+                <Text style={[styles.moduleTitle, { color: headingColor }]}>
                   {def.title}
                 </Text>
               </View>
@@ -102,7 +118,7 @@ export default function WorksheetsScreen() {
 
             {summary.length > 0 ? (
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionTitle, { color: MODULE_INK_LIGHT }]}>
+                <Text style={[styles.sectionTitle, { color: headingColor }]}>
                   Module summary
                 </Text>
                 <TouchableOpacity
@@ -141,7 +157,7 @@ export default function WorksheetsScreen() {
 
             {pdfs.length > 0 ? (
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionTitle, { color: MODULE_INK_LIGHT }]}>
+                <Text style={[styles.sectionTitle, { color: headingColor }]}>
                   Printable worksheets
                 </Text>
                 {pdfs.map((pdf) => (
@@ -171,7 +187,7 @@ export default function WorksheetsScreen() {
             ) : null}
 
             <View style={styles.sectionBlock}>
-              <Text style={[styles.sectionTitle, { color: MODULE_INK_LIGHT }]}>
+              <Text style={[styles.sectionTitle, { color: headingColor }]}>
                 Digital Workbook
               </Text>
               <TouchableOpacity
@@ -206,7 +222,8 @@ export default function WorksheetsScreen() {
                 </View>
               </TouchableOpacity>
             </View>
-          </View>
+            </View>
+          </ImageBackground>
         );
       })}
     </ScrollView>
@@ -226,8 +243,8 @@ const styles = StyleSheet.create({
   },
   moduleCard: {
     borderRadius: 22,
-    padding: 18,
     marginBottom: 16,
+    overflow: "hidden",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -237,6 +254,12 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 4 },
     }),
+  },
+  moduleCardImage: {
+    borderRadius: 22,
+  },
+  moduleCardContent: {
+    padding: 18,
   },
   moduleCardHeader: {
     flexDirection: "row",
@@ -286,7 +309,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "rgba(255,255,255,0.85)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 14,
