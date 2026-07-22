@@ -81,6 +81,12 @@ function buildPlayerHtml(embedUrl: string) {
         });
       };
 
+      window.__pause = function () {
+        try {
+          player.pause();
+        } catch (e) {}
+      };
+
       player.on("ended", function () {
         var continued = false;
         if (window.__pendingAutoplay && window.__pendingAutoplay.url) {
@@ -105,6 +111,7 @@ function buildPlayerHtml(embedUrl: string) {
 
 export type VideoPlayerHandle = {
   loadAndPlay: (embedUrl: string) => void;
+  pause: () => void;
 };
 
 export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
@@ -147,6 +154,17 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         (function () {
           if (window.__loadAndPlay) {
             window.__loadAndPlay(${JSON.stringify(embedUrl)});
+          }
+        })();
+        true;
+      `;
+      webViewRef.current?.injectJavaScript(script);
+    },
+    pause() {
+      const script = `
+        (function () {
+          if (window.__pause) {
+            window.__pause();
           }
         })();
         true;

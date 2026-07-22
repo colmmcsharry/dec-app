@@ -1,5 +1,5 @@
 import { EmailUpdatesSection } from "@/components/email-updates-section";
-import { VideoPlayer } from "@/components/video-player";
+import { VideoPlayer, type VideoPlayerHandle } from "@/components/video-player";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { COURSE_INTRO_VIDEO } from "@/data/course-intro-video";
 import { setOnboardingComplete } from "@/services/onboarding-storage";
@@ -94,6 +94,7 @@ const SLIDES: Slide[] = [
 ];
 
 const GOALS_SLIDE_INDEX = SLIDES.findIndex((s) => s.id === "goals");
+const COURSE_INTRO_SLIDE_INDEX = SLIDES.findIndex((s) => s.id === "courseIntro");
 
 type GoalOption = {
   id: string;
@@ -484,6 +485,7 @@ export default function OnboardingScreen() {
   const { preview } = useLocalSearchParams<{ preview?: string }>();
   const isPreview = preview === "1" || preview === "true";
   const listRef = useRef<FlatList>(null);
+  const courseIntroPlayerRef = useRef<VideoPlayerHandle>(null);
   const [index, setIndex] = useState(0);
   const [growthActive, setGrowthActive] = useState(false);
   const [progressActive, setProgressActive] = useState(false);
@@ -539,19 +541,27 @@ export default function OnboardingScreen() {
     })();
   }, [router, isPreview]);
 
+  const stopCourseIntroVideo = useCallback(() => {
+    courseIntroPlayerRef.current?.pause();
+  }, []);
+
   const skip = useCallback(() => {
+    stopCourseIntroVideo();
     if (isPreview) {
       router.back();
       return;
     }
     goPaywall();
-  }, [goPaywall, isPreview, router]);
+  }, [goPaywall, isPreview, router, stopCourseIntroVideo]);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       const i = viewableItems[0]?.index;
       if (i == null) return;
       if (selectedGoals.length === 0 && i > GOALS_SLIDE_INDEX) return;
+      if (i !== COURSE_INTRO_SLIDE_INDEX) {
+        courseIntroPlayerRef.current?.pause();
+      }
       setIndex(i);
       const slide = SLIDES[i];
       setGrowthActive(slide?.id === "growth");
@@ -565,6 +575,9 @@ export default function OnboardingScreen() {
   }).current;
 
   const next = () => {
+    if (SLIDES[index]?.id === "courseIntro") {
+      stopCourseIntroVideo();
+    }
     if (index < SLIDES.length - 1) {
       listRef.current?.scrollToIndex({
         index: index + 1,
@@ -872,10 +885,15 @@ export default function OnboardingScreen() {
                   entering={FadeInUp.duration(450)}
                   style={styles.courseIntroPlayerWrap}
                 >
-                  <VideoPlayer
-                    videoUrl={COURSE_INTRO_VIDEO.url}
-                    title={COURSE_INTRO_VIDEO.title}
-                  />
+                  {index === COURSE_INTRO_SLIDE_INDEX ? (
+                    <VideoPlayer
+                      ref={courseIntroPlayerRef}
+                      videoUrl={COURSE_INTRO_VIDEO.url}
+                      title={COURSE_INTRO_VIDEO.title}
+                    />
+                  ) : (
+                    <View style={styles.courseIntroPlayerPlaceholder} />
+                  )}
                 </Animated.View>
               </View>
             </View>
@@ -1312,6 +1330,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 16,
     overflow: "hidden",
+    backgroundColor: "#000",
+  },
+  courseIntroPlayerPlaceholder: {
+    width: "100%",
+    aspectRatio: 16 / 9,
     backgroundColor: "#000",
   },
 });
