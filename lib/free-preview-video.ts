@@ -14,6 +14,7 @@ export function isFreePreviewVideo(
 ): boolean {
   if (!categorySlug || !videoId || !FREE_PREVIEW_VIDEO_ID) return false;
   return (
-    categorySlug === FREE_PREVIEW_MODULE_SLUG && videoId === FREE_PREVIEW_VIDEO_ID
+    categorySlug === FREE_PREVIEW_MODULE_SLUG &&
+    videoId === FREE_PREVIEW_VIDEO_ID
   );
 }

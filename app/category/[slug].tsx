@@ -1,10 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
+import {
+  ImageBackground,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  Image,
+} from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
-import { Check, ChevronRight, FileText, Lock, Youtube } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BookOpen, Check, ChevronRight, FileText, Lock, Youtube } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
 import { requirePro, requireVideoAccess, hasProEntitlement } from '@/services/purchases';
@@ -17,8 +27,14 @@ import {
   type ModuleLinkResource,
 } from '@/data/supplemental-resources';
 import { hrefModuleDigitalWorkbook } from '@/lib/module-workbook-route';
+import { MODULE_THEMES } from '@/constants/module-themes';
 import { AppFonts } from '@/constants/theme';
 import { pastelBoxStyle } from '@/constants/pastel-accents';
+import {
+  MODULE_CARD_BACKGROUNDS,
+  MODULE_CARD_BRIGHTEN_SCRIMS,
+  MODULE_CARD_SCRIMS,
+} from '@/components/module-card-art';
 import {
   SCREEN_BACK_BUTTON_WIDTH,
   ScreenBackButton,
@@ -73,6 +89,13 @@ export default function CategoryScreen() {
   const totalCount = videos.length;
   const progressPercent = totalCount > 0 ? watchedCount / totalCount : 0;
 
+  const moduleTheme = slug ? MODULE_THEMES[slug] : undefined;
+  const ModuleIcon = moduleTheme?.Icon;
+  const moduleBackground = slug ? MODULE_CARD_BACKGROUNDS[slug] : undefined;
+  const sleepScrim = slug ? MODULE_CARD_SCRIMS[slug] : undefined;
+  const brightenScrim = slug ? MODULE_CARD_BRIGHTEN_SCRIMS[slug] : undefined;
+  const lightOnArt = slug === 'sleep' && !isDark;
+
   const openModulePdf = async (pdf: PdfEntry) => {
     if (!slug) return;
     if (!(await requirePro())) return;
@@ -103,35 +126,145 @@ export default function CategoryScreen() {
       <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
         {/* Progress Card */}
         {totalCount > 0 && (
-          <View style={[styles.progressCard, { backgroundColor: isDark ? '#1E1E32' : '#FFFFFF' }]}>
-            <Text style={[styles.moduleLabel, isDark && styles.subtextDark]}>
-              MODULE {info.moduleNumber}
-            </Text>
+          <View
+            style={[
+              styles.progressCard,
+              { backgroundColor: isDark ? '#1E1E32' : info.color },
+            ]}
+          >
+            {moduleBackground ? (
+              <ImageBackground
+                source={moduleBackground}
+                style={StyleSheet.absoluteFillObject}
+                imageStyle={styles.progressCardImage}
+                resizeMode="cover"
+              />
+            ) : null}
+            {slug === 'sleep' && sleepScrim ? (
+              <LinearGradient
+                colors={[sleepScrim[0], 'rgba(10, 6, 22, 0.55)']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={[StyleSheet.absoluteFillObject, styles.progressCardImage]}
+                pointerEvents="none"
+              />
+            ) : null}
+            {slug !== 'sleep' && brightenScrim ? (
+              <LinearGradient
+                colors={['rgba(255,255,255,0.55)', 'rgba(255,255,255,0.78)']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={[StyleSheet.absoluteFillObject, styles.progressCardImage]}
+                pointerEvents="none"
+              />
+            ) : null}
+            {isDark ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  styles.progressCardImage,
+                  styles.progressCardDarkWash,
+                ]}
+              />
+            ) : null}
+
+            <View style={styles.progressCardTop}>
+              {ModuleIcon ? (
+                <View
+                  style={[
+                    styles.progressIconWrap,
+                    {
+                      backgroundColor: lightOnArt
+                        ? 'rgba(255,255,255,0.16)'
+                        : 'rgba(255,255,255,0.72)',
+                    },
+                    isDark && styles.progressIconWrapDark,
+                  ]}
+                >
+                  <ModuleIcon
+                    size={22}
+                    color={moduleTheme?.iconColor ?? '#2C3E50'}
+                    strokeWidth={2.4}
+                  />
+                </View>
+              ) : null}
+              <Text
+                style={[
+                  styles.moduleLabel,
+                  isDark && styles.subtextDark,
+                  lightOnArt && styles.moduleLabelOnArt,
+                ]}
+              >
+                MODULE {info.moduleNumber}
+              </Text>
+            </View>
             <View style={styles.progressHeader}>
-              <Text style={[styles.progressTitle, isDark && styles.textDark]}>
+              <Text
+                style={[
+                  styles.progressTitle,
+                  isDark && styles.textDark,
+                  lightOnArt && styles.textOnArt,
+                ]}
+              >
                 {info.title}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                <Text style={[styles.progressNumber, isDark && styles.textDark]}>{watchedCount}</Text>
-                <Text style={[styles.progressTotal, isDark && styles.subtextDark]}>/{totalCount}</Text>
+                <Text
+                  style={[
+                    styles.progressNumber,
+                    isDark && styles.textDark,
+                    lightOnArt && styles.textOnArt,
+                  ]}
+                >
+                  {watchedCount}
+                </Text>
+                <Text
+                  style={[
+                    styles.progressTotal,
+                    isDark && styles.subtextDark,
+                    lightOnArt && styles.subtextOnArt,
+                  ]}
+                >
+                  /{totalCount}
+                </Text>
               </View>
             </View>
-            <Text style={[styles.progressLabel, isDark && styles.subtextDark]}>watched</Text>
-            <View style={[styles.progressBarBg, isDark && { backgroundColor: '#2A2A3E' }]}>
+            <Text
+              style={[
+                styles.progressLabel,
+                isDark && styles.subtextDark,
+                lightOnArt && styles.subtextOnArt,
+              ]}
+            >
+              watched
+            </Text>
+            <View
+              style={[
+                styles.progressBarBg,
+                isDark && { backgroundColor: '#2A2A3E' },
+                lightOnArt && styles.progressBarBgOnArt,
+              ]}
+            >
               <View
                 style={[
                   styles.progressBarFill,
-                  { width: `${progressPercent * 100}%`, backgroundColor: '#5D9B8B' },
+                  {
+                    width: `${progressPercent * 100}%`,
+                    backgroundColor: lightOnArt
+                      ? '#A8D5C5'
+                      : '#5D9B8B',
+                  },
                 ]}
               />
             </View>
-            {watchedCount > 0 && watchedCount < totalCount && (
-              <Text style={[styles.progressEncouragement, isDark && styles.subtextDark]}>
-                You&apos;re on track! Complete {totalCount - watchedCount} more to finish this module.
-              </Text>
-            )}
             {watchedCount === totalCount && totalCount > 0 && (
-              <Text style={[styles.progressEncouragement, { color: '#5D9B8B' }]}>
+              <Text
+                style={[
+                  styles.progressEncouragement,
+                  { color: lightOnArt ? '#A8D5C5' : '#5D9B8B' },
+                ]}
+              >
                 Module complete! Great work.
               </Text>
             )}
@@ -345,7 +478,10 @@ export default function CategoryScreen() {
                 which saves on your phone.
               </Text>
               <View style={styles.workbookButton}>
-                <Text style={styles.workbookButtonText}>Open Workbook</Text>
+                <View pointerEvents="none" style={styles.workbookButtonInner}>
+                  <BookOpen size={18} color="#FFFFFF" strokeWidth={2.4} />
+                  <Text style={styles.workbookButtonText}>Open Workbook</Text>
+                </View>
               </View>
             </Pressable>
           </View>
@@ -436,11 +572,34 @@ const styles = StyleSheet.create({
     marginTop: 30,
     padding: 20,
     borderRadius: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
+  },
+  progressCardImage: {
+    borderRadius: 16,
+  },
+  progressCardDarkWash: {
+    backgroundColor: 'rgba(18, 18, 34, 0.72)',
+  },
+  progressCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  progressIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressIconWrapDark: {
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   progressHeader: {
     flexDirection: 'row',
@@ -454,7 +613,18 @@ const styles = StyleSheet.create({
     color: '#8E8EA0',
     letterSpacing: 1,
     textTransform: 'uppercase',
-    marginBottom: 4,
+  },
+  moduleLabelOnArt: {
+    color: 'rgba(255,255,255,0.72)',
+  },
+  textOnArt: {
+    color: '#FFFFFF',
+  },
+  subtextOnArt: {
+    color: 'rgba(255,255,255,0.72)',
+  },
+  progressBarBgOnArt: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
   },
   progressTitle: {
     fontSize: 22,
@@ -639,6 +809,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 13,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  workbookButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   workbookButtonText: {
     color: '#FFFFFF',

@@ -1,6 +1,6 @@
-import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { EmailUpdatesSection } from "@/components/email-updates-section";
 import { VideoPlayer } from "@/components/video-player";
+import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { COURSE_INTRO_VIDEO } from "@/data/course-intro-video";
 import { setOnboardingComplete } from "@/services/onboarding-storage";
 import { hasProEntitlement } from "@/services/purchases";
@@ -344,7 +344,11 @@ const LOOPED_TESTIMONIALS = [
 ];
 const LOOPED_START_INDEX = 1;
 
-function TestimonialCard({ testimonial }: { testimonial: (typeof TESTIMONIALS)[number] }) {
+function TestimonialCard({
+  testimonial,
+}: {
+  testimonial: (typeof TESTIMONIALS)[number];
+}) {
   return (
     <View style={styles.testimonialCard}>
       <View style={styles.testimonialCardBody}>
@@ -589,41 +593,41 @@ export default function OnboardingScreen() {
         return (
           <View style={styles.slide}>
             <View style={styles.slideContent}>
-            <Animated.View
-              entering={FadeInDown.duration(500).springify()}
-              style={styles.heroIcon}
-            >
-              <Image
-                source={APP_LOGO}
-                style={styles.heroLogo}
-                resizeMode="contain"
-                accessibilityLabel="DEC app logo"
-              />
-            </Animated.View>
-            <Animated.Text
-              entering={FadeIn.delay(120).duration(450)}
-              style={styles.heroTitle}
-            >
-              Welcome to your{"\n"}performance journey
-            </Animated.Text>
-            <Text style={styles.heroBody}>
-              Science-backed modules for sleep, energy, mindset, movement, and
-              more — designed to fit real life.
-            </Text>
-            <View style={styles.pillRow}>
-              <View style={styles.pill}>
-                <Brain size={16} color={MAIN_PURPLE} />
-                <Text style={styles.pillText}>Mind</Text>
+              <Animated.View
+                entering={FadeInDown.duration(500).springify()}
+                style={styles.heroIcon}
+              >
+                <Image
+                  source={APP_LOGO}
+                  style={styles.heroLogo}
+                  resizeMode="contain"
+                  accessibilityLabel="DEC app logo"
+                />
+              </Animated.View>
+              <Animated.Text
+                entering={FadeIn.delay(120).duration(450)}
+                style={styles.heroTitle}
+              >
+                Welcome to your{"\n"}performance journey
+              </Animated.Text>
+              <Text style={styles.heroBody}>
+                Science-backed modules for sleep, energy, mindset, movement, and
+                more — designed to fit real life.
+              </Text>
+              <View style={styles.pillRow}>
+                <View style={styles.pill}>
+                  <Brain size={16} color={MAIN_PURPLE} />
+                  <Text style={styles.pillText}>Mind</Text>
+                </View>
+                <View style={styles.pill}>
+                  <Heart size={16} color="#E11D48" />
+                  <Text style={styles.pillText}>Body</Text>
+                </View>
+                <View style={styles.pill}>
+                  <TrendingUp size={16} color="#059669" />
+                  <Text style={styles.pillText}>Soul</Text>
+                </View>
               </View>
-              <View style={styles.pill}>
-                <Heart size={16} color="#E11D48" />
-                <Text style={styles.pillText}>Body</Text>
-              </View>
-              <View style={styles.pill}>
-                <TrendingUp size={16} color="#059669" />
-                <Text style={styles.pillText}>Soul</Text>
-              </View>
-            </View>
             </View>
           </View>
         );
@@ -631,16 +635,16 @@ export default function OnboardingScreen() {
         return (
           <View style={styles.slide}>
             <View style={styles.slideContent}>
-            <View style={styles.slideCopy}>
-              <Text style={styles.slideTitle}>Momentum builds over time</Text>
-              <Text style={styles.slideBody}>
-                Users who stack small wins week after week report the biggest
-                improvements in energy and focus
-              </Text>
-            </View>
-            <View style={styles.slideVisual}>
-              <GrowthBars active={growthActive} />
-            </View>
+              <View style={styles.slideCopy}>
+                <Text style={styles.slideTitle}>Momentum builds over time</Text>
+                <Text style={styles.slideBody}>
+                  Users who stack small wins week after week report the biggest
+                  improvements in energy and focus
+                </Text>
+              </View>
+              <View style={styles.slideVisual}>
+                <GrowthBars active={growthActive} />
+              </View>
             </View>
           </View>
         );
@@ -648,24 +652,27 @@ export default function OnboardingScreen() {
         return (
           <View style={styles.slide}>
             <View style={styles.slideContent}>
-            <View style={styles.slideCopy}>
-              <View style={styles.slideQuoteIcon}>
-                <Quote size={28} color={MAIN_PURPLE} strokeWidth={2} />
-              </View>
-              <View
-                style={[styles.slideTitleWithIcon, styles.slideTitleBelowIcon]}
-              >
-                <Text
-                  style={[styles.slideTitle, styles.slideTitleBesideIcon]}
-                  numberOfLines={4}
+              <View style={styles.slideCopy}>
+                <View style={styles.slideQuoteIcon}>
+                  <Quote size={28} color={MAIN_PURPLE} strokeWidth={2} />
+                </View>
+                <View
+                  style={[
+                    styles.slideTitleWithIcon,
+                    styles.slideTitleBelowIcon,
+                  ]}
                 >
-                  Trusted by people who want more from their day
-                </Text>
+                  <Text
+                    style={[styles.slideTitle, styles.slideTitleBesideIcon]}
+                    numberOfLines={4}
+                  >
+                    Trusted by people who want more from their day
+                  </Text>
+                </View>
               </View>
-            </View>
-            <View style={styles.slideVisual}>
-              <OnboardingTestimonialCarousel />
-            </View>
+              <View style={styles.slideVisual}>
+                <OnboardingTestimonialCarousel />
+              </View>
             </View>
           </View>
         );
@@ -673,16 +680,16 @@ export default function OnboardingScreen() {
         return (
           <View style={styles.slide}>
             <View style={styles.slideContent}>
-            <View style={styles.slideCopy}>
-              <Text style={styles.slideTitle}>See your progress add up</Text>
-              <Text style={styles.slideBody}>
-                Track modules completed, celebrate streaks, and spot where to
-                double down next.
-              </Text>
-            </View>
-            <View style={styles.slideVisual}>
-              <ProgressWave active={progressActive} />
-            </View>
+              <View style={styles.slideCopy}>
+                <Text style={styles.slideTitle}>See your progress add up</Text>
+                <Text style={styles.slideBody}>
+                  Track modules completed, celebrate streaks, and spot where to
+                  double down next.
+                </Text>
+              </View>
+              <View style={styles.slideVisual}>
+                <ProgressWave active={progressActive} />
+              </View>
             </View>
           </View>
         );
@@ -690,71 +697,71 @@ export default function OnboardingScreen() {
         return (
           <View style={styles.slide}>
             <View style={styles.slideContent}>
-            <View style={styles.slideCopy}>
-              <Text style={styles.slideTitle}>
-                What do you want to improve?
-              </Text>
-              <Text style={styles.slideBody}>
-                Pick everything that matters to you
-              </Text>
-            </View>
-            <View style={styles.slideVisual}>
-              <View style={styles.goalsGrid}>
-                {GOALS.map((g, i) => {
-                  const selected = selectedGoals.includes(g.id);
-                  const Icon = g.icon;
-                  return (
-                    <Animated.View
-                      key={g.id}
-                      entering={FadeInUp.delay(i * 40).duration(320)}
-                      style={styles.goalCellWrap}
-                    >
-                      <Pressable
-                        onPress={() => toggleGoal(g.id)}
-                        style={({ pressed }) => [
-                          styles.goalCell,
-                          selected && styles.goalCellSelected,
-                          { opacity: pressed ? 0.85 : 1 },
-                        ]}
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked: selected }}
-                        accessibilityLabel={g.label}
+              <View style={styles.slideCopy}>
+                <Text style={styles.slideTitle}>
+                  What do you want to improve?
+                </Text>
+                <Text style={styles.slideBody}>
+                  Pick everything that matters to you
+                </Text>
+              </View>
+              <View style={styles.slideVisual}>
+                <View style={styles.goalsGrid}>
+                  {GOALS.map((g, i) => {
+                    const selected = selectedGoals.includes(g.id);
+                    const Icon = g.icon;
+                    return (
+                      <Animated.View
+                        key={g.id}
+                        entering={FadeInUp.delay(i * 40).duration(320)}
+                        style={styles.goalCellWrap}
                       >
-                        <View
-                          style={[
-                            styles.goalIconWrap,
-                            { backgroundColor: g.iconColor + "1F" },
+                        <Pressable
+                          onPress={() => toggleGoal(g.id)}
+                          style={({ pressed }) => [
+                            styles.goalCell,
+                            selected && styles.goalCellSelected,
+                            { opacity: pressed ? 0.85 : 1 },
                           ]}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: selected }}
+                          accessibilityLabel={g.label}
                         >
-                          <Icon
-                            size={20}
-                            color={g.iconColor}
-                            strokeWidth={2.2}
-                          />
-                        </View>
-                        <Text
-                          style={[
-                            styles.goalLabel,
-                            selected && styles.goalLabelSelected,
-                          ]}
-                        >
-                          {g.label}
-                        </Text>
-                        {selected && (
-                          <View style={styles.goalCheck}>
-                            <Check
-                              size={12}
-                              color="#FFFFFF"
-                              strokeWidth={3.5}
+                          <View
+                            style={[
+                              styles.goalIconWrap,
+                              { backgroundColor: g.iconColor + "1F" },
+                            ]}
+                          >
+                            <Icon
+                              size={20}
+                              color={g.iconColor}
+                              strokeWidth={2.2}
                             />
                           </View>
-                        )}
-                      </Pressable>
-                    </Animated.View>
-                  );
-                })}
+                          <Text
+                            style={[
+                              styles.goalLabel,
+                              selected && styles.goalLabelSelected,
+                            ]}
+                          >
+                            {g.label}
+                          </Text>
+                          {selected && (
+                            <View style={styles.goalCheck}>
+                              <Check
+                                size={12}
+                                color="#FFFFFF"
+                                strokeWidth={3.5}
+                              />
+                            </View>
+                          )}
+                        </Pressable>
+                      </Animated.View>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
             </View>
           </View>
         );
@@ -762,33 +769,35 @@ export default function OnboardingScreen() {
         return (
           <View style={styles.slide}>
             <View style={styles.slideContent}>
-            <View style={styles.slideCopy}>
-              <View style={styles.slideTitleWithIcon}>
-                <Text style={[styles.slideTitle, styles.slideTitleBesideIcon]}>
+              <View style={styles.slideCopy}>
+                <View style={styles.slideTitleWithIcon}>
+                  <Text
+                    style={[styles.slideTitle, styles.slideTitleBesideIcon]}
+                  >
+                    {selectedGoals.length > 0
+                      ? "We've got you covered"
+                      : "10 focused modules inside"}
+                  </Text>
+                </View>
+                <Text style={styles.slideBody}>
                   {selectedGoals.length > 0
-                    ? "We've got you covered"
-                    : "10 focused modules inside"}
+                    ? `We have modules to help with ${selectedGoals.length === 1 ? "that area" : "all of your main problem areas"}.`
+                    : "Something here for every part of your day."}
                 </Text>
               </View>
-              <Text style={styles.slideBody}>
-                {selectedGoals.length > 0
-                  ? `We have modules to help with ${selectedGoals.length === 1 ? "that area" : "all of your main problem areas"}.`
-                  : "Something here for every part of your day."}
-              </Text>
-            </View>
-            <View style={styles.slideVisual}>
-              <Animated.View
-                entering={FadeInUp.duration(450)}
-                style={styles.collageImageWrap}
-              >
-                <Image
-                  source={ONBOARDING_MODULES_IMAGE}
-                  style={styles.collageImage}
-                  resizeMode="contain"
-                  accessibilityLabel="Preview of the modules grid"
-                />
-              </Animated.View>
-            </View>
+              <View style={styles.slideVisual}>
+                <Animated.View
+                  entering={FadeInUp.duration(450)}
+                  style={styles.collageImageWrap}
+                >
+                  <Image
+                    source={ONBOARDING_MODULES_IMAGE}
+                    style={styles.collageImage}
+                    resizeMode="contain"
+                    accessibilityLabel="Preview of the modules grid"
+                  />
+                </Animated.View>
+              </View>
             </View>
           </View>
         );
@@ -796,26 +805,26 @@ export default function OnboardingScreen() {
         return (
           <View style={styles.slide}>
             <View style={styles.slideContent}>
-            <View style={styles.slideCopy}>
-              <Text style={styles.slideTitle}>Video lessons</Text>
-              <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
-                Each module contains dozens of bite-sized educational videos,
-                easy to digest and implement.
-              </Text>
-            </View>
-            <View style={styles.slideVisual}>
-              <Animated.View
-                entering={FadeInUp.duration(450)}
-                style={styles.collageImageWrap}
-              >
-                <Image
-                  source={ONBOARDING_VIDEOS_IMAGE}
-                  style={styles.collageImage}
-                  resizeMode="contain"
-                  accessibilityLabel="Preview of module video lessons"
-                />
-              </Animated.View>
-            </View>
+              <View style={styles.slideCopy}>
+                <Text style={styles.slideTitle}>Video lessons</Text>
+                <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
+                  Each module contains dozens of bite-sized educational videos,
+                  easy to digest and implement.
+                </Text>
+              </View>
+              <View style={styles.slideVisual}>
+                <Animated.View
+                  entering={FadeInUp.duration(450)}
+                  style={styles.collageImageWrap}
+                >
+                  <Image
+                    source={ONBOARDING_VIDEOS_IMAGE}
+                    style={styles.collageImage}
+                    resizeMode="contain"
+                    accessibilityLabel="Preview of module video lessons"
+                  />
+                </Animated.View>
+              </View>
             </View>
           </View>
         );
@@ -823,26 +832,26 @@ export default function OnboardingScreen() {
         return (
           <View style={styles.slide}>
             <View style={styles.slideContent}>
-            <View style={styles.slideCopy}>
-              <Text style={styles.slideTitle}>Workbooks</Text>
-              <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
-                Each module contains a workbook to solidify your learnings and
-                keep you accountable, available in paper or on your phone.
-              </Text>
-            </View>
-            <View style={styles.slideVisual}>
-              <Animated.View
-                entering={FadeInUp.duration(450)}
-                style={styles.collageImageWrap}
-              >
-                <Image
-                  source={ONBOARDING_WORKBOOKS_IMAGE}
-                  style={styles.collageImage}
-                  resizeMode="contain"
-                  accessibilityLabel="Preview of a module workbook"
-                />
-              </Animated.View>
-            </View>
+              <View style={styles.slideCopy}>
+                <Text style={styles.slideTitle}>Workbooks</Text>
+                <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
+                  Each module contains a workbook to solidify your learnings and
+                  keep you accountable, available in paper or on your phone.
+                </Text>
+              </View>
+              <View style={styles.slideVisual}>
+                <Animated.View
+                  entering={FadeInUp.duration(450)}
+                  style={styles.collageImageWrap}
+                >
+                  <Image
+                    source={ONBOARDING_WORKBOOKS_IMAGE}
+                    style={styles.collageImage}
+                    resizeMode="contain"
+                    accessibilityLabel="Preview of a module workbook"
+                  />
+                </Animated.View>
+              </View>
             </View>
           </View>
         );
@@ -851,7 +860,9 @@ export default function OnboardingScreen() {
           <View style={styles.slide}>
             <View style={styles.slideContent}>
               <View style={styles.slideCopy}>
-                <Text style={styles.slideTitle}>{COURSE_INTRO_VIDEO.title}</Text>
+                <Text style={styles.slideTitle}>
+                  {COURSE_INTRO_VIDEO.title}
+                </Text>
                 <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
                   A quick message from Declan.
                 </Text>
@@ -1145,9 +1156,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     overflow: "hidden",
     flexDirection: "column",
-    ...(Platform.OS === "ios"
-      ? { borderCurve: "continuous" as const }
-      : null),
+    ...(Platform.OS === "ios" ? { borderCurve: "continuous" as const } : null),
   },
   testimonialQuoteMark: {
     fontFamily: AppFonts.headingBold,
