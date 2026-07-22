@@ -31,9 +31,9 @@ import { MODULE_THEMES } from '@/constants/module-themes';
 import { AppFonts } from '@/constants/theme';
 import { pastelBoxStyle } from '@/constants/pastel-accents';
 import {
-  MODULE_CARD_BACKGROUNDS,
   MODULE_CARD_BRIGHTEN_SCRIMS,
   MODULE_CARD_DARK_SCRIMS,
+  MODULE_HEADER_BACKGROUNDS,
 } from '@/components/module-card-art';
 import {
   SCREEN_BACK_BUTTON_WIDTH,
@@ -91,7 +91,7 @@ export default function CategoryScreen() {
 
   const moduleTheme = slug ? MODULE_THEMES[slug] : undefined;
   const ModuleIcon = moduleTheme?.Icon;
-  const moduleBackground = slug ? MODULE_CARD_BACKGROUNDS[slug] : undefined;
+  const moduleBackground = slug ? MODULE_HEADER_BACKGROUNDS[slug] : undefined;
   const isSleep = slug === 'sleep';
   // Sleep art is always dark — white type, no wash either way.
   const lightOnArt = isDark || isSleep;

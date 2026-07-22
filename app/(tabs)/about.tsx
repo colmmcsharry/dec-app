@@ -1,10 +1,10 @@
 import { BeforeAfterCarousel } from "@/components/before-after-carousel";
-import { EmailUpdatesSection } from "@/components/email-updates-section";
-import { VideoTestimonialCarousel } from "@/components/video-testimonial-carousel";
 import { DevResetButton } from "@/components/dev-reset-button";
+import { EmailUpdatesSection } from "@/components/email-updates-section";
 import { TestFlightResetSection } from "@/components/testflight-reset-section";
-import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
+import { VideoTestimonialCarousel } from "@/components/video-testimonial-carousel";
 import { getPastelAccent, mixHex } from "@/constants/pastel-accents";
+import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { getReviewStoreLabel, requestAppReview } from "@/services/app-review";
 import {
@@ -14,7 +14,14 @@ import {
 } from "@/services/purchases";
 import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { ChevronDown, ChevronUp, Crown, Lock, Star, X } from "lucide-react-native";
+import {
+  ChevronDown,
+  ChevronUp,
+  Crown,
+  Lock,
+  Star,
+  X,
+} from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
@@ -30,7 +37,7 @@ import {
   View,
   type ImageSourcePropType,
 } from "react-native";
-import { ScrollView, RectButton } from "react-native-gesture-handler";
+import { RectButton, ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Matches digital workbook body copy (`app/module-workbook/[slug].tsx`). */
@@ -128,10 +135,10 @@ function WhoAmISection({
     <View
       style={[
         styles.section,
-        styles.bioCard,
         isDark && styles.cardDark,
         styles.cardShell,
         isDark && styles.cardShellDark,
+        styles.bioCard,
         { borderTopColor: defaultAccentBarColor },
       ]}
     >
@@ -154,9 +161,7 @@ function WhoAmISection({
           <Text style={[styles.heroName, isDark && styles.textDark]}>
             Declan Treanor
           </Text>
-          <Text
-            style={[styles.heroTagline, isDark && styles.heroTaglineDark]}
-          >
+          <Text style={[styles.heroTagline, isDark && styles.heroTaglineDark]}>
             aka Performance Treanor
           </Text>
         </View>
@@ -212,8 +217,8 @@ function WhoAmISection({
                 isDark && styles.bodyTextDark,
               ]}
             >
-              Residing in Dublin, Ireland, I am happily married, a father and
-              a REPs accredited (Register of Exercise Professionals), fully
+              Residing in Dublin, Ireland, I am happily married, a father and a
+              REPs accredited (Register of Exercise Professionals), fully
               qualified Personal Trainer. This qualification includes a national
               certificate in Nutrition for Physical Activity.
             </Text>
@@ -227,8 +232,8 @@ function WhoAmISection({
               French.
             </Text>
             <Text style={bodyTextStyle}>
-              As a Gaelic Footballer I was part of the Dublin Senior Team{"'"}s O
-              {"'"}Byrne Cup squad in 2012.
+              As a Gaelic Footballer I was part of the Dublin Senior Team{"'"}s
+              O{"'"}Byrne Cup squad in 2012.
             </Text>
             <Image
               source={require("@/assets/images/about/dubs-team.jpg")}
@@ -245,8 +250,8 @@ function WhoAmISection({
                 isDark && styles.bodyTextDark,
               ]}
             >
-              My Dad got me interested in the area of performance by passing me on
-              a book called{" "}
+              My Dad got me interested in the area of performance by passing me
+              on a book called{" "}
               <Text style={styles.bookTitle}>
                 the Monk Who Sold His Ferrari
               </Text>
@@ -258,9 +263,11 @@ function WhoAmISection({
               information that can help others through such issues.
             </Text>
             <Text style={[styles.bodyText, isDark && styles.bodyTextDark]}>
-              This app is the culmination of my 10 years of experience in the
-              field of psychology and performance, working with high performers
-              and average Joes and Janes.
+              This app is the culmination of my 10 years of experience working
+              as a personal trainer, MNU certified nutritionist and mindset
+              coach, during which I helped countless people lose weight, tone
+              their physique, build confidence, improve their nutrition and
+              boost their mindset.
             </Text>
             <Text
               style={[styles.closingText, isDark && styles.closingTextDark]}
@@ -513,11 +520,7 @@ function PremiumStatusBanner({
           !active && pressed && { opacity: 0.92 },
         ]}
         accessibilityRole={active ? "text" : "button"}
-        accessibilityLabel={
-          active
-            ? title
-            : `${title}. View Premium Plans.`
-        }
+        accessibilityLabel={active ? title : `${title}. View Premium Plans.`}
       >
         <View style={styles.premiumBannerText}>
           <View style={styles.premiumBannerTitleRow}>
@@ -613,9 +616,7 @@ export default function AboutScreen() {
         ]}
       >
         <View style={styles.cardInner}>
-          <Text style={styles.sectionEyebrow}>
-            Feedback
-          </Text>
+          <Text style={styles.sectionEyebrow}>Feedback</Text>
           <Text style={styles.sectionTitle}>
             Enjoying Peak Performance Code?
           </Text>
@@ -632,14 +633,8 @@ export default function AboutScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Leave a review on the ${getReviewStoreLabel()}`}
           >
-            <Star
-              size={18}
-              color="#FFFFFF"
-              fill="#FFFFFF"
-            />
-            <Text style={styles.reviewButtonText}>
-              Leave a review
-            </Text>
+            <Star size={18} color="#FFFFFF" fill="#FFFFFF" />
+            <Text style={styles.reviewButtonText}>Leave a review</Text>
           </Pressable>
         </View>
       </View>
@@ -1025,7 +1020,9 @@ const styles = StyleSheet.create({
   },
   bodyText: {
     fontSize: 16,
-    lineHeight: 25,
+    // RN 0.81 iOS Fabric can clip the last line when lineHeight is set (#53450).
+    lineHeight: 26,
+    paddingBottom: 1,
     color: WORKBOOK_TEXT_BODY,
     marginBottom: 12,
     fontFamily: AppFonts.bodyRegular,

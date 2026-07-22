@@ -1,10 +1,19 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 
 interface VideoPlayerProps {
   videoUrl: string;
   title?: string;
+  /** Shown until the Vimeo WebView finishes loading. */
+  posterUrl?: string;
   /** Embed URL for the next video — queued inside the WebView for gapless autoplay. */
   nextVideoEmbedUrl?: string | null;
   /** Called when the Vimeo player fires `ended`. `continued` is true if the WebView started the next video. */
@@ -115,9 +124,13 @@ export type VideoPlayerHandle = {
 };
 
 export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
-  function VideoPlayer({ videoUrl, title, nextVideoEmbedUrl, onEnded }, ref) {
+  function VideoPlayer(
+    { videoUrl, title, posterUrl, nextVideoEmbedUrl, onEnded },
+    ref,
+  ) {
   const webViewRef = useRef<WebView>(null);
   const initialEmbedUrlRef = useRef<string | null>(null);
+  const [showPoster, setShowPoster] = useState(Boolean(posterUrl));
   const hasUrl = Boolean(videoUrl?.trim());
   const embedUrl = useMemo(
     () => (hasUrl ? buildVimeoEmbedUrl(videoUrl) : ""),
@@ -192,6 +205,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
 
   const handleLoadEnd = () => {
     syncPendingAutoplay(nextVideoEmbedUrl);
+    if (posterUrl) setShowPoster(false);
   };
 
   if (!hasUrl) {
@@ -218,6 +232,14 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
         onMessage={handleMessage}
         onLoadEnd={handleLoadEnd}
       />
+      {showPoster && posterUrl ? (
+        <Image
+          source={{ uri: posterUrl }}
+          style={styles.poster}
+          resizeMode="cover"
+          pointerEvents="none"
+        />
+      ) : null}
     </View>
   );
   },
@@ -235,6 +257,10 @@ const styles = StyleSheet.create({
   video: {
     width: "100%",
     height: "100%",
+  },
+  poster: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000",
   },
   errorContainer: {
     ...StyleSheet.absoluteFillObject,

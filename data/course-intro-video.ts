@@ -6,7 +6,7 @@ import type { VideoEntry } from "@/data/module-videos";
  */
 export const COURSE_INTRO_VIDEO: VideoEntry = {
   id: "1159439371",
-  title: "Course Intro",
+  title: "A Quick Intro",
   description: "A look at what's ahead",
   duration: 28,
   url: "https://player.vimeo.com/video/1159439371?h=e0bd52ef69",

@@ -18,6 +18,23 @@ export const MODULE_CARD_BACKGROUNDS: Record<string, ImageSourcePropType> = {
 };
 
 /**
+ * Landscape crops for the module detail header card (wide banner).
+ * Sleep / Energy / Move are derived from the square reframes; others from originals.
+ */
+export const MODULE_HEADER_BACKGROUNDS: Record<string, ImageSourcePropType> = {
+  sleep: require("@/assets/images/home/header/module-bg-sleep-header.jpg"),
+  "morning-routines": require("@/assets/images/home/header/module-bg-morning-header.jpg"),
+  "energy-management": require("@/assets/images/home/header/module-bg-energy-header.jpg"),
+  mindfulness: require("@/assets/images/home/header/module-bg-creativity-header.jpg"),
+  "move-2-perform": require("@/assets/images/home/header/module-bg-recovery-header.jpg"),
+  "thinking-2-perform": require("@/assets/images/home/header/module-bg-thinking-header.jpg"),
+  recovery: require("@/assets/images/home/header/module-bg-move-header.jpg"),
+  "fuel-2-perform": require("@/assets/images/home/header/module-bg-fuel-header.jpg"),
+  "stress-management": require("@/assets/images/home/header/module-bg-authentic-header.jpg"),
+  habits: require("@/assets/images/home/header/module-bg-habits-header.jpg"),
+};
+
+/**
  * Dark fade for dark mode — white text on painted art.
  * Sleep has no overlay (art is already dark enough).
  */

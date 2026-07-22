@@ -505,6 +505,13 @@ export default function OnboardingScreen() {
     };
   }, [isPreview, router]);
 
+  // Warm the course-intro poster as soon as onboarding opens.
+  useEffect(() => {
+    if (COURSE_INTRO_VIDEO.thumbnail) {
+      void Image.prefetch(COURSE_INTRO_VIDEO.thumbnail);
+    }
+  }, []);
+
   const toggleGoal = useCallback((id: string) => {
     setSelectedGoals((prev) =>
       prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id],
@@ -877,7 +884,7 @@ export default function OnboardingScreen() {
                   {COURSE_INTRO_VIDEO.title}
                 </Text>
                 <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
-                  A quick message from Declan.
+                  Press play for a welcome from coach Declan
                 </Text>
               </View>
               <View style={styles.slideVisual}>
@@ -885,15 +892,13 @@ export default function OnboardingScreen() {
                   entering={FadeInUp.duration(450)}
                   style={styles.courseIntroPlayerWrap}
                 >
-                  {index === COURSE_INTRO_SLIDE_INDEX ? (
-                    <VideoPlayer
-                      ref={courseIntroPlayerRef}
-                      videoUrl={COURSE_INTRO_VIDEO.url}
-                      title={COURSE_INTRO_VIDEO.title}
-                    />
-                  ) : (
-                    <View style={styles.courseIntroPlayerPlaceholder} />
-                  )}
+                  {/* Keep mounted so Vimeo can warm while earlier slides are shown. */}
+                  <VideoPlayer
+                    ref={courseIntroPlayerRef}
+                    videoUrl={COURSE_INTRO_VIDEO.url}
+                    title={COURSE_INTRO_VIDEO.title}
+                    posterUrl={COURSE_INTRO_VIDEO.thumbnail}
+                  />
                 </Animated.View>
               </View>
             </View>
@@ -940,6 +945,12 @@ export default function OnboardingScreen() {
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         renderItem={renderSlide}
+        // Mount every slide up front so the course-intro WebView preloads
+        // before the user reaches it (avoids a blank second on that slide).
+        initialNumToRender={SLIDES.length}
+        maxToRenderPerBatch={SLIDES.length}
+        windowSize={SLIDES.length}
+        removeClippedSubviews={false}
         getItemLayout={(_, i) => ({
           length: SCREEN_WIDTH,
           offset: SCREEN_WIDTH * i,
@@ -1330,11 +1341,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#000",
-  },
-  courseIntroPlayerPlaceholder: {
-    width: "100%",
-    aspectRatio: 16 / 9,
     backgroundColor: "#000",
   },
 });
