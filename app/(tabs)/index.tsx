@@ -1,13 +1,17 @@
-import { APP_NAME, DAILY_QUOTE_BRAND, QUOTE_AUTHOR } from "@/constants/app-branding";
 import { HomeGreetingArt } from "@/components/home-greeting-art";
 import { MainTabHeader, ThemeToggle } from "@/components/main-tab-header";
 import {
-  MODULE_CARD_BACKGROUNDS,
-  MODULE_CARD_BRIGHTEN_SCRIMS,
-  MODULE_CARD_SCRIMS,
+    MODULE_CARD_BACKGROUNDS,
+    MODULE_CARD_BRIGHTEN_SCRIMS,
+    MODULE_CARD_SCRIMS,
 } from "@/components/module-card-art";
 import { PremiumCrownButton } from "@/components/premium-crown-button";
 import { PremiumStatusModal } from "@/components/premium-status-modal";
+import {
+    APP_NAME,
+    DAILY_QUOTE_BRAND,
+    QUOTE_AUTHOR,
+} from "@/constants/app-branding";
 import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -15,16 +19,16 @@ import { MODULE_VIDEOS } from "@/data/module-videos";
 import { MODULE_PDFS } from "@/data/pdf-assets";
 import { getQuoteBackgroundOfTheDay, getQuoteOfTheDay } from "@/data/quotes";
 import {
-  cancelDailyReminder,
-  DEFAULT_REMINDER_HOUR,
-  DEFAULT_REMINDER_MINUTE,
-  getNextReminderDate,
-  scheduleDailyReminder,
+    cancelDailyReminder,
+    DEFAULT_REMINDER_HOUR,
+    DEFAULT_REMINDER_MINUTE,
+    getNextReminderDate,
+    scheduleDailyReminder,
 } from "@/services/notifications";
 import { getAllProgress } from "@/services/progress";
 import { requireVideoAccess } from "@/services/purchases";
 import DateTimePicker, {
-  DateTimePickerAndroid,
+    DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -32,17 +36,17 @@ import { router } from "expo-router";
 import { ChevronRight, Flame, Maximize2 } from "lucide-react-native";
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
-  Alert,
-  Image,
-  ImageBackground,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    ImageBackground,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { RectButton } from "react-native-gesture-handler";
 import Svg, { Circle } from "react-native-svg";
@@ -199,22 +203,22 @@ const CategoryCard = memo(function CategoryCard({
   // Dark cards → light tint. Light cards → darker theme text for contrast.
   const titleColor = lightForeground
     ? lightenHex(iconColor, 0.78)
-    : darkenHex(textColor, 0.22);
+    : darkenHex(textColor, 0.27);
   const labelColor = lightForeground
     ? lightenHex(iconColor, 0.62)
-    : darkenHex(textColor, 0.12);
+    : darkenHex(textColor, 0.17);
   const barFillColor = lightForeground
     ? lightenHex(iconColor, 0.35)
-    : darkenHex(iconColor, 0.18);
+    : darkenHex(iconColor, 0.23);
   const barTrackColor = lightForeground
     ? lightenHex(iconColor, 0.12)
     : lightenHex(iconColor, 0.45);
   const metaColor = lightForeground
     ? lightenHex(iconColor, 0.68)
-    : darkenHex(textColor, 0.18);
+    : darkenHex(textColor, 0.23);
   const chevronColor = lightForeground
     ? lightenHex(iconColor, 0.55)
-    : darkenHex(iconColor, 0.12);
+    : darkenHex(iconColor, 0.17);
 
   const background = MODULE_CARD_BACKGROUNDS[slug];
   const sleepScrim = MODULE_CARD_SCRIMS[slug];
@@ -368,18 +372,12 @@ export default function HomeScreen() {
     router.push("/daily-quote");
   }, []);
 
-  const continueTarget = useMemo(
-    () => getContinueTarget(progress),
-    [progress],
-  );
+  const continueTarget = useMemo(() => getContinueTarget(progress), [progress]);
 
   const openContinueCourse = useCallback(async () => {
     if (!continueTarget) return;
     if (
-      !(await requireVideoAccess(
-        continueTarget.slug,
-        continueTarget.videoId,
-      ))
+      !(await requireVideoAccess(continueTarget.slug, continueTarget.videoId))
     ) {
       return;
     }
@@ -526,330 +524,353 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
-      {/* Greeting + mountain art */}
-      <View style={styles.greetingSection}>
-        <View style={styles.greetingCopy}>
-          <Text
-            style={[styles.greetingTitle, isDark && styles.greetingTitleDark]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.85}
-          >
-            {greetingForNow()}
-          </Text>
-          <Text
-            style={[
-              styles.greetingSubtitle,
-              isDark && styles.greetingSubtitleDark,
-            ]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.8}
-          >
-            Small daily actions. Peak performance.
-          </Text>
+        {/* Greeting + mountain art */}
+        <View style={styles.greetingSection}>
+          <View style={styles.greetingCopy}>
+            <Text
+              style={[styles.greetingTitle, isDark && styles.greetingTitleDark]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+            >
+              {greetingForNow()}
+            </Text>
+            <Text
+              style={[
+                styles.greetingSubtitle,
+                isDark && styles.greetingSubtitleDark,
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
+              Small daily actions. Peak performance.
+            </Text>
+          </View>
+          <HomeGreetingArt isDark={isDark} style={styles.greetingArt} />
         </View>
-        <HomeGreetingArt isDark={isDark} style={styles.greetingArt} />
-      </View>
 
-      {/* Overall Progress + continue CTA */}
-      {(() => {
-        const allTotal = Object.values(MODULE_VIDEOS).reduce(
-          (sum, vids) => sum + vids.length,
-          0,
-        );
-        const allWatched = Object.values(progress).reduce(
-          (sum, ids) => sum + ids.length,
-          0,
-        );
-        const pct = allTotal > 0 ? allWatched / allTotal : 0;
-        const gaugeSize = 84;
-        const strokeWidth = 9;
-        const radius = (gaugeSize - strokeWidth) / 2;
-        const circumference = 2 * Math.PI * radius;
-        const strokeDashoffset = circumference * (1 - pct);
-        return (
-          <View
-            style={[
-              styles.overallProgressCard,
-              isDark && styles.overallProgressCardDark,
-            ]}
-          >
-            <View style={styles.overallProgressRow}>
-              <View style={styles.gaugeContainer}>
-                <Svg width={gaugeSize} height={gaugeSize}>
-                  <Circle
-                    cx={gaugeSize / 2}
-                    cy={gaugeSize / 2}
-                    r={radius}
-                    stroke={isDark ? "#2A2A3E" : "#EDE9FE"}
-                    strokeWidth={strokeWidth}
-                    fill="none"
-                  />
-                  <Circle
-                    cx={gaugeSize / 2}
-                    cy={gaugeSize / 2}
-                    r={radius}
-                    stroke={MAIN_PURPLE}
-                    strokeWidth={strokeWidth}
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray={`${circumference}`}
-                    strokeDashoffset={strokeDashoffset}
-                    rotation="-90"
-                    origin={`${gaugeSize / 2}, ${gaugeSize / 2}`}
-                  />
-                </Svg>
-                <View style={styles.gaugePctWrap} pointerEvents="none">
+        {/* Overall Progress + continue CTA */}
+        {(() => {
+          const allTotal = Object.values(MODULE_VIDEOS).reduce(
+            (sum, vids) => sum + vids.length,
+            0,
+          );
+          const allWatched = Object.values(progress).reduce(
+            (sum, ids) => sum + ids.length,
+            0,
+          );
+          const pct = allTotal > 0 ? allWatched / allTotal : 0;
+          const gaugeSize = 84;
+          const strokeWidth = 9;
+          const radius = (gaugeSize - strokeWidth) / 2;
+          const circumference = 2 * Math.PI * radius;
+          const strokeDashoffset = circumference * (1 - pct);
+          return (
+            <View
+              style={[
+                styles.overallProgressCard,
+                isDark && styles.overallProgressCardDark,
+              ]}
+            >
+              <View style={styles.overallProgressRow}>
+                <View style={styles.gaugeContainer}>
+                  <Svg width={gaugeSize} height={gaugeSize}>
+                    <Circle
+                      cx={gaugeSize / 2}
+                      cy={gaugeSize / 2}
+                      r={radius}
+                      stroke={isDark ? "#2A2A3E" : "#EDE9FE"}
+                      strokeWidth={strokeWidth}
+                      fill="none"
+                    />
+                    <Circle
+                      cx={gaugeSize / 2}
+                      cy={gaugeSize / 2}
+                      r={radius}
+                      stroke={MAIN_PURPLE}
+                      strokeWidth={strokeWidth}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray={`${circumference}`}
+                      strokeDashoffset={strokeDashoffset}
+                      rotation="-90"
+                      origin={`${gaugeSize / 2}, ${gaugeSize / 2}`}
+                    />
+                  </Svg>
+                  <View style={styles.gaugePctWrap} pointerEvents="none">
+                    <Text
+                      style={[
+                        styles.gaugePctText,
+                        isDark && { color: "#ECEDEE" },
+                      ]}
+                    >
+                      {Math.round(pct * 100)}%
+                    </Text>
+                    <Text
+                      style={[
+                        styles.gaugePctCaption,
+                        isDark && styles.overallProgressCountDark,
+                      ]}
+                    >
+                      Complete
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.overallProgressInfo}>
                   <Text
-                    style={[styles.gaugePctText, isDark && { color: "#ECEDEE" }]}
+                    style={[
+                      styles.overallProgressLabel,
+                      isDark && styles.overallProgressLabelDark,
+                    ]}
                   >
-                    {Math.round(pct * 100)}%
+                    Overall Progress
                   </Text>
                   <Text
                     style={[
-                      styles.gaugePctCaption,
+                      styles.overallProgressCount,
                       isDark && styles.overallProgressCountDark,
                     ]}
                   >
-                    Complete
+                    {allWatched} of {allTotal} videos watched
                   </Text>
-                </View>
-              </View>
-              <View style={styles.overallProgressInfo}>
-                <Text
-                  style={[
-                    styles.overallProgressLabel,
-                    isDark && styles.overallProgressLabelDark,
-                  ]}
-                >
-                  Overall Progress
-                </Text>
-                <Text
-                  style={[
-                    styles.overallProgressCount,
-                    isDark && styles.overallProgressCountDark,
-                  ]}
-                >
-                  {allWatched} of {allTotal} videos watched
-                </Text>
-                <View
-                  style={[
-                    styles.overallProgressBarBg,
-                    isDark && styles.overallProgressBarBgDark,
-                  ]}
-                >
                   <View
                     style={[
-                      styles.overallProgressBarFill,
-                      { width: `${Math.max(pct * 100, pct > 0 ? 4 : 0)}%` },
+                      styles.overallProgressBarBg,
+                      isDark && styles.overallProgressBarBgDark,
                     ]}
-                  />
+                  >
+                    <View
+                      style={[
+                        styles.overallProgressBarFill,
+                        { width: `${Math.max(pct * 100, pct > 0 ? 4 : 0)}%` },
+                      ]}
+                    />
+                  </View>
                 </View>
               </View>
-            </View>
-            {continueTarget ? (
-              <View
-                style={[
-                  styles.continueCourseBlock,
-                  isDark && styles.continueCourseBlockDark,
-                ]}
-              >
-                <Text
+              {continueTarget ? (
+                <View
                   style={[
-                    styles.continueCourseLabel,
-                    isDark && styles.continueCourseLabelDark,
+                    styles.continueCourseBlock,
+                    isDark && styles.continueCourseBlockDark,
                   ]}
                 >
-                  Continue your journey
-                </Text>
+                  <Text
+                    style={[
+                      styles.continueCourseLabel,
+                      isDark && styles.continueCourseLabelDark,
+                    ]}
+                  >
+                    Continue your journey
+                  </Text>
+                  <RectButton
+                    style={styles.continueCourseBtn}
+                    underlayColor="rgba(255,255,255,0.16)"
+                    onPress={openContinueCourse}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Continue your journey. Module ${continueTarget.moduleNumber}, lesson ${continueTarget.lessonNumber}`}
+                  >
+                    <View
+                      style={styles.continueCourseBtnInner}
+                      pointerEvents="none"
+                    >
+                      <Text
+                        style={styles.continueCourseBtnText}
+                        numberOfLines={1}
+                      >
+                        Module {continueTarget.moduleNumber}, lesson{" "}
+                        {continueTarget.lessonNumber}
+                      </Text>
+                      <ChevronRight
+                        size={18}
+                        color="#FFFFFF"
+                        strokeWidth={2.4}
+                      />
+                    </View>
+                  </RectButton>
+                </View>
+              ) : null}
+            </View>
+          );
+        })()}
+
+        {/* Daily quote card — scenic image (cover, no stretch), white text */}
+        <View style={styles.dieselCardOuter}>
+          <ImageBackground
+            source={quoteBackground}
+            style={styles.dieselImageBg}
+            resizeMode="cover"
+          >
+            <LinearGradient
+              colors={[
+                "rgba(0,0,0,0.57)",
+                "rgba(0,0,0,0.37)",
+                "rgba(0,0,0,0.63)",
+              ]}
+              locations={[0, 0.45, 1]}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <View style={styles.dieselCardContent}>
+              <View style={styles.dieselTopBar}>
+                <View style={styles.dieselHeader}>
+                  <View style={styles.dieselIconWrap}>
+                    <Flame size={22} color="#fff" strokeWidth={2.5} />
+                  </View>
+                  <Text style={styles.dieselLabel}>{DAILY_QUOTE_BRAND}</Text>
+                </View>
                 <RectButton
-                  style={styles.continueCourseBtn}
-                  underlayColor="rgba(255,255,255,0.16)"
-                  onPress={openContinueCourse}
+                  onPress={openDailyQuote}
+                  style={styles.dieselFullscreenBtn}
+                  underlayColor="rgba(255,255,255,0.12)"
+                  hitSlop={{ top: 2, bottom: 2, left: 2, right: 2 }}
                   accessibilityRole="button"
-                  accessibilityLabel={`Continue your journey. Module ${continueTarget.moduleNumber}, lesson ${continueTarget.lessonNumber}`}
+                  accessibilityLabel="View quote full screen"
                 >
-                  <View style={styles.continueCourseBtnInner} pointerEvents="none">
-                    <Text style={styles.continueCourseBtnText} numberOfLines={1}>
-                      Module {continueTarget.moduleNumber}, lesson{" "}
-                      {continueTarget.lessonNumber}
-                    </Text>
-                    <ChevronRight size={18} color="#FFFFFF" strokeWidth={2.4} />
+                  <View pointerEvents="none">
+                    <Maximize2 size={22} color="#FFFFFF" strokeWidth={2.2} />
                   </View>
                 </RectButton>
               </View>
-            ) : null}
-          </View>
-        );
-      })()}
-
-      {/* Daily quote card — scenic image (cover, no stretch), white text */}
-      <View style={styles.dieselCardOuter}>
-        <ImageBackground
-          source={quoteBackground}
-          style={styles.dieselImageBg}
-          resizeMode="cover"
-        >
-          <LinearGradient
-            colors={[
-              "rgba(0,0,0,0.57)",
-              "rgba(0,0,0,0.37)",
-              "rgba(0,0,0,0.63)",
-            ]}
-            locations={[0, 0.45, 1]}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-          <View style={styles.dieselCardContent}>
-            <View style={styles.dieselTopBar}>
-              <View style={styles.dieselHeader}>
-                <View style={styles.dieselIconWrap}>
-                  <Flame size={22} color="#fff" strokeWidth={2.5} />
-                </View>
-                <Text style={styles.dieselLabel}>{DAILY_QUOTE_BRAND}</Text>
-              </View>
-              <RectButton
-                onPress={openDailyQuote}
-                style={styles.dieselFullscreenBtn}
-                underlayColor="rgba(255,255,255,0.12)"
-                hitSlop={{ top: 2, bottom: 2, left: 2, right: 2 }}
-                accessibilityRole="button"
-                accessibilityLabel="View quote full screen"
-              >
-                <View pointerEvents="none">
-                  <Maximize2 size={22} color="#FFFFFF" strokeWidth={2.2} />
-                </View>
-              </RectButton>
-            </View>
-            <View style={styles.dieselQuoteCenter}>
-              <Text
-                style={[
-                  styles.dieselQuote,
-                  dailyQuote.author === QUOTE_AUTHOR &&
-                    styles.dieselQuoteNoAuthor,
-                ]}
-                numberOfLines={3}
-              >
-                &ldquo;{dailyQuote.text}&rdquo;
-              </Text>
-              {dailyQuote.author !== QUOTE_AUTHOR ? (
-                <Text style={styles.dieselAuthor}>— {dailyQuote.author}</Text>
-              ) : null}
-            </View>
-            {dailyReminderOn ? (
-              <View style={styles.reminderRow}>
-                <Text style={styles.reminderLabel}>
-                  Daily reminder at {nextReminderTime ?? "…"}
-                </Text>
-                <Pressable
-                  onPress={showChangeTimePicker}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-                >
-                  <Text style={styles.reminderChange}>Change time</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <Pressable
-                onPress={enableDailyReminder}
-                style={({ pressed }) => [
-                  styles.reminderCtaButton,
-                  { opacity: pressed ? 0.85 : 1 },
-                ]}
-              >
-                <Flame size={16} color="#fff" strokeWidth={2.5} />
-                <Text style={styles.reminderCtaText}>Remind me daily</Text>
-              </Pressable>
-            )}
-          </View>
-        </ImageBackground>
-      </View>
-
-      {/* iOS Time Picker Modal */}
-      <Modal
-        visible={showTimePicker}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowTimePicker(false)}
-      >
-        <Pressable
-          style={styles.timePickerOverlay}
-          onPress={() => setShowTimePicker(false)}
-        >
-          <Pressable
-            style={[styles.timePickerCard, isDark && styles.timePickerCardDark]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text
-              style={[
-                styles.timePickerTitle,
-                isDark && styles.timePickerTitleDark,
-              ]}
-            >
-              Daily reminder time
-            </Text>
-            <DateTimePicker
-              value={pickerTime}
-              mode="time"
-              onChange={(_, date) => {
-                if (date) {
-                  pickerTimeRef.current = date;
-                  setPickerTime(date);
-                }
-              }}
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              themeVariant={isDark ? "dark" : "light"}
-              textColor={isDark ? "#FFFFFF" : "#2C3E50"}
-            />
-            <View style={styles.timePickerActions}>
-              <TouchableOpacity
-                style={[styles.timePickerButton, styles.timePickerButtonCancel]}
-                onPress={() => setShowTimePicker(false)}
-                activeOpacity={0.8}
-              >
+              <View style={styles.dieselQuoteCenter}>
                 <Text
                   style={[
-                    styles.timePickerButtonTextCancel,
-                    isDark && { color: "#ECEDEE" },
+                    styles.dieselQuote,
+                    dailyQuote.author === QUOTE_AUTHOR &&
+                      styles.dieselQuoteNoAuthor,
+                  ]}
+                  numberOfLines={3}
+                >
+                  &ldquo;{dailyQuote.text}&rdquo;
+                </Text>
+                {dailyQuote.author !== QUOTE_AUTHOR ? (
+                  <Text style={styles.dieselAuthor}>— {dailyQuote.author}</Text>
+                ) : null}
+              </View>
+              {dailyReminderOn ? (
+                <View style={styles.reminderRow}>
+                  <Text style={styles.reminderLabel}>
+                    Daily reminder at {nextReminderTime ?? "…"}
+                  </Text>
+                  <Pressable
+                    onPress={showChangeTimePicker}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+                  >
+                    <Text style={styles.reminderChange}>Change time</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable
+                  onPress={enableDailyReminder}
+                  style={({ pressed }) => [
+                    styles.reminderCtaButton,
+                    { opacity: pressed ? 0.85 : 1 },
                   ]}
                 >
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.timePickerButton, styles.timePickerButtonSet]}
-                onPress={confirmPickerTime}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.timePickerButtonTextSet}>Set reminder</Text>
-              </TouchableOpacity>
+                  <Flame size={16} color="#fff" strokeWidth={2.5} />
+                  <Text style={styles.reminderCtaText}>Remind me daily</Text>
+                </Pressable>
+              )}
             </View>
+          </ImageBackground>
+        </View>
+
+        {/* iOS Time Picker Modal */}
+        <Modal
+          visible={showTimePicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowTimePicker(false)}
+        >
+          <Pressable
+            style={styles.timePickerOverlay}
+            onPress={() => setShowTimePicker(false)}
+          >
+            <Pressable
+              style={[
+                styles.timePickerCard,
+                isDark && styles.timePickerCardDark,
+              ]}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <Text
+                style={[
+                  styles.timePickerTitle,
+                  isDark && styles.timePickerTitleDark,
+                ]}
+              >
+                Daily reminder time
+              </Text>
+              <DateTimePicker
+                value={pickerTime}
+                mode="time"
+                onChange={(_, date) => {
+                  if (date) {
+                    pickerTimeRef.current = date;
+                    setPickerTime(date);
+                  }
+                }}
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                themeVariant={isDark ? "dark" : "light"}
+                textColor={isDark ? "#FFFFFF" : "#2C3E50"}
+              />
+              <View style={styles.timePickerActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.timePickerButton,
+                    styles.timePickerButtonCancel,
+                  ]}
+                  onPress={() => setShowTimePicker(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.timePickerButtonTextCancel,
+                      isDark && { color: "#ECEDEE" },
+                    ]}
+                  >
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.timePickerButton, styles.timePickerButtonSet]}
+                  onPress={confirmPickerTime}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.timePickerButtonTextSet}>
+                    Set reminder
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
+        </Modal>
 
-      <View style={styles.modulesTitleRow}>
-        <Text style={[styles.modulesTitle, isDark && styles.modulesTitleDark]}>
-          Modules
-        </Text>
-      </View>
+        <View style={styles.modulesTitleRow}>
+          <Text
+            style={[styles.modulesTitle, isDark && styles.modulesTitleDark]}
+          >
+            Modules
+          </Text>
+        </View>
 
-      {/* Categories Grid */}
-      <View style={styles.grid}>
-        {MODULE_CATEGORY_ROWS.map((category) => {
-          const totalCount = (MODULE_VIDEOS[category.slug] || []).length;
-          const watchedCount = (progress[category.slug] || []).length;
-          return (
-            <CategoryCard
-              key={category.slug}
-              {...category}
-              totalCount={totalCount}
-              watchedCount={watchedCount}
-            />
-          );
-        })}
-      </View>
+        {/* Categories Grid */}
+        <View style={styles.grid}>
+          {MODULE_CATEGORY_ROWS.map((category) => {
+            const totalCount = (MODULE_VIDEOS[category.slug] || []).length;
+            const watchedCount = (progress[category.slug] || []).length;
+            return (
+              <CategoryCard
+                key={category.slug}
+                {...category}
+                totalCount={totalCount}
+                watchedCount={watchedCount}
+              />
+            );
+          })}
+        </View>
       </ScrollView>
 
       <PremiumStatusModal

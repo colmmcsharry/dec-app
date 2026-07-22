@@ -202,10 +202,12 @@ export default function ModuleWorkbookScreen() {
   const workbookIndexItems = useMemo(() => {
     if (!definition) return [];
     const items: { id: string; label: string }[] = [];
-    items.push({
-      id: "section-weekly",
-      label: definition.weeklyPlanCardTitle,
-    });
+    if (definition.weeklyPlanSections.length > 0) {
+      items.push({
+        id: "section-weekly",
+        label: definition.weeklyPlanCardTitle,
+      });
+    }
     if (
       definition.includeEveningAudit &&
       (formData?.eveningAudits?.length ?? 0) > 0
@@ -215,19 +217,20 @@ export default function ModuleWorkbookScreen() {
         label: definition.eveningAuditCardTitle,
       });
     }
-    digitalWorkbookPageTitles.forEach((label, i) => {
-      items.push({ id: `section-ws-${i}`, label });
-    });
-    items.push({
-      id: "section-journal",
-      label: definition.journalCardTitle,
-    });
+    for (const ws of definition.worksheetDefinitions) {
+      items.push({
+        id: `section-ws-${ws.id}`,
+        label: ws.title,
+      });
+    }
+    if (definition.journalCardTitle) {
+      items.push({
+        id: "section-journal",
+        label: definition.journalCardTitle,
+      });
+    }
     return items;
-  }, [
-    definition,
-    digitalWorkbookPageTitles,
-    formData?.eveningAudits?.length,
-  ]);
+  }, [definition, formData?.eveningAudits?.length]);
 
   const bindSectionRef = useCallback(
     (id: string) => (node: View | null) => {
@@ -759,10 +762,6 @@ export default function ModuleWorkbookScreen() {
                 digitalWorkbookPageTitles.length > 0
                   ? digitalWorkbookPageTitles.indexOf(ws.digitalPageLabel) + 1
                   : 0;
-              const worksheetSectionId =
-                showPageBreak && ws.digitalPageLabel
-                  ? `section-ws-${digitalWorkbookPageTitles.indexOf(ws.digitalPageLabel)}`
-                  : null;
 
               return (
                 <Fragment key={ws.id}>
@@ -772,12 +771,6 @@ export default function ModuleWorkbookScreen() {
                         styles.workbookPageBreak,
                         isDark && styles.workbookPageBreakDark,
                       ]}
-                      ref={
-                        worksheetSectionId
-                          ? bindSectionRef(worksheetSectionId)
-                          : undefined
-                      }
-                      collapsable={false}
                     >
                       <Text
                         style={[
@@ -807,6 +800,8 @@ export default function ModuleWorkbookScreen() {
                       styles.sectionCard,
                       isDark && styles.sectionCardDark,
                     ]}
+                    ref={bindSectionRef(`section-ws-${ws.id}`)}
+                    collapsable={false}
                   >
                     <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
                       {ws.title}

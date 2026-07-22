@@ -32,13 +32,13 @@ export const MODULE_CARD_SCRIMS: Partial<
 export const MODULE_CARD_BRIGHTEN_SCRIMS: Partial<
   Record<string, readonly [string, string]>
 > = {
-  "morning-routines": ["rgba(255,255,255,0.28)", "rgba(255,255,255,0.42)"],
-  "energy-management": ["rgba(255,255,255,0.28)", "rgba(255,255,255,0.42)"],
-  mindfulness: ["rgba(255,255,255,0.28)", "rgba(255,255,255,0.42)"],
-  "move-2-perform": ["rgba(255,255,255,0.28)", "rgba(255,255,255,0.42)"],
-  "thinking-2-perform": ["rgba(255,255,255,0.28)", "rgba(255,255,255,0.42)"],
-  recovery: ["rgba(255,255,255,0.28)", "rgba(255,255,255,0.42)"],
-  "fuel-2-perform": ["rgba(255,255,255,0.28)", "rgba(255,255,255,0.42)"],
-  "stress-management": ["rgba(255,255,255,0.28)", "rgba(255,255,255,0.42)"],
-  habits: ["rgba(255,255,255,0.28)", "rgba(255,255,255,0.42)"],
+  "morning-routines": ["rgba(255,255,255,0.40)", "rgba(255,255,255,0.58)"],
+  "energy-management": ["rgba(255,255,255,0.40)", "rgba(255,255,255,0.58)"],
+  mindfulness: ["rgba(255,255,255,0.40)", "rgba(255,255,255,0.58)"],
+  "move-2-perform": ["rgba(255,255,255,0.40)", "rgba(255,255,255,0.58)"],
+  "thinking-2-perform": ["rgba(255,255,255,0.40)", "rgba(255,255,255,0.58)"],
+  recovery: ["rgba(255,255,255,0.40)", "rgba(255,255,255,0.58)"],
+  "fuel-2-perform": ["rgba(255,255,255,0.40)", "rgba(255,255,255,0.58)"],
+  "stress-management": ["rgba(255,255,255,0.40)", "rgba(255,255,255,0.58)"],
+  habits: ["rgba(255,255,255,0.40)", "rgba(255,255,255,0.58)"],
 };
