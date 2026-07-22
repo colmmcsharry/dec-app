@@ -202,9 +202,6 @@ export default function ModuleWorkbookScreen() {
   const workbookIndexItems = useMemo(() => {
     if (!definition) return [];
     const items: { id: string; label: string }[] = [];
-    if (definition.contentSections.length > 0) {
-      items.push({ id: "section-content", label: "Course content" });
-    }
     items.push({
       id: "section-weekly",
       label: definition.weeklyPlanCardTitle,
@@ -598,63 +595,6 @@ export default function ModuleWorkbookScreen() {
                 ))}
               </View>
             </View>
-
-            {/* ── Educational Content ── */}
-            {definition.contentSections.length > 0 && (
-              <View
-                style={[
-                  styles.sectionCard,
-                  isDark && styles.sectionCardDark,
-                ]}
-                ref={bindSectionRef("section-content")}
-                collapsable={false}
-              >
-                <Text style={[styles.sectionTitle, isDark && styles.textDark]}>
-                  Course Content
-                </Text>
-                {definition.contentSections.map((cs, i) => (
-                  <View key={`cs-${i}`} style={styles.contentBlock}>
-                    <Text
-                      style={[styles.contentHeading, isDark && styles.textDark]}
-                    >
-                      {cs.heading}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.contentBody,
-                        isDark && styles.contentBodyDark,
-                      ]}
-                    >
-                      {cs.body}
-                    </Text>
-                    {cs.link ? (
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.contentLink,
-                          { opacity: pressed ? 0.75 : 1 },
-                        ]}
-                        onPress={() => router.push(cs.link!.route as never)}
-                        accessibilityRole="link"
-                        accessibilityLabel={cs.link.label}
-                      >
-                        <Text
-                          style={[
-                            styles.contentLinkText,
-                            isDark && styles.contentLinkTextDark,
-                          ]}
-                        >
-                          {cs.link.label}
-                        </Text>
-                        <ChevronRight
-                          size={16}
-                          color={isDark ? "#B7A8E0" : MAIN_PURPLE}
-                        />
-                      </Pressable>
-                    ) : null}
-                  </View>
-                ))}
-              </View>
-            )}
 
             {/* ── Weekly Plan ── */}
             <View
@@ -1156,9 +1096,6 @@ const styles = StyleSheet.create({
   mutedDark: {
     color: "#AEB3C4",
   },
-  contentBodyDark: {
-    color: "#D8DBE8",
-  },
   sectionBodyDark: {
     color: "#CFD2E0",
   },
@@ -1446,40 +1383,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: WORKBOOK_TEXT,
     fontFamily: AppFonts.bodyRegular,
-  },
-  contentBlock: {
-    marginTop: 18,
-  },
-  contentHeading: {
-    fontSize: 18,
-    fontFamily: AppFonts.headingSemiBold,
-    color: WORKBOOK_TEXT,
-    marginBottom: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: MAIN_PURPLE,
-    paddingLeft: 12,
-  },
-  contentBody: {
-    fontSize: 15,
-    lineHeight: 23,
-    color: WORKBOOK_TEXT_BODY,
-    fontFamily: AppFonts.bodyRegular,
-  },
-  contentLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 12,
-    alignSelf: "flex-start",
-  },
-  contentLinkText: {
-    fontFamily: AppFonts.bodyMedium,
-    fontSize: 15,
-    color: MAIN_PURPLE,
-    textDecorationLine: "underline",
-  },
-  contentLinkTextDark: {
-    color: "#B7A8E0",
   },
   worksheetField: {
     marginTop: 14,
