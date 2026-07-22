@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View, Image } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
-import { Check, ChevronRight, FileText, Lock } from 'lucide-react-native';
+import { Check, ChevronRight, FileText, Lock, Youtube } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
 import { requirePro, requireVideoAccess, hasProEntitlement } from '@/services/purchases';
@@ -12,6 +12,10 @@ import { isFreePreviewVideo } from '@/lib/free-preview-video';
 import { MODULE_VIDEOS, VideoEntry } from '@/data/module-videos';
 import { MODULE_WORKBOOKS } from '@/data/module-workbooks';
 import { MODULE_PDFS, type PdfEntry } from '@/data/pdf-assets';
+import {
+  getModuleLinkResources,
+  type ModuleLinkResource,
+} from '@/data/supplemental-resources';
 import { hrefModuleDigitalWorkbook } from '@/lib/module-workbook-route';
 import { AppFonts } from '@/constants/theme';
 import { pastelBoxStyle } from '@/constants/pastel-accents';
@@ -48,6 +52,9 @@ export default function CategoryScreen() {
   const videos: VideoEntry[] = MODULE_VIDEOS[slug] || [];
   const workbookDef = slug ? MODULE_WORKBOOKS[slug] : undefined;
   const modulePdfs: PdfEntry[] = slug ? (MODULE_PDFS[slug] ?? []) : [];
+  const moduleLinks: ModuleLinkResource[] = slug
+    ? getModuleLinkResources(slug)
+    : [];
   const [watchedIds, setWatchedIds] = useState<string[]>([]);
   const [hasPro, setHasPro] = useState(false);
 
@@ -73,6 +80,11 @@ export default function CategoryScreen() {
       pathname: '/pdf-viewer',
       params: { pdfKey: pdf.id, title: pdf.title },
     });
+  };
+
+  const openModuleLink = async (link: ModuleLinkResource) => {
+    if (!(await requirePro())) return;
+    await Linking.openURL(link.url);
   };
 
   return (
@@ -232,21 +244,76 @@ export default function CategoryScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Open PDF: ${pdf.title}`}
               >
-                <FileText
-                  size={20}
-                  color={isDark ? '#FFFFFF' : '#7187CE'}
-                />
+                <View pointerEvents="none">
+                  <FileText
+                    size={20}
+                    color={isDark ? '#FFFFFF' : '#7187CE'}
+                  />
+                </View>
                 <Text
                   style={[styles.pdfRowTitle, isDark && styles.textDark]}
                   numberOfLines={2}
                 >
                   {pdf.title}
                 </Text>
-                <ChevronRight
-                  size={18}
-                  color={isDark ? '#9090A8' : '#2C3E50'}
-                  style={{ opacity: isDark ? 1 : 0.55 }}
-                />
+                <View pointerEvents="none">
+                  <ChevronRight
+                    size={18}
+                    color={isDark ? '#9090A8' : '#2C3E50'}
+                    style={{ opacity: isDark ? 1 : 0.55 }}
+                  />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {moduleLinks.length > 0 && (
+          <View style={styles.moduleResourcesWrap}>
+            <Text style={[styles.resourcesHeading, isDark && styles.textDark]}>
+              Video links
+            </Text>
+            <Text style={[styles.resourcesSub, isDark && styles.subtextDark]}>
+              YouTube and talks linked from lessons in this module.
+            </Text>
+            {moduleLinks.map((link) => (
+              <TouchableOpacity
+                key={link.url}
+                style={[styles.pdfRow, isDark && styles.pdfRowDark]}
+                activeOpacity={0.7}
+                onPress={() => openModuleLink(link)}
+                accessibilityRole="button"
+                accessibilityLabel={`Open video link: ${link.title}`}
+              >
+                <View pointerEvents="none">
+                  <Youtube
+                    size={20}
+                    color={isDark ? '#FFFFFF' : '#E11D48'}
+                  />
+                </View>
+                <View style={styles.linkRowText}>
+                  <Text
+                    style={[styles.pdfRowTitle, isDark && styles.textDark]}
+                    numberOfLines={2}
+                  >
+                    {link.title}
+                  </Text>
+                  {link.description ? (
+                    <Text
+                      style={[styles.linkRowDescription, isDark && styles.subtextDark]}
+                      numberOfLines={2}
+                    >
+                      {link.description}
+                    </Text>
+                  ) : null}
+                </View>
+                <View pointerEvents="none">
+                  <ChevronRight
+                    size={18}
+                    color={isDark ? '#9090A8' : '#2C3E50'}
+                    style={{ opacity: isDark ? 1 : 0.55 }}
+                  />
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -519,6 +586,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: AppFonts.bodyMedium,
     color: '#2C3E50',
+  },
+  linkRowText: {
+    flex: 1,
+    gap: 2,
+  },
+  linkRowDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontFamily: AppFonts.bodyRegular,
+    color: '#8E8EA0',
   },
   workbookCard: {
     backgroundColor: '#FFFFFF',

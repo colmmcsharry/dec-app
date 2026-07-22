@@ -1,3 +1,5 @@
+import { MODULE_VIDEOS } from "@/data/module-videos";
+
 export type SupplementalResource = {
   title: string;
   url?: string;
@@ -6,15 +8,17 @@ export type SupplementalResource = {
   buttonLabel?: string;
 };
 
+export type ModuleLinkResource = {
+  title: string;
+  url: string;
+  description?: string;
+};
+
 export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
   "sleep:1159439402": [
     {
-      title: "Additional Resource",
-      url: "https://www.youtube.com/watch?v=5MuIMqhT8DM",
-    },
-    {
       title: "Matt Walker TED Talk",
-      url: "https://www.ted.com/talks/matt_walker_sleep_is_your_superpower?language=en",
+      url: "https://www.youtube.com/watch?v=5MuIMqhT8DM",
       description:
         "A great talk on why sleep is one of the biggest levers for health and performance.",
     },
@@ -504,3 +508,26 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
     },
   ],
 };
+
+/** External video / talk links for a module (YouTube, TED, etc.) — not PDFs. */
+export function getModuleLinkResources(slug: string): ModuleLinkResource[] {
+  const videos = MODULE_VIDEOS[slug] || [];
+  const seen = new Set<string>();
+  const links: ModuleLinkResource[] = [];
+
+  for (const video of videos) {
+    const resources = SUPPLEMENTAL_RESOURCES[`${slug}:${video.id}`] ?? [];
+    for (const resource of resources) {
+      if (!resource.url || resource.pdfKey) continue;
+      if (seen.has(resource.url)) continue;
+      seen.add(resource.url);
+      links.push({
+        title: resource.title,
+        url: resource.url,
+        description: resource.description,
+      });
+    }
+  }
+
+  return links;
+}
