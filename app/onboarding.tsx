@@ -1,25 +1,24 @@
 import { EmailUpdatesSection } from "@/components/email-updates-section";
+import {
+  MODULE_HEADER_BACKGROUNDS,
+} from "@/components/module-card-art";
 import { VideoPlayer, type VideoPlayerHandle } from "@/components/video-player";
+import { MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { COURSE_INTRO_VIDEO } from "@/data/course-intro-video";
 import { MODULE_VIDEOS } from "@/data/module-videos";
 import { setOnboardingComplete } from "@/services/onboarding-storage";
 import { hasProEntitlement } from "@/services/purchases";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  Activity,
-  Apple,
   ArrowRight,
   Brain,
   Check,
   Heart,
-  Moon,
   Quote,
-  Sunrise,
-  Target,
   TrendingUp,
-  Zap,
   type LucideIcon,
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -36,6 +35,7 @@ import {
   View,
   ViewToken,
 } from "react-native";
+import { RectButton } from "react-native-gesture-handler";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -141,74 +141,53 @@ const COURSE_INTRO_SLIDE_INDEX = SLIDES.findIndex(
 type GoalOption = {
   id: string;
   label: string;
-  icon: LucideIcon;
-  iconColor: string;
-  moduleSlug: string;
+  moduleSlug: keyof typeof MODULE_THEMES;
 };
 
 const GOALS: GoalOption[] = [
-  {
-    id: "sleep",
-    label: "Sleep better",
-    icon: Moon,
-    iconColor: "#7C3AED",
-    moduleSlug: "sleep",
-  },
+  { id: "sleep", label: "Sleep better", moduleSlug: "sleep" },
   {
     id: "mornings",
     label: "Better mornings",
-    icon: Sunrise,
-    iconColor: "#F59E0B",
     moduleSlug: "morning-routines",
   },
   {
     id: "energy",
     label: "More energy",
-    icon: Zap,
-    iconColor: "#10B981",
     moduleSlug: "energy-management",
   },
-  {
-    id: "focus",
-    label: "Sharper focus",
-    icon: Brain,
-    iconColor: "#8B5CF6",
-    moduleSlug: "mindfulness",
-  },
+  { id: "focus", label: "Sharper focus", moduleSlug: "mindfulness" },
   {
     id: "stress",
     label: "Less stress",
-    icon: Heart,
-    iconColor: "#EC4899",
     moduleSlug: "stress-management",
   },
-  {
-    id: "eat",
-    label: "Eat better",
-    icon: Apple,
-    iconColor: "#EF4444",
-    moduleSlug: "fuel-2-perform",
-  },
-  {
-    id: "move",
-    label: "Move more",
-    icon: Activity,
-    iconColor: "#0EA5E9",
-    moduleSlug: "move-2-perform",
-  },
-  {
-    id: "habits",
-    label: "Build habits",
-    icon: Target,
-    iconColor: "#14B8A6",
-    moduleSlug: "habits",
-  },
+  { id: "eat", label: "Eat better", moduleSlug: "fuel-2-perform" },
+  { id: "move", label: "Move more", moduleSlug: "move-2-perform" },
+  { id: "habits", label: "Build habits", moduleSlug: "habits" },
 ];
+
+/** Lighter wash than home cards — enough for dark type, art still readable. */
+const GOAL_BRIGHTEN_SCRIM = [
+  "rgba(255,255,255,0.28)",
+  "rgba(255,255,255,0.42)",
+] as const;
 
 const ONBOARDING_MODULES_IMAGE = require("@/assets/images/onboarding/modules.png");
 const ONBOARDING_VIDEOS_IMAGE = require("@/assets/images/onboarding/videos.png");
 const ONBOARDING_WORKBOOKS_IMAGE = require("@/assets/images/onboarding/workbooks.png");
 const ONBOARDING_WELCOME_MOUNTAINS = require("@/assets/images/onboarding/welcome-mountains.webp");
+
+/** Blend `hex` toward black — e.g. 0.2 = 20% darker. */
+function darkenHex(hex: string, amount: number): string {
+  const normalized = hex.replace("#", "");
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  const mix = (channel: number) => Math.round(channel * (1 - amount));
+  const toHex = (channel: number) => channel.toString(16).padStart(2, "0");
+  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+}
 
 const WAVE_POINTS: [number, number][] = [
   [0, 80],
@@ -286,8 +265,7 @@ function WelcomePill({
           }),
           // Hold still while the other pills pulse + cycle rest.
           withTiming(1, {
-            duration:
-              WELCOME_PILL_PULSE_CYCLE_MS - WELCOME_PILL_PULSE_SLOT_MS,
+            duration: WELCOME_PILL_PULSE_CYCLE_MS - WELCOME_PILL_PULSE_SLOT_MS,
           }),
         ),
         -1,
@@ -331,6 +309,74 @@ function WelcomePills({ active }: { active: boolean }) {
   );
 }
 
+function GoalsPicker({
+  selectedGoals,
+  onToggle,
+}: {
+  selectedGoals: string[];
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <View style={styles.goalsGrid}>
+      {GOALS.map((g) => {
+        const selected = selectedGoals.includes(g.id);
+        const theme = MODULE_THEMES[g.moduleSlug];
+        const Icon = theme.Icon;
+        const background = MODULE_HEADER_BACKGROUNDS[g.moduleSlug];
+        const isSleep = g.moduleSlug === "sleep";
+        const labelColor = isSleep
+          ? "#FFFFFF"
+          : darkenHex(theme.textColor, 0.42);
+
+        return (
+          <View key={g.id} style={styles.goalCellWrap}>
+            <RectButton
+              onPress={() => onToggle(g.id)}
+              underlayColor={
+                isSleep ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)"
+              }
+              style={[styles.goalCell, selected && styles.goalCellSelected]}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selected }}
+              accessibilityLabel={g.label}
+            >
+              {/* Inner clip: Android won't round Image inside RectButton alone. */}
+              <View style={styles.goalCellClip}>
+                <Image
+                  source={background}
+                  style={styles.goalCellImage}
+                  contentFit="cover"
+                  pointerEvents="none"
+                />
+                {!isSleep ? (
+                  <LinearGradient
+                    colors={[GOAL_BRIGHTEN_SCRIM[0], GOAL_BRIGHTEN_SCRIM[1]]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.goalCellScrim}
+                    pointerEvents="none"
+                  />
+                ) : null}
+                <View style={styles.goalCellInner} pointerEvents="none">
+                  <Icon size={20} color={labelColor} strokeWidth={2.2} />
+                  <Text style={[styles.goalCellLabel, { color: labelColor }]}>
+                    {g.label}
+                  </Text>
+                </View>
+                {selected ? (
+                  <View style={styles.goalCheck} pointerEvents="none">
+                    <Check size={12} color="#FFFFFF" strokeWidth={3.5} />
+                  </View>
+                ) : null}
+              </View>
+            </RectButton>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function OverallProgressPreview({ active }: { active: boolean }) {
   const gaugeSize = 84;
   const strokeWidth = 9;
@@ -364,9 +410,7 @@ function OverallProgressPreview({ active }: { active: boolean }) {
     (pct, prev) => {
       if (pct === prev) return;
       runOnJS(setDisplayPct)(pct);
-      runOnJS(setDisplayWatched)(
-        Math.round((pct / 100) * TOTAL_COURSE_VIDEOS),
-      );
+      runOnJS(setDisplayWatched)(Math.round((pct / 100) * TOTAL_COURSE_VIDEOS));
     },
   );
 
@@ -378,10 +422,7 @@ function OverallProgressPreview({ active }: { active: boolean }) {
     const track = barTrackWidth.value;
     if (track <= 0) return { width: 0 };
     return {
-      width: Math.max(
-        progress.value * track,
-        progress.value > 0.001 ? 4 : 0,
-      ),
+      width: Math.max(progress.value * track, progress.value > 0.001 ? 4 : 0),
     };
   });
 
@@ -1053,69 +1094,14 @@ export default function OnboardingScreen() {
           <View style={styles.slide}>
             <View style={styles.slideContent}>
               <View style={styles.slideCopy}>
-                <Text style={styles.slideTitle}>
-                  What do you want to improve?
-                </Text>
-                <Text style={styles.slideBody}>
-                  Pick everything that matters to you
-                </Text>
+                <Text style={styles.slideTitle}>What do you want to improve?</Text>
+                <Text style={styles.slideBody}>Select all that apply</Text>
               </View>
               <View style={styles.slideVisual}>
-                <View style={styles.goalsGrid}>
-                  {GOALS.map((g, i) => {
-                    const selected = selectedGoals.includes(g.id);
-                    const Icon = g.icon;
-                    return (
-                      <Animated.View
-                        key={g.id}
-                        entering={FadeInUp.delay(i * 40).duration(320)}
-                        style={styles.goalCellWrap}
-                      >
-                        <Pressable
-                          onPress={() => toggleGoal(g.id)}
-                          style={({ pressed }) => [
-                            styles.goalCell,
-                            selected && styles.goalCellSelected,
-                            { opacity: pressed ? 0.85 : 1 },
-                          ]}
-                          accessibilityRole="checkbox"
-                          accessibilityState={{ checked: selected }}
-                          accessibilityLabel={g.label}
-                        >
-                          <View
-                            style={[
-                              styles.goalIconWrap,
-                              { backgroundColor: g.iconColor + "1F" },
-                            ]}
-                          >
-                            <Icon
-                              size={20}
-                              color={g.iconColor}
-                              strokeWidth={2.2}
-                            />
-                          </View>
-                          <Text
-                            style={[
-                              styles.goalLabel,
-                              selected && styles.goalLabelSelected,
-                            ]}
-                          >
-                            {g.label}
-                          </Text>
-                          {selected && (
-                            <View style={styles.goalCheck}>
-                              <Check
-                                size={12}
-                                color="#FFFFFF"
-                                strokeWidth={3.5}
-                              />
-                            </View>
-                          )}
-                        </Pressable>
-                      </Animated.View>
-                    );
-                  })}
-                </View>
+                <GoalsPicker
+                  selectedGoals={selectedGoals}
+                  onToggle={toggleGoal}
+                />
               </View>
             </View>
           </View>
@@ -1307,9 +1293,7 @@ export default function OnboardingScreen() {
         onScrollToIndexFailed={onScrollToIndexFailed}
       />
 
-      <View
-        style={[styles.footer, index === 0 && styles.footerOverMountains]}
-      >
+      <View style={[styles.footer, index === 0 && styles.footerOverMountains]}>
         <Pressable
           onPress={next}
           disabled={isNextDisabled}
@@ -1409,6 +1393,67 @@ const styles = StyleSheet.create({
   slideVisual: {
     width: "100%",
     paddingTop: 8,
+  },
+  goalsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    width: "100%",
+  },
+  goalCellWrap: {
+    width: "48%",
+  },
+  goalCell: {
+    borderRadius: 16,
+    borderWidth: 2,
+    // Match page bg so unselected keeps the same outer radius/geometry as selected.
+    borderColor: "#F8F6FC",
+    backgroundColor: "transparent",
+  },
+  goalCellSelected: {
+    borderColor: MAIN_PURPLE,
+  },
+  goalCellClip: {
+    minHeight: 72,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "#1A1A2E",
+    position: "relative",
+  },
+  goalCellImage: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 14,
+  },
+  goalCellScrim: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 14,
+  },
+  goalCellInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    paddingRight: 28,
+    minHeight: 72,
+  },
+  goalCellLabel: {
+    flex: 1,
+    flexShrink: 1,
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 14,
+    lineHeight: 19,
+  },
+  goalCheck: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: MAIN_PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
   },
   slideTitleWithIcon: {
     flexDirection: "row",
@@ -1635,69 +1680,6 @@ const styles = StyleSheet.create({
   },
   primaryBtnTextDisabled: {
     color: "#C7C2D6",
-  },
-  goalsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    width: "100%",
-  },
-  goalCellWrap: {
-    width: "48%",
-  },
-  goalCell: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    paddingRight: 28,
-    borderWidth: 2,
-    borderColor: "transparent",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-    position: "relative",
-    minHeight: 52,
-  },
-  goalCellSelected: {
-    borderColor: MAIN_PURPLE,
-    backgroundColor: "#F4F0FB",
-  },
-  goalIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
-  },
-  goalLabel: {
-    flex: 1,
-    flexShrink: 1,
-    fontFamily: AppFonts.bodyMedium,
-    fontSize: 14,
-    lineHeight: 19,
-    color: "#374151",
-  },
-  goalLabelSelected: {
-    color: "#1F1248",
-    fontFamily: AppFonts.bodyBold,
-  },
-  goalCheck: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: MAIN_PURPLE,
-    alignItems: "center",
-    justifyContent: "center",
   },
   collageImageWrap: {
     marginTop: 0,

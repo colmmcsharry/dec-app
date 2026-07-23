@@ -120,7 +120,7 @@ export function EmailUpdatesSection({
       </Text>
       <Text style={[styles.body, isDark && styles.bodyDark]}>
         {isSlide
-          ? "Optional — tips, new content, and occasional offers. Skip anytime."
+          ? "Optional — tips, new content, live workouts, and occasional offers. Unsubscribe anytime."
           : "Regular tips, new content, and offers from Declan. Unsubscribe anytime."}
       </Text>
 
