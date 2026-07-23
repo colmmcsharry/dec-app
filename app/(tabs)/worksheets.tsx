@@ -1,6 +1,7 @@
 import { MainTabHeader } from "@/components/main-tab-header";
 import { MODULE_CARD_BACKGROUNDS } from "@/components/module-card-art";
 import { PageHeading } from "@/components/page-heading";
+import { mixHex } from "@/constants/pastel-accents";
 import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -10,7 +11,7 @@ import { MODULE_PDFS, type PdfEntry } from "@/data/pdf-assets";
 import { hrefModuleDigitalWorkbook } from "@/lib/module-workbook-route";
 import { requirePro } from "@/services/purchases";
 import { useRouter } from "expo-router";
-import { AlignLeft, BookOpen, ChevronRight, FileText } from "lucide-react-native";
+import { AlignLeft, ChevronRight, FileText, Smartphone } from "lucide-react-native";
 import {
   ImageBackground,
   Platform,
@@ -69,7 +70,7 @@ export default function WorksheetsScreen() {
       <PageHeading
         showPremiumBadge
         title="Module Worksheets"
-        subtitle="Read each module summary, open printable PDFs, or use the Digital Workbook for typed answers that save on this device."
+        subtitle="Read module summaries, print PDFs, or use the Digital Workbooks for typed answers that save on this device."
       />
 
       {MODULE_ORDER.map((slug) => {
@@ -191,34 +192,40 @@ export default function WorksheetsScreen() {
                 Digital Workbook
               </Text>
               <TouchableOpacity
-                style={[styles.pdfRow, styles.digitalWorkbookRow]}
+                style={[
+                  styles.pdfRow,
+                  styles.digitalWorkbookRow,
+                  {
+                    backgroundColor: mixHex(
+                      mixHex(
+                        theme.backgroundColor,
+                        theme.iconColor,
+                        0.88,
+                      ),
+                      "#000000",
+                      0.1,
+                    ),
+                  },
+                ]}
                 activeOpacity={0.7}
                 onPress={() => openDigitalWorkbook(slug)}
                 accessibilityRole="button"
                 accessibilityLabel={`Open module ${def.moduleNumber} digital workbook for ${def.title}`}
               >
-                <View pointerEvents="none">
-                  <BookOpen size={20} color={MODULE_ICON_LIGHT} />
+                <View pointerEvents="none" style={styles.digitalWorkbookIcon}>
+                  <Smartphone size={20} color="#FFFFFF" />
                 </View>
                 <View style={styles.workbookRowText}>
                   <Text
-                    style={[styles.pdfTitle, { color: MODULE_INK_LIGHT }]}
+                    style={[styles.pdfTitle, styles.digitalWorkbookTitle]}
                     numberOfLines={2}
                   >
                     {def.title} Workbook
                   </Text>
-                  <Text
-                    style={[
-                      styles.workbookRowHint,
-                      { color: MODULE_MUTED_LIGHT },
-                    ]}
-                    numberOfLines={2}
-                  >
-                    Interactive exercises — answers save on phone
-                  </Text>
+
                 </View>
                 <View pointerEvents="none" style={styles.workbookRowChevron}>
-                  <ChevronRight size={18} color={MODULE_CHEVRON_LIGHT} />
+                  <ChevronRight size={18} color="#FFFFFF" />
                 </View>
               </TouchableOpacity>
             </View>
@@ -328,6 +335,15 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     paddingVertical: 12,
     marginBottom: 0,
+  },
+  digitalWorkbookIcon: {
+    marginTop: 3,
+  },
+  digitalWorkbookTitle: {
+    color: "#FFFFFF",
+  },
+  digitalWorkbookHint: {
+    color: "rgba(255,255,255,0.85)",
   },
   workbookRowChevron: {
     marginTop: 4,

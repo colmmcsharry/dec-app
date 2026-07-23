@@ -301,7 +301,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     moduleNumber: 1,
     color: "#E5D9F2",
     intro:
-      "This digital workbook can be used instead of the printed worksheets. Complete the exercises and your answers save automatically on your device.",
+      "This digital workbook can be used instead of the printed worksheets.",
     workbookCardTeaser:
       "Complete your sleep plan, evening audit, and journal—no printing required.",
 
@@ -354,7 +354,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     moduleNumber: 2,
     color: "#FFF3DC",
     intro:
-      "Your interactive morning planning exercises. Answers save automatically on your device.",
+      "Your interactive morning planning exercises.",
     workbookCardTeaser:
       "Read the morning routine guidance, plan your mornings, set your priorities, and journal—all saved digitally.",
 
@@ -441,7 +441,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     moduleNumber: 3,
     color: "#D4F1E8",
     intro:
-      "Your interactive energy trackers, email review, and weekly planning exercises. Answers save automatically on your device.",
+      "Your interactive energy trackers, email review, and weekly planning exercises.",
     workbookCardTeaser:
       "Read the energy management content and complete energy tracking, email review, and weekly planning exercises.",
 
@@ -806,7 +806,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     moduleNumber: 4,
     color: "#EADBF7",
     intro:
-      "Your interactive creative thinking worksheets. Answers save automatically on your device.",
+      "Your interactive creative thinking worksheets.",
     workbookCardTeaser:
       "Read the creative thinking guidance and complete decision-making and idea-capture exercises.",
 
@@ -928,7 +928,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     moduleNumber: 5,
     color: "#DBE9F7",
     intro:
-      "Your interactive downtime planning worksheets. Answers save automatically on your device.",
+      "Your interactive downtime planning worksheets.",
     workbookCardTeaser:
       "Read the downtime guidance and plan your evenings, weekends, and holiday reflection.",
 
@@ -1177,7 +1177,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     moduleNumber: 8,
     color: "#FFDDD9",
     intro:
-      "Your interactive food diary and mindful eating exercises. Answers save automatically on your device.",
+      "Your interactive food diary and mindful eating exercises.",
     workbookCardTeaser:
       "Read the nutrition guidance and complete your food journal and meal-planning exercises.",
 
@@ -1258,7 +1258,7 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     moduleNumber: 9,
     color: "#F7EADB",
     intro:
-      "Your interactive confidence and assertiveness action plans. Answers save automatically on your device.",
+      "Your interactive confidence and assertiveness action plans.",
     workbookCardTeaser:
       "Read the confidence content and complete your assertiveness plan and speaking goals.",
 

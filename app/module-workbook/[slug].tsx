@@ -20,7 +20,7 @@ import {
 import { Image } from "expo-image";
 import { Picker } from "@react-native-picker/picker";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronDown, ChevronRight, Check } from "lucide-react-native";
+import { ChevronDown, ChevronRight, ChevronUp, Check } from "lucide-react-native";
 import { RectButton } from "react-native-gesture-handler";
 import {
   Fragment,
@@ -33,10 +33,10 @@ import {
   type RefObject,
 } from "react";
 import {
+  BackHandler,
   Dimensions,
   Keyboard,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -57,6 +57,10 @@ const WORKBOOK_TEXT = "#1E2430";
 const WORKBOOK_TEXT_BODY = "#363C48";
 
 const WORKBOOK_LOGO = require("@/assets/images/icon.png");
+
+function dismissWorkbookKeyboard() {
+  Keyboard.dismiss();
+}
 
 const RATING_SCALE_1_5 = [1, 2, 3, 4, 5] as const;
 
@@ -83,9 +87,13 @@ type SaveState = "loading" | "saving" | "saved";
 
 function useAndroidKeyboardScroll(scrollRef: RefObject<ScrollView | null>) {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isEditingText, setIsEditingText] = useState(false);
   const scrollYRef = useRef(0);
   const keyboardHeightRef = useRef(0);
   const lastFocusedTargetRef = useRef<number | null>(null);
+  const blurClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const scrollTargetIntoView = useCallback(
     (target: number, kbHeight: number) => {
@@ -106,11 +114,16 @@ function useAndroidKeyboardScroll(scrollRef: RefObject<ScrollView | null>) {
   );
 
   useEffect(() => {
-    if (Platform.OS !== "android") return;
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
-    const showSub = Keyboard.addListener("keyboardDidShow", (event) => {
+    const showSub = Keyboard.addListener(showEvent, (event) => {
       keyboardHeightRef.current = event.endCoordinates.height;
       setKeyboardHeight(event.endCoordinates.height);
+      setIsEditingText(true);
+      if (Platform.OS !== "android") return;
       const target = lastFocusedTargetRef.current;
       if (target != null) {
         setTimeout(() => {
@@ -118,9 +131,10 @@ function useAndroidKeyboardScroll(scrollRef: RefObject<ScrollView | null>) {
         }, 50);
       }
     });
-    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+    const hideSub = Keyboard.addListener(hideEvent, () => {
       keyboardHeightRef.current = 0;
       setKeyboardHeight(0);
+      setIsEditingText(false);
       lastFocusedTargetRef.current = null;
     });
 
@@ -130,12 +144,26 @@ function useAndroidKeyboardScroll(scrollRef: RefObject<ScrollView | null>) {
     };
   }, [scrollTargetIntoView]);
 
+  useEffect(() => {
+    return () => {
+      if (blurClearTimeoutRef.current) {
+        clearTimeout(blurClearTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const onScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollYRef.current = event.nativeEvent.contentOffset.y;
   }, []);
 
   const scrollInputIntoView = useCallback(
     (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
+      if (blurClearTimeoutRef.current) {
+        clearTimeout(blurClearTimeoutRef.current);
+        blurClearTimeoutRef.current = null;
+      }
+      setIsEditingText(true);
+
       if (Platform.OS !== "android") return;
 
       const target = event.nativeEvent.target;
@@ -152,10 +180,23 @@ function useAndroidKeyboardScroll(scrollRef: RefObject<ScrollView | null>) {
     [scrollTargetIntoView],
   );
 
+  const onInputBlur = useCallback(() => {
+    if (blurClearTimeoutRef.current) {
+      clearTimeout(blurClearTimeoutRef.current);
+    }
+    // Delay so moving focus between fields does not flash the scroll FAB.
+    blurClearTimeoutRef.current = setTimeout(() => {
+      setIsEditingText(false);
+      blurClearTimeoutRef.current = null;
+    }, 150);
+  }, []);
+
   return {
     keyboardHeight,
+    isEditingText,
     onScroll,
     scrollInputIntoView,
+    onInputBlur,
     scrollYRef,
     contentPaddingBottom: Platform.OS === "android" ? 40 + keyboardHeight : 40,
   };
@@ -192,8 +233,16 @@ export default function ModuleWorkbookScreen() {
   const hasHydratedRef = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   const sectionRefs = useRef<Record<string, View | null>>({});
-  const { onScroll, scrollInputIntoView, contentPaddingBottom, scrollYRef } =
-    useAndroidKeyboardScroll(scrollRef);
+  const {
+    keyboardHeight,
+    isEditingText,
+    onScroll,
+    scrollInputIntoView,
+    onInputBlur,
+    contentPaddingBottom,
+    scrollYRef,
+  } = useAndroidKeyboardScroll(scrollRef);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [auditTimePickerTarget, setAuditTimePickerTarget] = useState<{
     auditIndex: number;
     rowIndex: number;
@@ -260,10 +309,36 @@ export default function ModuleWorkbookScreen() {
     [scrollYRef],
   );
 
-  const closeAuditTimePicker = useCallback(
-    () => setAuditTimePickerTarget(null),
-    []
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      onScroll(event);
+      const y = event.nativeEvent.contentOffset.y;
+      setShowScrollTop((prev) => {
+        const next = y > 360;
+        return prev === next ? prev : next;
+      });
+    },
+    [onScroll],
   );
+
+  const scrollToTop = useCallback(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }, []);
+
+  const closeAuditTimePicker = useCallback(() => {
+    requestAnimationFrame(() => {
+      setAuditTimePickerTarget(null);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (auditTimePickerTarget === null) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      closeAuditTimePicker();
+      return true;
+    });
+    return () => sub.remove();
+  }, [auditTimePickerTarget, closeAuditTimePicker]);
 
   const updatePlanAction = useCallback((sectionId: string, value: string) => {
     setFormData((current) => {
@@ -417,7 +492,7 @@ export default function ModuleWorkbookScreen() {
       ? "Loading your saved answers..."
       : saveState === "saving"
         ? "Saving..."
-        : "Saved on this device";
+        : "Answers are saved on this device";
   /**
    * `KeyboardAvoidingView` only wraps the scroll area — the custom header is a
    * sibling above it. Do NOT pass the header height as `keyboardVerticalOffset`
@@ -492,7 +567,7 @@ export default function ModuleWorkbookScreen() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
             automaticallyAdjustKeyboardInsets={Platform.OS === "android"}
-            onScroll={onScroll}
+            onScroll={handleScroll}
             scrollEventThrottle={16}
           >
           <View
@@ -624,6 +699,7 @@ export default function ModuleWorkbookScreen() {
                   onToggleDay={togglePlanDayCompleted}
                   onPlanAction={updatePlanAction}
                   onInputFocus={scrollInputIntoView}
+                  onInputBlur={onInputBlur}
                 />
               ))}
             </View>
@@ -679,19 +755,21 @@ export default function ModuleWorkbookScreen() {
                         key={`audit-row-${auditIndex}-${rowIndex}`}
                         style={styles.auditRow}
                       >
-                        <Pressable
+                        <RectButton
                           onPress={() => {
                             setAuditTimePickerTarget({
                               auditIndex,
                               rowIndex,
                             });
                           }}
-                          style={({ pressed }) => [
+                          style={[
                             styles.ratingPickerTrigger,
                             styles.auditTimePickerTrigger,
                             isDark && styles.ratingPickerTriggerDark,
-                            { opacity: pressed ? 0.88 : 1 },
                           ]}
+                          underlayColor={
+                            isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"
+                          }
                           accessibilityRole="button"
                           accessibilityLabel={
                             row.time.trim()
@@ -699,28 +777,35 @@ export default function ModuleWorkbookScreen() {
                               : "Choose time"
                           }
                         >
-                          <Text
-                            style={[
-                              styles.ratingPickerTriggerText,
-                              !row.time.trim() &&
-                                styles.ratingPickerTriggerPlaceholder,
-                              isDark &&
-                                !!row.time.trim() &&
-                                styles.textDark,
-                              isDark &&
-                                !row.time.trim() &&
-                                styles.ratingPickerTriggerPlaceholderDark,
-                            ]}
-                            numberOfLines={1}
+                          <View
+                            style={styles.auditTimePickerInner}
+                            pointerEvents="none"
                           >
-                            {row.time.trim() ? row.time.trim() : "Choose time…"}
-                          </Text>
-                          <ChevronDown
-                            size={20}
-                            color={isDark ? "#A8ACBF" : MAIN_PURPLE}
-                            strokeWidth={2}
-                          />
-                        </Pressable>
+                            <Text
+                              style={[
+                                styles.ratingPickerTriggerText,
+                                !row.time.trim() &&
+                                  styles.ratingPickerTriggerPlaceholder,
+                                isDark &&
+                                  !!row.time.trim() &&
+                                  styles.textDark,
+                                isDark &&
+                                  !row.time.trim() &&
+                                  styles.ratingPickerTriggerPlaceholderDark,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {row.time.trim()
+                                ? row.time.trim()
+                                : "Choose time…"}
+                            </Text>
+                            <ChevronDown
+                              size={20}
+                              color={isDark ? "#A8ACBF" : MAIN_PURPLE}
+                              strokeWidth={2}
+                            />
+                          </View>
+                        </RectButton>
                         <TextInput
                           value={row.activity}
                           onChangeText={(value) =>
@@ -732,6 +817,7 @@ export default function ModuleWorkbookScreen() {
                             )
                           }
                           onFocus={scrollInputIntoView}
+                          onBlur={onInputBlur}
                           placeholder="What were you doing?"
                           placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
                           multiline
@@ -835,9 +921,8 @@ export default function ModuleWorkbookScreen() {
                               {RATING_SCALE_1_5.map((n) => {
                                 const selected = display === String(n);
                                 return (
-                                  <Pressable
+                                  <RectButton
                                     key={n}
-                                    delayPressIn={0}
                                     onPress={() =>
                                       updateWorksheetField(
                                         ws.id,
@@ -853,24 +938,31 @@ export default function ModuleWorkbookScreen() {
                                         isDark &&
                                         styles.ratingChipSelectedDark,
                                     ]}
+                                    underlayColor={
+                                      isDark
+                                        ? "rgba(255,255,255,0.1)"
+                                        : "rgba(108,99,255,0.12)"
+                                    }
                                     accessibilityRole="button"
                                     accessibilityState={{ selected }}
                                     accessibilityLabel={`Energy rating ${n} of 5`}
                                   >
-                                    <Text
-                                      style={[
-                                        styles.ratingChipText,
-                                        isDark && styles.ratingChipTextDark,
-                                        selected &&
-                                          styles.ratingChipTextSelected,
-                                        selected &&
-                                          isDark &&
-                                          styles.ratingChipTextSelectedDark,
-                                      ]}
-                                    >
-                                      {n}
-                                    </Text>
-                                  </Pressable>
+                                    <View pointerEvents="none">
+                                      <Text
+                                        style={[
+                                          styles.ratingChipText,
+                                          isDark && styles.ratingChipTextDark,
+                                          selected &&
+                                            styles.ratingChipTextSelected,
+                                          selected &&
+                                            isDark &&
+                                            styles.ratingChipTextSelectedDark,
+                                        ]}
+                                      >
+                                        {n}
+                                      </Text>
+                                    </View>
+                                  </RectButton>
                                 );
                               })}
                             </View>
@@ -895,11 +987,17 @@ export default function ModuleWorkbookScreen() {
                               updateWorksheetField(ws.id, field.id, v)
                             }
                             onFocus={scrollInputIntoView}
+                            onBlur={onInputBlur}
                             placeholder={field.placeholder ?? "Type here"}
                             placeholderTextColor={
                               isDark ? "#7B7E95" : "#9CA3AF"
                             }
                             multiline={!singleLine}
+                            returnKeyType={singleLine ? "done" : "default"}
+                            blurOnSubmit={singleLine}
+                            onSubmitEditing={
+                              singleLine ? dismissWorkbookKeyboard : undefined
+                            }
                             style={[
                               singleLine
                                 ? styles.textInputSingle
@@ -945,6 +1043,7 @@ export default function ModuleWorkbookScreen() {
                 value={formData.journalEntry}
                 onChangeText={updateJournalEntry}
                 onFocus={scrollInputIntoView}
+                onBlur={onInputBlur}
                 placeholder="Write your reflection here"
                 placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
                 multiline
@@ -958,95 +1057,180 @@ export default function ModuleWorkbookScreen() {
             </View>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
-      </View>
 
-      <Modal
-        visible={auditTimePickerTarget !== null}
-        animationType="slide"
-        transparent
-        onRequestClose={closeAuditTimePicker}
-      >
-        <View style={styles.ratingModalRoot}>
-          <Pressable
-            style={styles.ratingModalBackdrop}
-            onPress={closeAuditTimePicker}
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss"
-          />
+          {/**
+           * Android already resizes/insets for the keyboard, so pin Done to the
+           * bottom of this layout (not `bottom: keyboardHeight`, which jumps it
+           * to the top of the screen).
+           */}
+          {Platform.OS === "android" && isEditingText ? (
+            <View
+              style={[
+                styles.keyboardDoneBarAndroid,
+                isDark && styles.keyboardDoneBarDark,
+              ]}
+            >
+              <RectButton
+                onPress={dismissWorkbookKeyboard}
+                underlayColor="rgba(108, 99, 255, 0.12)"
+                accessibilityRole="button"
+                accessibilityLabel="Done editing"
+                style={styles.keyboardDoneButton}
+              >
+                <View pointerEvents="none">
+                  <Text
+                    style={[
+                      styles.keyboardDoneLabel,
+                      isDark && styles.keyboardDoneLabelDark,
+                    ]}
+                  >
+                    Done
+                  </Text>
+                </View>
+              </RectButton>
+            </View>
+          ) : null}
+      </KeyboardAvoidingView>
+
+        {/**
+         * iOS InputAccessoryView is unreliable (often missing). Pin Done just
+         * above the keyboard using keyboard frame height instead.
+         */}
+        {Platform.OS === "ios" && keyboardHeight > 0 ? (
           <View
             style={[
-              styles.ratingModalSheet,
-              isDark && styles.ratingModalSheetDark,
-              { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+              styles.keyboardDoneBarIos,
+              isDark && styles.keyboardDoneBarDark,
+              { bottom: keyboardHeight },
             ]}
           >
-            <View style={styles.ratingModalHeader}>
-              <Text
-                style={[
-                  styles.ratingModalTitle,
-                  isDark && styles.textDark,
-                ]}
-              >
-                Time
-              </Text>
-              <Pressable
-                onPress={closeAuditTimePicker}
-                hitSlop={12}
-                accessibilityRole="button"
-                accessibilityLabel="Done"
-              >
-                <Text style={styles.ratingModalDone}>Done</Text>
-              </Pressable>
-            </View>
-            <Picker
-              selectedValue={auditTimePickerSelectedValue}
-              onValueChange={(itemValue) => {
-                if (!auditTimePickerTarget) return;
-                const v =
-                  itemValue === AUDIT_TIME_PICKER_NONE
-                    ? ""
-                    : String(itemValue);
-                updateAuditRow(
-                  auditTimePickerTarget.auditIndex,
-                  auditTimePickerTarget.rowIndex,
-                  "time",
-                  v
-                );
-              }}
-              style={styles.ratingPickerWheel}
-              {...(Platform.OS === "ios"
-                ? {
-                    itemStyle: {
-                      color: isDark ? "#ECEDEE" : WORKBOOK_TEXT,
-                    },
-                  }
-                : {})}
+            <Pressable
+              onPress={dismissWorkbookKeyboard}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Done editing"
+              style={styles.keyboardDoneButton}
             >
-              <Picker.Item
-                label="— Not set"
-                value={AUDIT_TIME_PICKER_NONE}
-                color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
-              />
-              {auditTimePickerHasLegacyValue ? (
-                <Picker.Item
-                  label={`${auditTimePickerValueRaw} (saved)`}
-                  value={auditTimePickerValueRaw}
-                  color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
-                />
-              ) : null}
-              {EVENING_AUDIT_PRESET_TIMES.map((t) => (
-                <Picker.Item
-                  key={t}
-                  label={t}
-                  value={t}
-                  color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
-                />
-              ))}
-            </Picker>
+              <View pointerEvents="none">
+                <Text
+                  style={[
+                    styles.keyboardDoneLabel,
+                    isDark && styles.keyboardDoneLabelDark,
+                  ]}
+                >
+                  Done
+                </Text>
+              </View>
+            </Pressable>
           </View>
-        </View>
-      </Modal>
+        ) : null}
+
+        {showScrollTop && !isEditingText ? (
+          <RectButton
+            style={[
+              styles.scrollTopFab,
+              { bottom: Math.max(insets.bottom, 12) + 16 },
+            ]}
+            underlayColor="rgba(255,255,255,0.18)"
+            onPress={scrollToTop}
+            accessibilityRole="button"
+            accessibilityLabel="Scroll to top"
+          >
+            <View pointerEvents="none">
+              <ChevronUp size={28} color="#FFFFFF" strokeWidth={2.6} />
+            </View>
+          </RectButton>
+        ) : null}
+
+        {auditTimePickerTarget !== null ? (
+          <View
+            style={styles.ratingModalRoot}
+            accessibilityViewIsModal
+          >
+            <Pressable
+              style={styles.ratingModalBackdrop}
+              onPress={closeAuditTimePicker}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss"
+            />
+            <View
+              style={[
+                styles.ratingModalSheet,
+                isDark && styles.ratingModalSheetDark,
+                { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+              ]}
+            >
+              <View style={styles.ratingModalHeader}>
+                <Text
+                  style={[
+                    styles.ratingModalTitle,
+                    isDark && styles.textDark,
+                  ]}
+                  pointerEvents="none"
+                >
+                  Time
+                </Text>
+                <Pressable
+                  onPress={closeAuditTimePicker}
+                  hitSlop={12}
+                  accessibilityRole="button"
+                  accessibilityLabel="Done"
+                  style={styles.keyboardDoneButton}
+                >
+                  <View pointerEvents="none">
+                    <Text style={styles.ratingModalDone}>Done</Text>
+                  </View>
+                </Pressable>
+              </View>
+              <Picker
+                selectedValue={auditTimePickerSelectedValue}
+                onValueChange={(itemValue) => {
+                  if (!auditTimePickerTarget) return;
+                  const v =
+                    itemValue === AUDIT_TIME_PICKER_NONE
+                      ? ""
+                      : String(itemValue);
+                  updateAuditRow(
+                    auditTimePickerTarget.auditIndex,
+                    auditTimePickerTarget.rowIndex,
+                    "time",
+                    v
+                  );
+                }}
+                style={styles.ratingPickerWheel}
+                {...(Platform.OS === "ios"
+                  ? {
+                      itemStyle: {
+                        color: isDark ? "#ECEDEE" : WORKBOOK_TEXT,
+                      },
+                    }
+                  : {})}
+              >
+                <Picker.Item
+                  label="— Not set"
+                  value={AUDIT_TIME_PICKER_NONE}
+                  color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
+                />
+                {auditTimePickerHasLegacyValue ? (
+                  <Picker.Item
+                    label={`${auditTimePickerValueRaw} (saved)`}
+                    value={auditTimePickerValueRaw}
+                    color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
+                  />
+                ) : null}
+                {EVENING_AUDIT_PRESET_TIMES.map((t) => (
+                  <Picker.Item
+                    key={t}
+                    label={t}
+                    value={t}
+                    color={isDark ? "#ECEDEE" : WORKBOOK_TEXT}
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        ) : null}
+      </View>
     </>
   );
 }
@@ -1074,6 +1258,66 @@ const styles = StyleSheet.create({
   },
   customHeaderSpacer: {
     minWidth: SCREEN_BACK_BUTTON_WIDTH,
+  },
+  scrollTopFab: {
+    position: "absolute",
+    right: 18,
+    zIndex: 30,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: MAIN_PURPLE,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  keyboardDoneBarIos: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 40,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#C8C7CC",
+    backgroundColor: "#F2F2F7",
+  },
+  keyboardDoneBarAndroid: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#C8C7CC",
+    backgroundColor: "#F2F2F7",
+    elevation: 8,
+  },
+  keyboardDoneBarDark: {
+    backgroundColor: "#1C1C1E",
+    borderTopColor: "#3A3A3C",
+  },
+  keyboardDoneButton: {
+    minHeight: 44,
+    minWidth: 64,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  keyboardDoneLabel: {
+    fontSize: 17,
+    fontFamily: AppFonts.bodyBold,
+    color: MAIN_PURPLE,
+  },
+  keyboardDoneLabelDark: {
+    color: "#B8B4FF",
   },
   container: {
     flex: 1,
@@ -1307,6 +1551,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dayRow: {
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  dayRowInner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -1462,11 +1710,20 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     flexShrink: 0,
     paddingHorizontal: 8,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  auditTimePickerInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 4,
     minHeight: 44,
   },
   ratingModalRoot: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+    elevation: 1000,
     justifyContent: "flex-end",
   },
   ratingModalBackdrop: {
@@ -1474,6 +1731,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.45)",
   },
   ratingModalSheet: {
+    zIndex: 1,
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
@@ -1600,34 +1858,31 @@ const PlanDayRow = memo(function PlanDayRow({
   onToggle,
 }: PlanDayRowProps) {
   return (
-    <Pressable
-      delayPressIn={0}
+    <RectButton
       onPress={() => onToggle(sectionId, dayIndex)}
       style={styles.dayRow}
+      underlayColor="transparent"
       accessibilityRole="checkbox"
       accessibilityState={{ checked: done }}
       accessibilityLabel={`Day ${dayIndex + 1}${
         done ? ", marked done" : ", not marked done"
       }`}
     >
-      <Text style={[styles.dayLabel, isDark && styles.mutedDark]}>
-        Day {dayIndex + 1}
-      </Text>
-      <View
-        pointerEvents="none"
-        style={[
-          styles.dayCheckbox,
-          isDark && styles.dayCheckboxDark,
-          done && styles.dayCheckboxChecked,
-        ]}
-      >
-        {done ? (
-          <View pointerEvents="none">
-            <Check size={18} color="#FFFFFF" strokeWidth={3} />
-          </View>
-        ) : null}
+      <View style={styles.dayRowInner} pointerEvents="none">
+        <Text style={[styles.dayLabel, isDark && styles.mutedDark]}>
+          Day {dayIndex + 1}
+        </Text>
+        <View
+          style={[
+            styles.dayCheckbox,
+            isDark && styles.dayCheckboxDark,
+            done && styles.dayCheckboxChecked,
+          ]}
+        >
+          {done ? <Check size={18} color="#FFFFFF" strokeWidth={3} /> : null}
+        </View>
       </View>
-    </Pressable>
+    </RectButton>
   );
 });
 
@@ -1638,6 +1893,7 @@ type WeeklyPlanSectionViewProps = {
   onToggleDay: (sectionId: string, dayIndex: number) => void;
   onPlanAction: (sectionId: string, value: string) => void;
   onInputFocus: (event: NativeSyntheticEvent<TextInputFocusEventData>) => void;
+  onInputBlur: () => void;
 };
 
 const WeeklyPlanSectionView = memo(function WeeklyPlanSectionView({
@@ -1647,6 +1903,7 @@ const WeeklyPlanSectionView = memo(function WeeklyPlanSectionView({
   onToggleDay,
   onPlanAction,
   onInputFocus,
+  onInputBlur,
 }: WeeklyPlanSectionViewProps) {
   return (
     <View style={styles.planSection}>
@@ -1660,6 +1917,7 @@ const WeeklyPlanSectionView = memo(function WeeklyPlanSectionView({
         value={plan.action}
         onChangeText={(value) => onPlanAction(section.id, value)}
         onFocus={onInputFocus}
+        onBlur={onInputBlur}
         placeholder="Type your plan here"
         placeholderTextColor={isDark ? "#7B7E95" : "#9CA3AF"}
         multiline
