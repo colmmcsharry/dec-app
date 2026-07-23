@@ -1,5 +1,10 @@
 import { CelebrationBadge } from "@/components/celebration-badge";
 import {
+  MODULE_CARD_BRIGHTEN_SCRIMS,
+  MODULE_CARD_DARK_SCRIMS,
+  MODULE_HEADER_BACKGROUNDS,
+} from "@/components/module-card-art";
+import {
   SCREEN_BACK_BUTTON_WIDTH,
   ScreenBackButton,
 } from "@/components/screen-back-button";
@@ -24,6 +29,7 @@ import {
   requirePro,
 } from "@/services/purchases";
 import { isFreePreviewVideo } from "@/lib/free-preview-video";
+import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Check, ChevronRight } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -31,6 +37,7 @@ import {
   Alert,
   Animated,
   Easing,
+  ImageBackground,
   Linking,
   Pressable,
   ScrollView,
@@ -96,6 +103,23 @@ export default function VideoDetailScreen() {
   autoplayEnabledRef.current = autoplayEnabled;
 
   const backgroundColor = isDark ? "#1A1A2E" : categoryColor || "#E5D9F2";
+  const moduleBackground = categorySlug
+    ? MODULE_HEADER_BACKGROUNDS[categorySlug]
+    : undefined;
+  const isSleep = categorySlug === "sleep";
+  const lightOnArt = Boolean(moduleBackground) && (isDark || isSleep);
+  const overlayScrim =
+    !categorySlug || !moduleBackground || isSleep
+      ? undefined
+      : isDark
+        ? MODULE_CARD_DARK_SCRIMS[categorySlug]
+        : MODULE_CARD_BRIGHTEN_SCRIMS[categorySlug];
+  const headerFg = lightOnArt
+    ? "#FFFFFF"
+    : isDark
+      ? "#ECEDEE"
+      : "#2C3E50";
+  const pageBackground = isDark ? "#121222" : "#FFFFFF";
 
   const moduleVideos = categorySlug ? (MODULE_VIDEOS[categorySlug] ?? []) : [];
   const routeVideoIndex = useMemo(
@@ -435,47 +459,70 @@ export default function VideoDetailScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
-      <View style={{ flex: 1, backgroundColor }}>
-      <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor }]}>
-        <ScreenBackButton color={isDark ? "#ECEDEE" : "#2C3E50"} />
-        <Text
-          pointerEvents="none"
-          style={[styles.customHeaderTitle, { color: isDark ? "#ECEDEE" : "#2C3E50" }]}
-        >
-          Now Playing
-        </Text>
-        {moduleVideos.length > 0 ? (
+      <View style={{ flex: 1, backgroundColor: pageBackground }}>
+      <View
+        style={[
+          styles.heroHeader,
+          {
+            paddingTop: insets.top + 4,
+            backgroundColor,
+          },
+        ]}
+      >
+        {moduleBackground ? (
+          <ImageBackground
+            source={moduleBackground}
+            style={StyleSheet.absoluteFillObject}
+            resizeMode="cover"
+          />
+        ) : null}
+        {overlayScrim ? (
+          <LinearGradient
+            colors={[overlayScrim[0], overlayScrim[1]]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+            pointerEvents="none"
+          />
+        ) : null}
+
+        <View style={styles.heroNavRow}>
+          <ScreenBackButton color={headerFg} />
           <Text
             pointerEvents="none"
-            style={[
-              styles.videoCounter,
-              { color: isDark ? "#ECEDEE" : "#2C3E50" },
-            ]}
+            style={[styles.customHeaderTitle, { color: headerFg }]}
           >
-            {currentIndex + 1}/{moduleVideos.length}
+            Now Playing
           </Text>
-        ) : (
-          <View pointerEvents="none" style={styles.customHeaderSpacer} />
-        )}
+          {moduleVideos.length > 0 ? (
+            <Text
+              pointerEvents="none"
+              style={[styles.videoCounter, { color: headerFg }]}
+            >
+              {currentIndex + 1}/{moduleVideos.length}
+            </Text>
+          ) : (
+            <View pointerEvents="none" style={styles.customHeaderSpacer} />
+          )}
+        </View>
+
+        <Text
+          pointerEvents="none"
+          style={[
+            styles.videoTitle,
+            lightOnArt ? styles.videoTitleOnArt : null,
+            !lightOnArt && isDark ? styles.textDark : null,
+          ]}
+        >
+          {activeVideoTitle}
+        </Text>
       </View>
+
       <ScrollView
         ref={scrollRef}
         style={[styles.container, isDark && styles.containerDark]}
         contentContainerStyle={styles.contentContainer}
       >
-        <View style={[styles.header, { backgroundColor }]}>
-          <Text style={[styles.videoTitle, isDark && styles.textDark]}>
-            {activeVideoTitle}
-          </Text>
-        </View>
-
-        <View
-          style={{
-            height: 80,
-            backgroundColor: isDark ? "#121222" : "#FFFFFF",
-          }}
-        />
-
         <View style={styles.videoContainer}>
           <VideoPlayer
             ref={videoPlayerRef}
@@ -762,13 +809,18 @@ export default function VideoDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  customHeader: {
+  heroHeader: {
+    paddingHorizontal: 12,
+    paddingBottom: 16,
+    overflow: "hidden",
+    zIndex: 20,
+  },
+  heroNavRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    zIndex: 20,
+    marginBottom: 10,
+    minHeight: 44,
   },
   customHeaderTitle: {
     fontSize: 17,
@@ -800,17 +852,17 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 40,
-  },
-  header: {
-    padding: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingTop: 24,
   },
   videoTitle: {
     fontSize: 24,
     fontFamily: AppFonts.headingBold,
     color: "#2C3E50",
     lineHeight: 32,
+    paddingHorizontal: 8,
+  },
+  videoTitleOnArt: {
+    color: "#FFFFFF",
   },
   videoContainer: {
     padding: 16,
