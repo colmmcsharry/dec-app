@@ -94,7 +94,9 @@ const SLIDES: Slide[] = [
 ];
 
 const GOALS_SLIDE_INDEX = SLIDES.findIndex((s) => s.id === "goals");
-const COURSE_INTRO_SLIDE_INDEX = SLIDES.findIndex((s) => s.id === "courseIntro");
+const COURSE_INTRO_SLIDE_INDEX = SLIDES.findIndex(
+  (s) => s.id === "courseIntro",
+);
 
 type GoalOption = {
   id: string;
@@ -884,7 +886,7 @@ export default function OnboardingScreen() {
                   {COURSE_INTRO_VIDEO.title}
                 </Text>
                 <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
-                  Press play for a welcome from coach Declan
+                  Tap for a welcome from coach Declan
                 </Text>
               </View>
               <View style={styles.slideVisual}>

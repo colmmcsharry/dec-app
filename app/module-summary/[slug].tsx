@@ -1,4 +1,9 @@
 import {
+  MODULE_CARD_BRIGHTEN_SCRIMS,
+  MODULE_CARD_DARK_SCRIMS,
+  MODULE_HEADER_BACKGROUNDS,
+} from "@/components/module-card-art";
+import {
   SCREEN_BACK_BUTTON_WIDTH,
   ScreenBackButton,
 } from "@/components/screen-back-button";
@@ -7,9 +12,17 @@ import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_SUMMARIES } from "@/data/module-summaries";
 import { MODULE_WORKBOOKS } from "@/data/module-workbooks";
+import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronRight, Sparkles } from "lucide-react-native";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ImageBackground,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function splitParagraphs(body: string): string[] {
@@ -53,6 +66,14 @@ export default function ModuleSummaryScreen() {
   const Icon = theme.Icon;
   const accent = theme.iconColor;
   const softBg = theme.backgroundColor;
+  const headerArt = MODULE_HEADER_BACKGROUNDS[slug];
+  const isSleep = slug === "sleep";
+  const lightOnArt = isDark || isSleep;
+  const overlayScrim = isSleep
+    ? undefined
+    : isDark
+      ? MODULE_CARD_DARK_SCRIMS[slug]
+      : MODULE_CARD_BRIGHTEN_SCRIMS[slug];
 
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
@@ -93,6 +114,23 @@ export default function ModuleSummaryScreen() {
             },
           ]}
         >
+          {headerArt ? (
+            <ImageBackground
+              source={headerArt}
+              style={StyleSheet.absoluteFillObject}
+              imageStyle={styles.heroArtImage}
+              resizeMode="cover"
+            />
+          ) : null}
+          {overlayScrim ? (
+            <LinearGradient
+              colors={[overlayScrim[0], overlayScrim[1]]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={[StyleSheet.absoluteFillObject, styles.heroArtImage]}
+              pointerEvents="none"
+            />
+          ) : null}
           <View style={styles.heroTop}>
             <View
               style={[
@@ -105,11 +143,20 @@ export default function ModuleSummaryScreen() {
               </View>
             </View>
             <View style={styles.heroCopy}>
-              <Text style={[styles.heroEyebrow, { color: accent }]}>
+              <Text
+                style={[
+                  styles.heroEyebrow,
+                  { color: lightOnArt ? "#FFFFFF" : accent },
+                ]}
+              >
                 MODULE {workbook.moduleNumber}
               </Text>
               <Text
-                style={[styles.heroTitle, isDark && styles.textDark]}
+                style={[
+                  styles.heroTitle,
+                  lightOnArt ? styles.textOnArt : null,
+                  !lightOnArt && isDark ? styles.textDark : null,
+                ]}
                 numberOfLines={3}
               >
                 {workbook.title}
@@ -121,16 +168,27 @@ export default function ModuleSummaryScreen() {
               style={[
                 styles.heroChip,
                 {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.08)"
-                    : "rgba(255,255,255,0.75)",
+                  backgroundColor: lightOnArt
+                    ? "rgba(255,255,255,0.18)"
+                    : isDark
+                      ? "rgba(255,255,255,0.08)"
+                      : "rgba(255,255,255,0.75)",
                 },
               ]}
             >
               <View pointerEvents="none">
-                <Sparkles size={14} color={accent} strokeWidth={2.4} />
+                <Sparkles
+                  size={14}
+                  color={lightOnArt ? "#FFFFFF" : accent}
+                  strokeWidth={2.4}
+                />
               </View>
-              <Text style={[styles.heroChipText, { color: accent }]}>
+              <Text
+                style={[
+                  styles.heroChipText,
+                  { color: lightOnArt ? "#FFFFFF" : accent },
+                ]}
+              >
                 {sections.length} key ideas
               </Text>
             </View>
@@ -257,6 +315,13 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     marginBottom: 4,
+    overflow: "hidden",
+  },
+  heroArtImage: {
+    borderRadius: 24,
+  },
+  textOnArt: {
+    color: "#FFFFFF",
   },
   heroTop: {
     flexDirection: "row",

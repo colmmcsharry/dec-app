@@ -18,8 +18,8 @@ export const MODULE_CARD_BACKGROUNDS: Record<string, ImageSourcePropType> = {
 };
 
 /**
- * Landscape crops for the module detail header card (wide banner).
- * Sleep / Energy / Move are derived from the square reframes; others from originals.
+ * Landscape art for module video headers and module summary heroes (wide banner).
+ * Designed for landscape cards — not crops of the portrait home-card art.
  */
 export const MODULE_HEADER_BACKGROUNDS: Record<string, ImageSourcePropType> = {
   sleep: require("@/assets/images/home/header/module-bg-sleep-header.jpg"),
