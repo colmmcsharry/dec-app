@@ -96,6 +96,11 @@ const WELCOME_PILL_PULSE_CYCLE_MS =
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const H_PADDING = 24;
 const SLIDE_INNER = SCREEN_WIDTH - H_PADDING * 2;
+const COLLAGE_IMAGE_HEIGHT = 432;
+const COLLAGE_IMAGE_WIDTH = Math.min(
+  SLIDE_INNER * 0.8,
+  COLLAGE_IMAGE_HEIGHT * (960 / 1860),
+);
 const TESTIMONIAL_CAROUSEL_GAP = 16;
 const TESTIMONIAL_CAROUSEL_ITEM_WIDTH = SLIDE_INNER - TESTIMONIAL_CAROUSEL_GAP;
 const TESTIMONIAL_CAROUSEL_STRIDE = SLIDE_INNER;
@@ -1177,7 +1182,7 @@ export default function OnboardingScreen() {
                 <Text style={styles.slideTitle}>Workbooks</Text>
                 <Text style={[styles.slideBody, styles.slideBodyBeforeVisual]}>
                   Each module contains a workbook to solidify your learnings and
-                  keep you accountable, available in paper or on your phone.
+                  keep you accountable
                 </Text>
               </View>
               <View style={styles.slideVisual}>
@@ -1682,17 +1687,20 @@ const styles = StyleSheet.create({
     color: "#C7C2D6",
   },
   collageImageWrap: {
-    marginTop: 0,
-    marginHorizontal: -H_PADDING,
-    alignItems: "center",
-    justifyContent: "center",
-    height: 432,
+    height: COLLAGE_IMAGE_HEIGHT,
+    // Break out of slide padding and center against the full screen width.
+    width: SCREEN_WIDTH,
+    marginLeft: -H_PADDING,
     position: "relative",
   },
   collageImage: {
-    width: "80%",
-    height: 432,
-    alignSelf: "center",
+    // Fixed box so all three mockups share identical on-screen size
+    // (assets are normalized to the same 960×1860 canvas).
+    position: "absolute",
+    top: 0,
+    height: COLLAGE_IMAGE_HEIGHT,
+    width: COLLAGE_IMAGE_WIDTH,
+    left: (SCREEN_WIDTH - COLLAGE_IMAGE_WIDTH) / 2,
   },
   courseIntroPlayerWrap: {
     width: "100%",

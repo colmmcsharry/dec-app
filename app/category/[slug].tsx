@@ -29,7 +29,7 @@ import {
 import { hrefModuleDigitalWorkbook } from '@/lib/module-workbook-route';
 import { MODULE_THEMES } from '@/constants/module-themes';
 import { AppFonts } from '@/constants/theme';
-import { pastelBoxStyle } from '@/constants/pastel-accents';
+import { pastelBoxStyle, getPastelAccent, mixHex } from '@/constants/pastel-accents';
 import {
   MODULE_CARD_BRIGHTEN_SCRIMS,
   MODULE_CARD_DARK_SCRIMS,
@@ -87,6 +87,12 @@ export default function CategoryScreen() {
 
   const watchedCount = watchedIds.length;
   const totalCount = videos.length;
+  const videoLinkAccent = getPastelAccent('red', isDark);
+  const videoLinkBackground = mixHex(
+    videoLinkAccent.background,
+    videoLinkAccent.accent,
+    0.15,
+  );
   const progressPercent = totalCount > 0 ? watchedCount / totalCount : 0;
 
   const moduleTheme = slug ? MODULE_THEMES[slug] : undefined;
@@ -405,7 +411,13 @@ export default function CategoryScreen() {
             {moduleLinks.map((link) => (
               <TouchableOpacity
                 key={link.url}
-                style={[styles.pdfRow, isDark && styles.pdfRowDark]}
+                style={[
+                  styles.pdfRow,
+                  {
+                    backgroundColor: videoLinkBackground,
+                    borderColor: videoLinkAccent.border,
+                  },
+                ]}
                 activeOpacity={0.7}
                 onPress={() => openModuleLink(link)}
                 accessibilityRole="button"
@@ -761,7 +773,7 @@ const styles = StyleSheet.create({
     color: '#8E8EA0',
   },
   workbookCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#E6F5F0',
     borderRadius: 20,
     padding: 20,
     shadowColor: '#000',

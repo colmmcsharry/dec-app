@@ -135,10 +135,11 @@ function WhoAmISection({
     <View
       style={[
         styles.section,
-        isDark && styles.cardDark,
+        styles.bioCard,
         styles.cardShell,
         isDark && styles.cardShellDark,
-        styles.bioCard,
+        // After bioCard so dark bg isn't overwritten by the light card fill.
+        isDark && styles.cardDark,
         { borderTopColor: defaultAccentBarColor },
       ]}
     >
@@ -646,9 +647,9 @@ export default function AboutScreen() {
         style={[
           styles.section,
           styles.beforeAfterCard,
-          isDark && styles.cardDark,
           styles.cardShell,
           isDark && styles.cardShellDark,
+          isDark && styles.cardDark,
           { borderTopColor: defaultAccentBarColor },
         ]}
       >
@@ -930,7 +931,6 @@ const styles = StyleSheet.create({
   bioCard: {
     backgroundColor: "#FFFFFF",
     marginBottom: 24,
-    overflow: "visible",
   },
   beforeAfterCard: {
     backgroundColor: "#FFFFFF",

@@ -214,7 +214,7 @@ export default function WorksheetsScreen() {
                     ]}
                     numberOfLines={2}
                   >
-                    Interactive exercises — answers save on this device
+                    Interactive exercises — answers save on phone
                   </Text>
                 </View>
                 <View pointerEvents="none" style={styles.workbookRowChevron}>
