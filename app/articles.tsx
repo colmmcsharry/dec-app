@@ -3,12 +3,18 @@ import {
   SCREEN_BACK_BUTTON_WIDTH,
   ScreenBackButton,
 } from "@/components/screen-back-button";
-import { AppFonts } from "@/constants/theme";
+import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
-import { ARTICLES } from "@/data/articles";
 import { requirePro } from "@/services/purchases";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  fetchWordpressArticles,
+  type WordpressArticle,
+} from "@/services/wordpress-posts";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,13 +27,39 @@ export default function ArticlesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { kind } = useLocalSearchParams<{ kind?: string }>();
+  const [posts, setPosts] = useState<WordpressArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredArticles = ARTICLES.filter((article) => {
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    void (async () => {
+      try {
+        const next = await fetchWordpressArticles();
+        if (!cancelled) setPosts(next);
+      } catch (e) {
+        if (!cancelled) {
+          setError(
+            e instanceof Error ? e.message : "Could not load WordPress posts",
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filteredArticles = useMemo(() => {
     if (kind === "article" || kind === "podcast") {
-      return article.kind === kind;
+      return posts.filter((article) => article.kind === kind);
     }
-    return true;
-  });
+    return posts;
+  }, [kind, posts]);
 
   const headerTitle =
     kind === "article"
@@ -38,10 +70,10 @@ export default function ArticlesScreen() {
 
   const subtitle =
     kind === "article"
-      ? "Articles from Declan and guest contributors"
+      ? "The latest blogs and articles from Declan"
       : kind === "podcast"
-        ? "Podcast episodes and interviews"
-        : "Articles and podcast episodes";
+        ? "Podcast episodes pulled from WordPress"
+        : "Live WordPress feed";
 
   const openArticle = async (slug: string) => {
     if (!(await requirePro())) return;
@@ -79,6 +111,48 @@ export default function ArticlesScreen() {
         <Text style={[styles.subtitle, isDark && styles.subtextDark]}>
           {subtitle}
         </Text>
+
+        {loading ? (
+          <View style={styles.stateBlock}>
+            <ActivityIndicator size="large" color={MAIN_PURPLE} />
+            <Text style={[styles.stateText, isDark && styles.subtextDark]}>
+              Loading from Declan's blog…
+            </Text>
+          </View>
+        ) : null}
+
+        {error && !loading ? (
+          <View style={styles.stateBlock}>
+            <Text style={[styles.errorText, isDark && styles.textDark]}>
+              {error}
+            </Text>
+            <Pressable
+              onPress={() => {
+                setLoading(true);
+                setError(null);
+                void fetchWordpressArticles()
+                  .then(setPosts)
+                  .catch((e) =>
+                    setError(
+                      e instanceof Error
+                        ? e.message
+                        : "Could not load WordPress posts",
+                    ),
+                  )
+                  .finally(() => setLoading(false));
+              }}
+              style={styles.retryBtn}
+            >
+              <Text style={styles.retryText}>Try again</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {!loading && !error && filteredArticles.length === 0 ? (
+          <Text style={[styles.stateText, isDark && styles.subtextDark]}>
+            No {kind === "podcast" ? "podcasts" : "articles"} found yet.
+          </Text>
+        ) : null}
 
         {filteredArticles.map((article) => (
           <ArticleListCard
@@ -122,18 +196,47 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 16,
+    gap: 12,
   },
   subtitle: {
     fontFamily: AppFonts.bodyRegular,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     color: "#6B7280",
-    marginBottom: 16,
+    marginBottom: 4,
   },
   textDark: {
     color: "#ECEDEE",
   },
   subtextDark: {
-    color: "#AEB3C4",
+    color: "#A1A1B5",
+  },
+  stateBlock: {
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 32,
+  },
+  stateText: {
+    fontFamily: AppFonts.bodyRegular,
+    fontSize: 15,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  errorText: {
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 15,
+    color: "#1E2430",
+    textAlign: "center",
+  },
+  retryBtn: {
+    backgroundColor: MAIN_PURPLE,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  retryText: {
+    fontFamily: AppFonts.headingSemiBold,
+    fontSize: 15,
+    color: "#FFFFFF",
   },
 });

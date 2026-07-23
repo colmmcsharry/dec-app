@@ -8,10 +8,13 @@ import { PageHeading } from "@/components/page-heading";
 import { MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
-import { getFeaturedArticle, getFeaturedPodcast } from "@/data/articles";
 import { getFeaturedDownload } from "@/data/downloads";
 import { getFeaturedGymRoutine } from "@/data/gym-routines";
 import { requirePro } from "@/services/purchases";
+import {
+  fetchWordpressArticles,
+  type WordpressArticle,
+} from "@/services/wordpress-posts";
 import { useRouter } from "expo-router";
 import {
   Download,
@@ -22,7 +25,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react-native";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -137,9 +140,37 @@ export default function ResourcesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const featuredDownload = getFeaturedDownload();
-  const featuredArticle = getFeaturedArticle();
-  const featuredPodcast = getFeaturedPodcast();
   const featuredGymRoutine = getFeaturedGymRoutine();
+  const [featuredArticle, setFeaturedArticle] = useState<WordpressArticle | null>(
+    null,
+  );
+  const [featuredPodcast, setFeaturedPodcast] = useState<WordpressArticle | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const posts = await fetchWordpressArticles();
+        if (cancelled) return;
+        setFeaturedArticle(
+          posts.find((p) => p.kind === "article") ?? null,
+        );
+        setFeaturedPodcast(
+          posts.find((p) => p.kind === "podcast") ?? null,
+        );
+      } catch {
+        if (!cancelled) {
+          setFeaturedArticle(null);
+          setFeaturedPodcast(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const openStrengthTargets = async () => {
     if (!(await requirePro())) return;
@@ -164,6 +195,14 @@ export default function ResourcesScreen() {
       pathname: "/articles",
       params: { kind: "podcast" },
     });
+
+  const openArticle = async (slug: string) => {
+    if (!(await requirePro())) return;
+    router.push({
+      pathname: "/article/[slug]",
+      params: { slug },
+    });
+  };
 
   const openGymRoutines = () => router.push("/gym-routines");
 
@@ -207,7 +246,7 @@ export default function ResourcesScreen() {
           <ArticleListCard
             article={featuredArticle}
             isDark={isDark}
-            onPress={openArticles}
+            onPress={() => void openArticle(featuredArticle.slug)}
           />
         </FeatureSection>
       ) : null}
@@ -225,7 +264,7 @@ export default function ResourcesScreen() {
           <ArticleListCard
             article={featuredPodcast}
             isDark={isDark}
-            onPress={openPodcasts}
+            onPress={() => void openArticle(featuredPodcast.slug)}
           />
         </FeatureSection>
       ) : null}
