@@ -116,101 +116,122 @@ export default function CategoryScreen() {
     await Linking.openURL(link.url);
   };
 
+  const backColor = lightOnArt ? '#FFFFFF' : isDark ? '#ECEDEE' : '#2C3E50';
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
-      <View style={[styles.customHeader, { paddingTop: insets.top, backgroundColor: isDark ? '#1A1A2E' : info.color }]}>
-        <ScreenBackButton color={isDark ? '#ECEDEE' : '#2C3E50'} />
-        <Text
-          pointerEvents="none"
-          style={[styles.customHeaderTitle, { color: isDark ? '#ECEDEE' : '#2C3E50' }]}
-        >
-          {info.title}
-        </Text>
-        <View pointerEvents="none" style={styles.customHeaderSpacer} />
-      </View>
-      <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
-        {/* Progress Card */}
-        {totalCount > 0 && (
-          <View
-            style={[
-              styles.progressCard,
-              { backgroundColor: isDark ? '#1E1E32' : info.color },
-            ]}
-          >
-            {moduleBackground ? (
-              <ImageBackground
-                source={moduleBackground}
-                style={StyleSheet.absoluteFillObject}
-                imageStyle={styles.progressCardImage}
-                resizeMode="cover"
-              />
-            ) : null}
-            {overlayScrim ? (
-              <LinearGradient
-                colors={[overlayScrim[0], overlayScrim[1]]}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={[StyleSheet.absoluteFillObject, styles.progressCardImage]}
-                pointerEvents="none"
-              />
-            ) : null}
+      <View
+        style={[
+          styles.heroHeader,
+          {
+            paddingTop: insets.top + 4,
+            backgroundColor: isDark ? '#1E1E32' : info.color,
+          },
+        ]}
+      >
+        {moduleBackground ? (
+          <ImageBackground
+            source={moduleBackground}
+            style={StyleSheet.absoluteFillObject}
+            imageStyle={styles.heroHeaderImage}
+            resizeMode="cover"
+          />
+        ) : null}
+        {overlayScrim ? (
+          <LinearGradient
+            colors={[overlayScrim[0], overlayScrim[1]]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+            pointerEvents="none"
+          />
+        ) : null}
 
-            <View style={styles.progressCardTop}>
-              {ModuleIcon ? (
-                <View style={styles.progressIconWrap}>
-                  <ModuleIcon
-                    size={22}
-                    color={moduleTheme?.iconColor ?? '#2C3E50'}
-                    strokeWidth={2.4}
-                  />
-                </View>
-              ) : null}
-              <Text
-                style={[
-                  styles.moduleLabel,
-                  lightOnArt ? styles.moduleLabelOnArt : null,
-                ]}
-              >
-                MODULE {info.moduleNumber}
-              </Text>
-            </View>
+        <View style={styles.heroNavRow}>
+          <ScreenBackButton color={backColor} />
+          {totalCount > 0 ? (
+            <Text
+              pointerEvents="none"
+              style={[
+                styles.heroNavModuleLabel,
+                lightOnArt ? styles.moduleLabelOnArt : null,
+              ]}
+            >
+              MODULE {info.moduleNumber}
+            </Text>
+          ) : (
+            <Text
+              pointerEvents="none"
+              style={[
+                styles.heroNavCenterTitle,
+                lightOnArt ? styles.textOnArt : null,
+              ]}
+              numberOfLines={1}
+            >
+              {info.title}
+            </Text>
+          )}
+          <View pointerEvents="none" style={styles.heroNavSpacer} />
+        </View>
+
+        {totalCount > 0 ? (
+          <View style={styles.heroProgressBody}>
             <View style={styles.progressHeader}>
-              <Text
-                style={[
-                  styles.progressTitle,
-                  lightOnArt ? styles.textOnArt : null,
-                ]}
-              >
-                {info.title}
-              </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+              <View style={styles.progressTitleRow}>
+                {ModuleIcon ? (
+                  <View style={styles.progressIconWrap}>
+                    <View pointerEvents="none">
+                      <ModuleIcon
+                        size={26}
+                        color={moduleTheme?.iconColor ?? '#2C3E50'}
+                        strokeWidth={2.4}
+                      />
+                    </View>
+                  </View>
+                ) : null}
                 <Text
+                  pointerEvents="none"
                   style={[
-                    styles.progressNumber,
+                    styles.progressTitle,
                     lightOnArt ? styles.textOnArt : null,
                   ]}
                 >
-                  {watchedCount}
+                  {info.title}
                 </Text>
+              </View>
+              <View
+                pointerEvents="none"
+                style={styles.progressCountBlock}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                  <Text
+                    style={[
+                      styles.progressNumber,
+                      lightOnArt ? styles.textOnArt : null,
+                    ]}
+                  >
+                    {watchedCount}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.progressTotal,
+                      lightOnArt ? styles.textOnArt : null,
+                    ]}
+                  >
+                    /{totalCount}
+                  </Text>
+                </View>
                 <Text
                   style={[
-                    styles.progressTotal,
+                    styles.progressLabel,
                     lightOnArt ? styles.textOnArt : null,
                   ]}
                 >
-                  /{totalCount}
+                  watched
                 </Text>
               </View>
             </View>
-            <Text
-              style={[
-                styles.progressLabel,
-                lightOnArt ? styles.textOnArt : null,
-              ]}
-            >
-              watched
-            </Text>
             <View
               style={[
                 styles.progressBarBg,
@@ -227,8 +248,9 @@ export default function CategoryScreen() {
                 ]}
               />
             </View>
-            {watchedCount === totalCount && totalCount > 0 && (
+            {watchedCount === totalCount ? (
               <Text
+                pointerEvents="none"
                 style={[
                   styles.progressEncouragement,
                   { color: lightOnArt ? '#A8D5C5' : '#5D9B8B' },
@@ -236,10 +258,12 @@ export default function CategoryScreen() {
               >
                 Module complete! Great work.
               </Text>
-            )}
+            ) : null}
           </View>
-        )}
+        ) : null}
+      </View>
 
+      <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
         {videos.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No videos available yet</Text>
@@ -503,22 +527,65 @@ export default function CategoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  customHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+  heroHeader: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    overflow: 'hidden',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     zIndex: 20,
   },
-  customHeaderTitle: {
+  heroHeaderImage: {
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  heroNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: -4,
+    marginBottom: 8,
+    minHeight: 44,
+  },
+  heroNavModuleLabel: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 12,
+    fontFamily: AppFonts.headingBold,
+    color: '#8E8EA0',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  heroNavCenterTitle: {
+    flex: 1,
+    textAlign: 'center',
     fontSize: 17,
     fontFamily: AppFonts.headingSemiBold,
-    textAlign: 'center',
-    flex: 1,
+    color: '#2C3E50',
   },
-  customHeaderSpacer: {
-    minWidth: SCREEN_BACK_BUTTON_WIDTH,
+  heroNavSpacer: {
+    width: SCREEN_BACK_BUTTON_WIDTH,
+  },
+  heroProgressBody: {
+    paddingHorizontal: 4,
+  },
+  progressIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  progressTitleRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginRight: 12,
+    minWidth: 0,
+  },
+  progressCountBlock: {
+    alignItems: 'flex-end',
   },
   container: {
     flex: 1,
@@ -535,48 +602,13 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 40,
-  },
-  progressCard: {
-    margin: 16,
-    marginTop: 30,
-    padding: 20,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  progressCardImage: {
-    borderRadius: 16,
-  },
-  progressCardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 10,
-  },
-  progressIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    paddingTop: 8,
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
     marginBottom: 2,
-  },
-  moduleLabel: {
-    fontSize: 12,
-    fontFamily: AppFonts.headingBold,
-    color: '#8E8EA0',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
   },
   moduleLabelOnArt: {
     color: 'rgba(255,255,255,0.72)',
@@ -591,12 +623,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.22)',
   },
   progressTitle: {
+    flexShrink: 1,
     fontSize: 22,
     fontFamily: AppFonts.headingBold,
     color: '#2C3E50',
-  },
-  progressCount: {
-    alignItems: 'flex-end',
   },
   progressNumber: {
     fontSize: 28,
@@ -614,7 +644,6 @@ const styles = StyleSheet.create({
     color: '#2C3E50',
     textAlign: 'right',
     marginTop: 0,
-    marginBottom: 4,
     fontFamily: AppFonts.bodyRegular,
   },
   progressBarBg: {
@@ -622,7 +651,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8E8EE',
     borderRadius: 3,
     overflow: 'hidden',
-    marginTop: 14,
+    marginTop: 10,
   },
   progressBarFill: {
     height: '100%',
@@ -632,7 +661,7 @@ const styles = StyleSheet.create({
   progressEncouragement: {
     fontSize: 13,
     color: '#8E8EA0',
-    marginTop: 12,
+    marginTop: 10,
     fontFamily: AppFonts.bodyRegular,
   },
   videoList: {
