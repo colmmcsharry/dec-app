@@ -360,6 +360,15 @@ export default function ArticleScreen() {
   }, [accessChecked, localArticle, slug]);
 
   const article = localArticle ?? remoteArticle ?? undefined;
+  const wpArticle = isWordpressArticle(article) ? article : null;
+  const htmlDoc = useMemo(() => {
+    if (!wpArticle) return null;
+    return wordpressHtmlDocument({
+      title: wpArticle.title,
+      html: wpArticle.htmlContent,
+      isDark,
+    });
+  }, [isDark, wpArticle]);
 
   if (!accessChecked || (remoteLoading && !article)) {
     return (
@@ -381,15 +390,6 @@ export default function ArticleScreen() {
       </View>
     );
   }
-
-  const wpArticle = isWordpressArticle(article) ? article : null;
-  const htmlDoc = wpArticle
-    ? wordpressHtmlDocument({
-        title: wpArticle.title,
-        html: wpArticle.htmlContent,
-        isDark,
-      })
-    : null;
 
   return (
     <View style={[styles.screen, isDark && styles.screenDark]}>
@@ -426,9 +426,13 @@ export default function ArticleScreen() {
           }}
           style={styles.webView}
           showsVerticalScrollIndicator={false}
+          mediaPlaybackRequiresUserAction={false}
+          allowsInlineMediaPlayback
           onShouldStartLoadWithRequest={(request) => {
             const isHttp = request.url.startsWith("http");
-            const isWp = request.url.includes("performancetreanor.wordpress.com");
+            const isWp = request.url.includes(
+              "performancetreanor.wordpress.com",
+            );
             if (isHttp && !isWp && request.navigationType === "click") {
               void openBrowserAsync(request.url);
               return false;

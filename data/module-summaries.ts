@@ -22,11 +22,11 @@ export const MODULE_SUMMARIES: Record<string, ModuleSummarySection[]> = {
     },
     {
       heading: "Important New Outlook",
-      body: "Improving your quantity and quality of sleep begins a lot earlier in the day than most of us recognise. Simple decisions like trying to move more, eat better and access sunlight all have a significant role to play.\n\nAudit your evening with the exercise below to see where your time sinks are that stop you getting to bed earlier—e.g. you might notice 30 minutes of Facebook newsfeed browsing every evening that can be eliminated.",
+      body: "Improving your quantity and quality of sleep begins a lot earlier in the day than most of us recognise. Simple decisions like trying to move more, eat better and access sunlight all have a significant role to play.\n\nAudit your evening with the exercise in the workbook to see where your time sinks are that stop you getting to bed earlier—e.g. you might notice 30 minutes of Facebook newsfeed browsing every evening that can be eliminated.",
     },
     {
       heading: "Sleep Cave & Runway",
-      body: "Have you taken action to ensure where you sleep is dark, cool, quiet, clean and cosy? Investments from cheaper to more expensive: ear plugs, face mask, white noise machine, comfy linens and PJs, blackout blinds, soundproof windows.\n\nTry and get that room temperature around 18°C for optimal sleep.\n\nTry and make the last hour before bed something you look forward to by incorporating pleasurable things like scent (candles or diffuser), reading, stretching or deep breathing.",
+      body: "Have you taken action to ensure where you sleep is dark, cool, quiet, clean and cosy? Investments from cheaper to more expensive: ear plugs, face mask, white noise machine, comfy linens and PJs, blackout blinds, soundproof windows.\n\nTry and get that room temperature around 18°C for optimal sleep.\n\nTry and make the last hour before bed something you look forward to by incorporating pleasurable things like scent (candles or diffuser), reading, stretching or deep breathing, but NOT looking at bright screens.",
     },
   ],
   "morning-routines": [
@@ -44,7 +44,7 @@ export const MODULE_SUMMARIES: Record<string, ModuleSummarySection[]> = {
     },
     {
       heading: "Meaningful Few Things To Include",
-      body: "Think in terms of MnM's—movement, mindfulness and motivation. It could be as simple as dedicating 5 minutes to just one of these.\n\nAmy Cuddy's research shows that stretching our arms out and expanding our physical space influences our feelings and thoughts, making us more positive.\n\nBefore launching into your day, rate the tasks you would like to complete on a scale of importance—where it is unclear, ask yourself a question based around a key determinant, e.g. 'how much does this task contribute to my promotion prospects?'",
+      body: "Think in terms of MMM's—movement, mindfulness and motivation. It could be as simple as dedicating 5 minutes to just one of these.\n\nAmy Cuddy's research shows that stretching our arms out and expanding our physical space influences our feelings and thoughts, making us more positive.\n\nBefore launching into your day, rate the tasks you would like to complete on a scale of importance—where it is unclear, ask yourself a question based around a key determinant, e.g. 'how much does this task contribute to my promotion prospects?'",
     },
   ],
   "energy-management": [

@@ -1,7 +1,9 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Article } from "@/data/articles/types";
 
 const WP_SITE = "performancetreanor.wordpress.com";
 const WP_POSTS_URL = `https://public-api.wordpress.com/rest/v1.1/sites/${WP_SITE}/posts`;
+const CACHE_KEY = "__dd_wordpress_articles_v1";
 
 type WpCategory = { name?: string; slug?: string };
 
@@ -10,6 +12,7 @@ type WpPost = {
   slug: string;
   title: string;
   date: string;
+  modified?: string;
   excerpt?: string;
   content?: string;
   featured_image?: string;
@@ -20,6 +23,12 @@ type WpPost = {
 type WpPostsResponse = {
   found: number;
   posts: WpPost[];
+};
+
+type WordpressArticlesCache = {
+  savedAt: number;
+  fingerprint: string;
+  articles: WordpressArticle[];
 };
 
 function decodeEntities(text: string): string {
@@ -78,17 +87,20 @@ function firstImageUrl(html: string): string | undefined {
   return undefined;
 }
 
-function isPodcastPost(post: WpPost): boolean {
-  const haystack = `${post.title} ${post.excerpt ?? ""} ${post.content ?? ""}`;
-  if (/podcast|\.mp3|\[audio/i.test(haystack)) return true;
-  const cats = Object.values(post.categories ?? {});
-  return cats.some((c) => /podcast/i.test(`${c.name ?? ""} ${c.slug ?? ""}`));
-}
-
 export type WordpressArticle = Article & {
   source: "wordpress";
   htmlContent: string;
 };
+
+/** WP copies of Sean / Danny etc. — those live as hardcoded Podcasts, not Articles. */
+function isWordpressPodcastPost(post: WpPost): boolean {
+  const title = decodeEntities(post.title ?? "");
+  const haystack = `${title} ${post.excerpt ?? ""} ${post.content ?? ""} ${post.slug ?? ""}`;
+  if (/danny\s*lennon|sean\s*mcgarrity/i.test(haystack)) return true;
+  if (/podcast|\.mp3|\.wav|\[audio/i.test(haystack)) return true;
+  const cats = Object.values(post.categories ?? {});
+  return cats.some((c) => /podcast/i.test(`${c.name ?? ""} ${c.slug ?? ""}`));
+}
 
 function mapPost(post: WpPost): WordpressArticle {
   const content = post.content ?? "";
@@ -109,11 +121,46 @@ function mapPost(post: WpPost): WordpressArticle {
     title: decodeEntities(post.title),
     publishedAt: post.date.slice(0, 10),
     excerpt: excerptRaw,
-    kind: isPodcastPost(post) ? "podcast" : "article",
+    kind: "article",
     thumbnail,
     blocks: [],
     htmlContent: content,
   };
+}
+
+function articlesFingerprint(articles: WordpressArticle[]): string {
+  return articles
+    .map((a) => `${a.slug}:${a.publishedAt}:${a.title.length}:${a.htmlContent.length}`)
+    .join("|");
+}
+
+async function readArticlesCache(): Promise<WordpressArticlesCache | null> {
+  try {
+    const raw = await AsyncStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as WordpressArticlesCache;
+    if (!Array.isArray(parsed.articles) || typeof parsed.fingerprint !== "string") {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function writeArticlesCache(articles: WordpressArticle[]): Promise<string> {
+  const fingerprint = articlesFingerprint(articles);
+  const payload: WordpressArticlesCache = {
+    savedAt: Date.now(),
+    fingerprint,
+    articles,
+  };
+  try {
+    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // Cache write can fail on low storage — network path still works.
+  }
+  return fingerprint;
 }
 
 async function fetchPostsPage(number = 100): Promise<WpPost[]> {
@@ -126,15 +173,105 @@ async function fetchPostsPage(number = 100): Promise<WpPost[]> {
   return data.posts ?? [];
 }
 
-/** All published posts from Declan's WordPress.com site. */
-export async function fetchWordpressArticles(): Promise<WordpressArticle[]> {
+async function fetchArticlesFromNetwork(): Promise<WordpressArticle[]> {
   const posts = await fetchPostsPage(100);
-  return posts.map(mapPost);
+  return posts.filter((post) => !isWordpressPodcastPost(post)).map(mapPost);
+}
+
+/**
+ * Force a network fetch and update the on-device cache.
+ * Prefer `loadWordpressArticles` for normal screens.
+ */
+export async function fetchWordpressArticles(): Promise<WordpressArticle[]> {
+  const articles = await fetchArticlesFromNetwork();
+  await writeArticlesCache(articles);
+  return articles;
+}
+
+export type LoadWordpressArticlesResult = {
+  articles: WordpressArticle[];
+  /** True when the returned list came from disk (a background refresh may follow). */
+  fromCache: boolean;
+};
+
+/**
+ * Cache-first load:
+ * 1) Return saved articles immediately when present (no spinner wait).
+ * 2) Refresh from WordPress in the background; call `onUpdate` only if content changed.
+ */
+export async function loadWordpressArticles(options?: {
+  onUpdate?: (articles: WordpressArticle[]) => void;
+}): Promise<LoadWordpressArticlesResult> {
+  const cached = await readArticlesCache();
+
+  const refresh = async () => {
+    const fresh = await fetchArticlesFromNetwork();
+    const nextFingerprint = articlesFingerprint(fresh);
+    const changed = !cached || cached.fingerprint !== nextFingerprint;
+    if (changed) {
+      await writeArticlesCache(fresh);
+      options?.onUpdate?.(fresh);
+    } else {
+      // Touch savedAt so we know we checked recently.
+      try {
+        await AsyncStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({
+            ...cached,
+            savedAt: Date.now(),
+          } satisfies WordpressArticlesCache),
+        );
+      } catch {
+        /* ignore */
+      }
+    }
+    return fresh;
+  };
+
+  if (cached && cached.articles.length > 0) {
+    void refresh().catch(() => {
+      // Keep showing cache if offline / request fails.
+    });
+    return { articles: cached.articles, fromCache: true };
+  }
+
+  const articles = await refresh();
+  return { articles, fromCache: false };
 }
 
 export async function fetchWordpressArticleBySlug(
   slug: string,
 ): Promise<WordpressArticle | undefined> {
+  const cached = await readArticlesCache();
+  const fromCache = cached?.articles.find((a) => a.slug === slug);
+  if (fromCache?.htmlContent) {
+    // Still refresh this slug in the background when possible.
+    void (async () => {
+      try {
+        const url = `${WP_POSTS_URL}/slug:${encodeURIComponent(slug)}`;
+        const response = await fetch(url);
+        if (!response.ok) return;
+        const post = (await response.json()) as WpPost;
+        if (!post?.slug || isWordpressPodcastPost(post)) return;
+        const mapped = mapPost(post);
+        if (!cached) {
+          await writeArticlesCache([mapped]);
+          return;
+        }
+        const next = cached.articles.map((a) =>
+          a.slug === mapped.slug ? mapped : a,
+        );
+        if (!next.some((a) => a.slug === mapped.slug)) {
+          next.unshift(mapped);
+        }
+        await writeArticlesCache(next);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return fromCache;
+  }
+
   const url = `${WP_POSTS_URL}/slug:${encodeURIComponent(slug)}`;
   const response = await fetch(url);
   if (response.status === 404) return undefined;
@@ -143,5 +280,18 @@ export async function fetchWordpressArticleBySlug(
   }
   const post = (await response.json()) as WpPost;
   if (!post?.slug) return undefined;
-  return mapPost(post);
+  if (isWordpressPodcastPost(post)) return undefined;
+  const mapped = mapPost(post);
+
+  if (cached) {
+    const next = [
+      mapped,
+      ...cached.articles.filter((a) => a.slug !== mapped.slug),
+    ];
+    await writeArticlesCache(next);
+  } else {
+    await writeArticlesCache([mapped]);
+  }
+
+  return mapped;
 }

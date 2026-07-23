@@ -301,13 +301,13 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
     moduleNumber: 1,
     color: "#E5D9F2",
     intro:
-      "This digital workbook can be used instead of the printed worksheets.",
+      "This digital workbook can be used instead of the printable worksheets.",
     workbookCardTeaser:
       "Complete your sleep plan, evening audit, and journal—no printing required.",
 
     weeklyPlanCardTitle: "1 Week for Better Sleep",
     weeklyPlanCardDescription:
-      "Do not try to do too much at once. Choose one relatively easy tip in each category and track your progress over seven days. Commit to filling in progress at the end of each day.",
+      "Don't try to do too much at once. Choose one relatively easy action in each category and track your progress over seven days. Commit to filling in progress at the end of each day.",
     weeklyPlanSections: [
       {
         id: "duringDay",
@@ -323,14 +323,14 @@ export const MODULE_WORKBOOKS: Record<string, ModuleWorkbookDefinition> = {
         id: "sleepRunway",
         title: "Sleep Runway",
         prompt:
-          "To improve my sleep, during my sleep runway (30–60 min. before bed) I will:",
+          "To improve my sleep, during my sleep runway (30–60 mins before bed) I will:",
       },
     ],
 
     includeEveningAudit: true,
     eveningAuditCardTitle: "Evening-Time Audit",
     eveningAuditCardDescription:
-      "Analyse two evenings over the next week. Write down all activities from the moment you finish work until you get into bed. Be honest and go about your usual evening first—only with the true information will you see evident time sinks.",
+      "Analyse two evenings over the next week. Write down all activities from the moment you finish work until you get into bed. Be honest and go about your usual evening first. Only with the true information will you see evident time sinks.",
     auditBlockLabel: (i) => `Evening ${i + 1}`,
 
     worksheetDefinitions: [],

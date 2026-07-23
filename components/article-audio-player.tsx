@@ -3,12 +3,7 @@ import { isMediaPathReady, mediaUrl } from "@/lib/media-base-url";
 import { Audio, type AVPlaybackStatus } from "expo-av";
 import { Pause, Play } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { RectButton } from "react-native-gesture-handler";
 
 type ArticleAudioPlayerProps = {
@@ -32,6 +27,7 @@ export function ArticleAudioPlayer({
 }: ArticleAudioPlayerProps) {
   const soundRef = useRef<Audio.Sound | null>(null);
   const loadPromiseRef = useRef<Promise<Audio.Sound | null> | null>(null);
+  const playRequestIdRef = useRef(0);
   const [loading, setLoading] = useState(false);
   const [startingPlayback, setStartingPlayback] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -47,15 +43,19 @@ export function ArticleAudioPlayer({
       if (status.error) {
         setError("Could not play this episode.");
         setStartingPlayback(false);
+        setLoading(false);
       }
       return;
     }
 
     setPositionMs(status.positionMillis);
-    setDurationMs(status.durationMillis ?? 0);
+    if (status.durationMillis != null && status.durationMillis > 0) {
+      setDurationMs(status.durationMillis);
+    }
     setPlaying(status.isPlaying);
     if (status.isPlaying) {
       setStartingPlayback(false);
+      setLoading(false);
     }
 
     if (status.didJustFinish) {
@@ -68,105 +68,169 @@ export function ArticleAudioPlayer({
   useEffect(() => {
     void Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
-      staysActiveInBackground: false,
+      // Keep podcasts playing when the screen locks / app backgrounds.
+      staysActiveInBackground: true,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
     });
 
     return () => {
+      playRequestIdRef.current += 1;
       void soundRef.current?.unloadAsync();
       soundRef.current = null;
+      loadPromiseRef.current = null;
     };
   }, []);
 
-  const ensureSound = useCallback(async () => {
-    if (soundRef.current) return soundRef.current;
-    if (!mediaReady) {
-      setError("Media hosting is not configured yet.");
-      return null;
+  // Drop sound when the track URL changes.
+  useEffect(() => {
+    playRequestIdRef.current += 1;
+    const existing = soundRef.current;
+    soundRef.current = null;
+    loadPromiseRef.current = null;
+    setPlaying(false);
+    setStartingPlayback(false);
+    setPositionMs(0);
+    setDurationMs(0);
+    setError(null);
+    if (existing) {
+      void existing.unloadAsync();
     }
+  }, [uri]);
 
-    if (loadPromiseRef.current) {
-      return loadPromiseRef.current;
-    }
-
-    loadPromiseRef.current = (async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const { sound } = await Audio.Sound.createAsync(
-          { uri },
-          { shouldPlay: false },
-          onPlaybackStatusUpdate,
-        );
-        soundRef.current = sound;
-        return sound;
-      } catch {
-        setError(
-          "Could not load this episode. Check your connection or try again later.",
-        );
+  const ensureSound = useCallback(
+    async (shouldPlay: boolean) => {
+      if (soundRef.current) return soundRef.current;
+      if (!mediaReady) {
+        setError("Media hosting is not configured yet.");
         return null;
-      } finally {
-        setLoading(false);
-        loadPromiseRef.current = null;
       }
-    })();
 
-    return loadPromiseRef.current;
-  }, [mediaReady, onPlaybackStatusUpdate, uri]);
+      if (loadPromiseRef.current) {
+        return loadPromiseRef.current;
+      }
+
+      loadPromiseRef.current = (async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+          const { sound } = await Audio.Sound.createAsync(
+            { uri },
+            {
+              shouldPlay,
+              progressUpdateIntervalMillis: 250,
+              androidImplementation: "MediaPlayer",
+            },
+            onPlaybackStatusUpdate,
+          );
+          soundRef.current = sound;
+
+          const status = await sound.getStatusAsync();
+          if (status.isLoaded) {
+            if (status.durationMillis != null && status.durationMillis > 0) {
+              setDurationMs(status.durationMillis);
+            }
+            setPlaying(status.isPlaying);
+            if (status.isPlaying) {
+              setStartingPlayback(false);
+            }
+          }
+
+          return sound;
+        } catch {
+          setError(
+            "Could not load this episode. Check your connection or try again later.",
+          );
+          return null;
+        } finally {
+          setLoading(false);
+          loadPromiseRef.current = null;
+        }
+      })();
+
+      return loadPromiseRef.current;
+    },
+    [mediaReady, onPlaybackStatusUpdate, uri],
+  );
+
+  // Warm the file so the first tap can play immediately.
+  useEffect(() => {
+    if (!mediaReady) return;
+    void ensureSound(false);
+  }, [ensureSound, mediaReady]);
 
   const togglePlayback = useCallback(async () => {
     if (!mediaReady) return;
 
+    const requestId = ++playRequestIdRef.current;
+
     if (soundRef.current) {
       const currentStatus = await soundRef.current.getStatusAsync();
+      if (requestId !== playRequestIdRef.current) return;
+
       if (currentStatus.isLoaded && currentStatus.isPlaying) {
         setStartingPlayback(false);
         await soundRef.current.pauseAsync();
         return;
       }
+
+      setStartingPlayback(true);
+      setError(null);
+      try {
+        if (
+          currentStatus.isLoaded &&
+          currentStatus.durationMillis != null &&
+          currentStatus.positionMillis >= currentStatus.durationMillis - 500
+        ) {
+          await soundRef.current.setPositionAsync(0);
+        }
+        await soundRef.current.playAsync();
+      } catch {
+        if (requestId === playRequestIdRef.current) {
+          setStartingPlayback(false);
+          setError("Could not play this episode.");
+        }
+      }
+      return;
     }
 
     setStartingPlayback(true);
     setError(null);
 
-    const sound = await ensureSound();
+    // First tap: create already playing so we don't need a second gesture.
+    const sound = await ensureSound(true);
+    if (requestId !== playRequestIdRef.current) return;
+
     if (!sound) {
       setStartingPlayback(false);
       return;
     }
 
-    const status = await sound.getStatusAsync();
-    if (!status.isLoaded) {
-      setStartingPlayback(false);
-      return;
-    }
-
     try {
-      if (
-        status.durationMillis != null &&
-        status.positionMillis >= status.durationMillis - 500
-      ) {
-        await sound.setPositionAsync(0);
+      const status = await sound.getStatusAsync();
+      if (!status.isLoaded) {
+        setStartingPlayback(false);
+        return;
       }
-
-      await sound.playAsync();
+      if (!status.isPlaying) {
+        await sound.playAsync();
+      }
     } catch {
-      setStartingPlayback(false);
-      setError("Could not play this episode.");
+      if (requestId === playRequestIdRef.current) {
+        setStartingPlayback(false);
+        setError("Could not play this episode.");
+      }
     }
   }, [ensureSound, mediaReady]);
 
-  const progress =
-    durationMs > 0 ? Math.min(1, positionMs / durationMs) : 0;
-  const showSpinner = loading;
-  const showPause = playing || startingPlayback;
+  const progress = durationMs > 0 ? Math.min(1, positionMs / durationMs) : 0;
+  const showSpinner = loading || startingPlayback;
+  const showPause = playing && !showSpinner;
 
   return (
     <View
-      style={[
-        styles.player,
-        isDark ? styles.playerDark : styles.playerLight,
-      ]}
+      style={[styles.player, isDark ? styles.playerDark : styles.playerLight]}
     >
       <Text style={[styles.trackTitle, isDark && styles.textDark]}>{title}</Text>
 
@@ -182,10 +246,10 @@ export function ArticleAudioPlayer({
         <View style={styles.controlsRow}>
           <RectButton
             onPress={() => void togglePlayback()}
-            enabled={mediaReady}
+            enabled={mediaReady && !showSpinner}
             style={[
               styles.playButton,
-              !mediaReady && styles.playButtonDisabled,
+              (!mediaReady || showSpinner) && styles.playButtonDisabled,
             ]}
             underlayColor="rgba(255,255,255,0.18)"
             hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
@@ -205,10 +269,7 @@ export function ArticleAudioPlayer({
 
           <View style={styles.progressWrap}>
             <View
-              style={[
-                styles.progressTrack,
-                isDark && styles.progressTrackDark,
-              ]}
+              style={[styles.progressTrack, isDark && styles.progressTrackDark]}
             >
               <View
                 style={[styles.progressFill, { width: `${progress * 100}%` }]}

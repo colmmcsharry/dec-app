@@ -137,18 +137,24 @@ function WhoAmISection({
         styles.section,
         styles.bioCard,
         styles.cardShell,
+        // cardShell uses overflow:hidden for the purple top cap — that also
+        // clips the last line of RN Fabric text (#53450). Keep corners via the
+        // accent clip wrapper; leave bio content unclipped.
+        styles.bioCardOverflow,
         isDark && styles.cardShellDark,
         // After bioCard so dark bg isn't overwritten by the light card fill.
         isDark && styles.cardDark,
         { borderTopColor: defaultAccentBarColor },
       ]}
     >
-      <View
-        style={[
-          styles.cardAccentBar,
-          { backgroundColor: defaultAccentBarColor },
-        ]}
-      />
+      <View style={styles.bioAccentClip}>
+        <View
+          style={[
+            styles.cardAccentBar,
+            { backgroundColor: defaultAccentBarColor },
+          ]}
+        />
+      </View>
       <View style={styles.cardInner}>
         <Text style={[styles.heroEyebrow, isDark && styles.heroEyebrowDark]}>
           About
@@ -932,6 +938,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     marginBottom: 24,
   },
+  bioCardOverflow: {
+    overflow: "visible",
+  },
+  bioAccentClip: {
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    overflow: "hidden",
+  },
   beforeAfterCard: {
     backgroundColor: "#FFFFFF",
     marginBottom: 24,
@@ -1020,9 +1034,9 @@ const styles = StyleSheet.create({
   },
   bodyText: {
     fontSize: 16,
-    // RN 0.81 iOS Fabric can clip the last line when lineHeight is set (#53450).
-    lineHeight: 26,
-    paddingBottom: 1,
+    // Do not set lineHeight here — RN 0.81 iOS Fabric clips the last wrapped
+    // line when lineHeight is set (#53450). Natural line height + padding is safer.
+    paddingBottom: 4,
     color: WORKBOOK_TEXT_BODY,
     marginBottom: 12,
     fontFamily: AppFonts.bodyRegular,

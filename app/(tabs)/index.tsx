@@ -19,9 +19,9 @@ import { MODULE_VIDEOS } from "@/data/module-videos";
 import { MODULE_PDFS } from "@/data/pdf-assets";
 import { getQuoteBackgroundOfTheDay, getQuoteOfTheDay } from "@/data/quotes";
 import {
-    cancelDailyReminder,
     DEFAULT_REMINDER_HOUR,
     DEFAULT_REMINDER_MINUTE,
+    getDailyReminderStatus,
     getNextReminderDate,
     scheduleDailyReminder,
 } from "@/services/notifications";
@@ -339,13 +339,9 @@ export default function HomeScreen() {
   const pickerTimeRef = useRef(pickerTime);
 
   const refreshReminderState = useCallback(async () => {
-    const next = await getNextReminderDate();
-    setDailyReminderOn(!!next);
-    setNextReminderTime(
-      next
-        ? next.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-        : null,
-    );
+    const status = await getDailyReminderStatus();
+    setDailyReminderOn(!!status);
+    setNextReminderTime(status?.label ?? null);
   }, []);
 
   useFocusEffect(
@@ -395,12 +391,15 @@ export default function HomeScreen() {
 
   const scheduleAt = useCallback(
     async (hour: number, minute: number, label: string) => {
-      await cancelDailyReminder();
+      // Do not cancel+clear storage first — that raced refresh and let iOS
+      // trigger parsing overwrite the time the user just picked.
       const id = await scheduleDailyReminder(hour, minute);
-      await refreshReminderState();
       if (id) {
+        setDailyReminderOn(true);
+        setNextReminderTime(label);
         Alert.alert("Reminder set", `Daily reminder is now at ${label}.`);
       }
+      await refreshReminderState();
     },
     [refreshReminderState],
   );
@@ -700,9 +699,16 @@ export default function HomeScreen() {
               style={StyleSheet.absoluteFill}
               pointerEvents="none"
             />
-            <View style={styles.dieselCardContent}>
-              <View style={styles.dieselTopBar}>
-                <View style={styles.dieselHeader}>
+            <RectButton
+              onPress={openDailyQuote}
+              style={StyleSheet.absoluteFill}
+              underlayColor="rgba(255,255,255,0.08)"
+              accessibilityRole="button"
+              accessibilityLabel="View quote full screen"
+            />
+            <View style={styles.dieselCardContent} pointerEvents="box-none">
+              <View style={styles.dieselTopBar} pointerEvents="box-none">
+                <View style={styles.dieselHeader} pointerEvents="none">
                   <View style={styles.dieselIconWrap}>
                     <Flame size={22} color="#fff" strokeWidth={2.5} />
                   </View>
@@ -721,7 +727,7 @@ export default function HomeScreen() {
                   </View>
                 </RectButton>
               </View>
-              <View style={styles.dieselQuoteCenter}>
+              <View style={styles.dieselQuoteCenter} pointerEvents="none">
                 <Text
                   style={[
                     styles.dieselQuote,
@@ -738,15 +744,20 @@ export default function HomeScreen() {
               </View>
               {dailyReminderOn ? (
                 <View style={styles.reminderRow}>
-                  <Text style={styles.reminderLabel}>
+                  <Text style={styles.reminderLabel} pointerEvents="none">
                     Daily reminder at {nextReminderTime ?? "…"}
                   </Text>
                   <Pressable
                     onPress={showChangeTimePicker}
                     hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                    style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+                    style={({ pressed }) => [
+                      styles.reminderChangeHit,
+                      { opacity: pressed ? 0.7 : 1 },
+                    ]}
                   >
-                    <Text style={styles.reminderChange}>Change time</Text>
+                    <Text style={styles.reminderChange} pointerEvents="none">
+                      Change time
+                    </Text>
                   </Pressable>
                 </View>
               ) : (
@@ -757,8 +768,10 @@ export default function HomeScreen() {
                     { opacity: pressed ? 0.85 : 1 },
                   ]}
                 >
-                  <Flame size={16} color="#fff" strokeWidth={2.5} />
-                  <Text style={styles.reminderCtaText}>Remind me daily</Text>
+                  <View pointerEvents="none" style={styles.reminderCtaInner}>
+                    <Flame size={16} color="#fff" strokeWidth={2.5} />
+                    <Text style={styles.reminderCtaText}>Remind me daily</Text>
+                  </View>
                 </Pressable>
               )}
             </View>
@@ -1263,31 +1276,41 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    flexWrap: "wrap",
+    gap: 10,
   },
   reminderLabel: {
-    fontSize: 13,
+    fontSize: 17,
     color: "rgba(255,255,255,0.92)",
     textAlign: "center",
     fontFamily: AppFonts.bodyRegular,
   },
+  reminderChangeHit: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
   reminderChange: {
-    fontSize: 13,
+    fontSize: 15,
     color: "#FFFFFF",
     textDecorationLine: "underline",
     fontFamily: AppFonts.bodyMedium,
   },
   reminderCtaButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
     width: "100%",
-    backgroundColor: MAIN_PURPLE,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,
     alignSelf: "center",
+  },
+  reminderCtaInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   reminderCtaText: {
     fontSize: 15,

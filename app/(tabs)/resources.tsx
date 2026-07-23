@@ -1,4 +1,5 @@
 import { ArticleListCard } from "@/components/article-list-card";
+import { ArticleListCardSkeleton } from "@/components/article-list-card-skeleton";
 import { DownloadListCard } from "@/components/download-list-card";
 import { GymRoutineCard } from "@/components/gym-routine-card";
 import { HiitWorkoutsCard } from "@/components/hiit-workouts-card";
@@ -10,9 +11,10 @@ import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { getFeaturedDownload } from "@/data/downloads";
 import { getFeaturedGymRoutine } from "@/data/gym-routines";
+import { getFeaturedPodcast } from "@/data/articles";
 import { requirePro } from "@/services/purchases";
 import {
-  fetchWordpressArticles,
+  loadWordpressArticles,
   type WordpressArticle,
 } from "@/services/wordpress-posts";
 import { useRouter } from "expo-router";
@@ -25,7 +27,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react-native";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -141,29 +143,36 @@ export default function ResourcesScreen() {
   const insets = useSafeAreaInsets();
   const featuredDownload = getFeaturedDownload();
   const featuredGymRoutine = getFeaturedGymRoutine();
+  // Hardcoded Sean / Danny podcasts — not the WordPress feed.
+  const featuredPodcast = useMemo(() => getFeaturedPodcast(), []);
   const [featuredArticle, setFeaturedArticle] = useState<WordpressArticle | null>(
     null,
   );
-  const [featuredPodcast, setFeaturedPodcast] = useState<WordpressArticle | null>(
-    null,
-  );
+  const [wpLoading, setWpLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const posts = await fetchWordpressArticles();
+        const { articles } = await loadWordpressArticles({
+          onUpdate: (fresh) => {
+            if (cancelled) return;
+            setFeaturedArticle(
+              fresh.find((p) => p.kind === "article") ?? null,
+            );
+            setWpLoading(false);
+          },
+        });
         if (cancelled) return;
         setFeaturedArticle(
-          posts.find((p) => p.kind === "article") ?? null,
+          articles.find((p) => p.kind === "article") ?? null,
         );
-        setFeaturedPodcast(
-          posts.find((p) => p.kind === "podcast") ?? null,
-        );
+        // Cache hit: hide skeleton immediately; cold start waited on network.
+        setWpLoading(false);
       } catch {
         if (!cancelled) {
           setFeaturedArticle(null);
-          setFeaturedPodcast(null);
+          setWpLoading(false);
         }
       }
     })();
@@ -233,7 +242,7 @@ export default function ResourcesScreen() {
         />
       </FeatureSection>
 
-      {featuredArticle ? (
+      {wpLoading || featuredArticle ? (
         <FeatureSection
           title="Articles"
           titleIcon={FileText}
@@ -243,11 +252,15 @@ export default function ResourcesScreen() {
           viewAllLabel="View All Articles"
           onViewAll={openArticles}
         >
-          <ArticleListCard
-            article={featuredArticle}
-            isDark={isDark}
-            onPress={() => void openArticle(featuredArticle.slug)}
-          />
+          {featuredArticle ? (
+            <ArticleListCard
+              article={featuredArticle}
+              isDark={isDark}
+              onPress={() => void openArticle(featuredArticle.slug)}
+            />
+          ) : (
+            <ArticleListCardSkeleton isDark={isDark} />
+          )}
         </FeatureSection>
       ) : null}
 

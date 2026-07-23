@@ -1,65 +1,84 @@
 import { ArticleListCard } from "@/components/article-list-card";
+import { ArticleListCardSkeleton } from "@/components/article-list-card-skeleton";
 import {
   SCREEN_BACK_BUTTON_WIDTH,
   ScreenBackButton,
 } from "@/components/screen-back-button";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
+import { ARTICLES } from "@/data/articles";
 import { requirePro } from "@/services/purchases";
 import {
   fetchWordpressArticles,
+  loadWordpressArticles,
   type WordpressArticle,
 } from "@/services/wordpress-posts";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const LIST_SKELETON_COUNT = 5;
 
 export default function ArticlesScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { kind } = useLocalSearchParams<{ kind?: string }>();
+  const isPodcastList = kind === "podcast";
+
+  const localPodcasts = useMemo(
+    () => ARTICLES.filter((article) => article.kind === "podcast"),
+    [],
+  );
+
   const [posts, setPosts] = useState<WordpressArticle[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isPodcastList);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Podcasts are the hardcoded Sean / Danny entries — no WordPress fetch.
+    if (isPodcastList) {
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
     void (async () => {
       try {
-        const next = await fetchWordpressArticles();
-        if (!cancelled) setPosts(next);
+        const { articles } = await loadWordpressArticles({
+          onUpdate: (fresh) => {
+            if (cancelled) return;
+            setPosts(fresh.filter((article) => article.kind === "article"));
+            setLoading(false);
+            setError(null);
+          },
+        });
+        if (cancelled) return;
+        setPosts(articles.filter((article) => article.kind === "article"));
+        setLoading(false);
       } catch (e) {
         if (!cancelled) {
           setError(
             e instanceof Error ? e.message : "Could not load WordPress posts",
           );
+          setLoading(false);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isPodcastList]);
 
   const filteredArticles = useMemo(() => {
-    if (kind === "article" || kind === "podcast") {
-      return posts.filter((article) => article.kind === kind);
-    }
+    if (isPodcastList) return localPodcasts;
+    if (kind === "article") return posts;
     return posts;
-  }, [kind, posts]);
+  }, [isPodcastList, kind, localPodcasts, posts]);
 
   const headerTitle =
     kind === "article"
@@ -72,8 +91,8 @@ export default function ArticlesScreen() {
     kind === "article"
       ? "The latest blogs and articles from Declan"
       : kind === "podcast"
-        ? "Podcast episodes pulled from WordPress"
-        : "Live WordPress feed";
+        ? "Podcast episodes and interviews"
+        : "Articles and podcast episodes";
 
   const openArticle = async (slug: string) => {
     if (!(await requirePro())) return;
@@ -81,6 +100,21 @@ export default function ArticlesScreen() {
       pathname: "/article/[slug]",
       params: { slug },
     });
+  };
+
+  const retryWordpress = () => {
+    setLoading(true);
+    setError(null);
+    void fetchWordpressArticles()
+      .then((next) =>
+        setPosts(next.filter((article) => article.kind === "article")),
+      )
+      .catch((e) =>
+        setError(
+          e instanceof Error ? e.message : "Could not load WordPress posts",
+        ),
+      )
+      .finally(() => setLoading(false));
   };
 
   return (
@@ -112,37 +146,18 @@ export default function ArticlesScreen() {
           {subtitle}
         </Text>
 
-        {loading ? (
-          <View style={styles.stateBlock}>
-            <ActivityIndicator size="large" color={MAIN_PURPLE} />
-            <Text style={[styles.stateText, isDark && styles.subtextDark]}>
-              Loading from Declan's blog…
-            </Text>
-          </View>
-        ) : null}
+        {loading
+          ? Array.from({ length: LIST_SKELETON_COUNT }, (_, i) => (
+              <ArticleListCardSkeleton key={`skeleton-${i}`} isDark={isDark} />
+            ))
+          : null}
 
         {error && !loading ? (
           <View style={styles.stateBlock}>
             <Text style={[styles.errorText, isDark && styles.textDark]}>
               {error}
             </Text>
-            <Pressable
-              onPress={() => {
-                setLoading(true);
-                setError(null);
-                void fetchWordpressArticles()
-                  .then(setPosts)
-                  .catch((e) =>
-                    setError(
-                      e instanceof Error
-                        ? e.message
-                        : "Could not load WordPress posts",
-                    ),
-                  )
-                  .finally(() => setLoading(false));
-              }}
-              style={styles.retryBtn}
-            >
+            <Pressable onPress={retryWordpress} style={styles.retryBtn}>
               <Text style={styles.retryText}>Try again</Text>
             </Pressable>
           </View>
@@ -154,14 +169,16 @@ export default function ArticlesScreen() {
           </Text>
         ) : null}
 
-        {filteredArticles.map((article) => (
-          <ArticleListCard
-            key={article.slug}
-            article={article}
-            isDark={isDark}
-            onPress={() => void openArticle(article.slug)}
-          />
-        ))}
+        {!loading
+          ? filteredArticles.map((article) => (
+              <ArticleListCard
+                key={article.slug}
+                article={article}
+                isDark={isDark}
+                onPress={() => void openArticle(article.slug)}
+              />
+            ))
+          : null}
       </ScrollView>
     </View>
   );
