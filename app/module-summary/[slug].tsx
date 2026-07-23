@@ -410,7 +410,8 @@ const styles = StyleSheet.create({
   },
   ideaBody: {
     fontSize: 15,
-    lineHeight: 24,
+    lineHeight: 25,
+    paddingBottom: 1,
     fontFamily: AppFonts.bodyRegular,
     color: "#1F2937",
   },

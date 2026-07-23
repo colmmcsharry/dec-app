@@ -1183,7 +1183,8 @@ const styles = StyleSheet.create({
   },
   heroBody: {
     fontSize: 15,
-    lineHeight: 23,
+    lineHeight: 24,
+    paddingBottom: 1,
     color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyRegular,
   },
@@ -1261,7 +1262,9 @@ const styles = StyleSheet.create({
   sectionBody: {
     marginTop: 8,
     fontSize: 14,
-    lineHeight: 21,
+    // RN 0.81 iOS Fabric can clip the last wrapped line (#53450).
+    lineHeight: 22,
+    paddingBottom: 1,
     color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyRegular,
   },
@@ -1277,7 +1280,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 10,
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 22,
+    paddingBottom: 1,
     color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyRegular,
   },
@@ -1548,7 +1552,8 @@ const styles = StyleSheet.create({
   },
   promptItem: {
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 22,
+    paddingBottom: 1,
     color: WORKBOOK_TEXT_BODY,
     fontFamily: AppFonts.bodyRegular,
   },
