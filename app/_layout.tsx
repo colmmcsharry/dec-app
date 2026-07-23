@@ -2,6 +2,7 @@ import 'react-native-gesture-handler';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { Karla_400Regular, Karla_500Medium, Karla_700Bold } from '@expo-google-fonts/karla';
+import { Asset } from 'expo-asset';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -12,7 +13,10 @@ import 'react-native-reanimated';
 import { NotificationResponseHandler } from '@/components/notification-response-handler';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { configurePurchases } from '@/services/purchases';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+/** First-screen onboarding art — preload before the tree mounts. */
+const ONBOARDING_WELCOME_MOUNTAINS = require('@/assets/images/onboarding/welcome-mountains.webp');
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -162,8 +166,25 @@ export default function RootLayout() {
     Karla_500Medium,
     Karla_700Bold,
   });
+  const [welcomeArtReady, setWelcomeArtReady] = useState(false);
 
-  if (!fontsLoaded) {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await Asset.fromModule(ONBOARDING_WELCOME_MOUNTAINS).downloadAsync();
+      } catch {
+        // Non-fatal — onboarding can still decode on demand.
+      } finally {
+        if (!cancelled) setWelcomeArtReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!fontsLoaded || !welcomeArtReady) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

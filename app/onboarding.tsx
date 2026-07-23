@@ -2,8 +2,10 @@ import { EmailUpdatesSection } from "@/components/email-updates-section";
 import { VideoPlayer, type VideoPlayerHandle } from "@/components/video-player";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { COURSE_INTRO_VIDEO } from "@/data/course-intro-video";
+import { MODULE_VIDEOS } from "@/data/module-videos";
 import { setOnboardingComplete } from "@/services/onboarding-storage";
 import { hasProEntitlement } from "@/services/purchases";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Activity,
@@ -24,7 +26,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
-  Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -36,22 +37,61 @@ import {
   ViewToken,
 } from "react-native";
 import Animated, {
+  cancelAnimation,
   Easing,
   FadeIn,
   FadeInDown,
   FadeInUp,
+  runOnJS,
   useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
+  withRepeat,
+  withSequence,
   withSpring,
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Line, Polyline } from "react-native-svg";
+import Svg, { Circle, Line, Polyline } from "react-native-svg";
 
 const AnimatedPolyline = Animated.createAnimatedComponent(Polyline);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+const TOTAL_COURSE_VIDEOS = Object.values(MODULE_VIDEOS).reduce(
+  (sum, vids) => sum + vids.length,
+  0,
+);
+/** Demo fill for the onboarding progress preview (not real user data). */
+const PROGRESS_DEMO_PCT = 0.38;
+
+const WELCOME_PILLS = [
+  { key: "mind", label: "Mind", Icon: Brain, color: MAIN_PURPLE },
+  { key: "body", label: "Body", Icon: Heart, color: "#E11D48" },
+  { key: "soul", label: "Soul", Icon: TrendingUp, color: "#059669" },
+] as const;
+
+const WELCOME_PILL_FADE_START = 400;
+const WELCOME_PILL_FADE_STAGGER = 380;
+const WELCOME_PILL_FADE_DURATION = 700;
+const WELCOME_PILL_PULSE_GAP = 500;
+/** Soft scale peak — keep subtle. */
+const WELCOME_PILL_PULSE_SCALE = 1.04;
+const WELCOME_PILL_PULSE_UP_MS = 1100;
+const WELCOME_PILL_PULSE_DOWN_MS = 1100;
+/** Pause after one pill settles before the next starts. */
+const WELCOME_PILL_PULSE_BETWEEN_MS = 280;
+/** Quiet pause after Soul before Mind pulses again. */
+const WELCOME_PILL_PULSE_CYCLE_REST_MS = 2800;
+const WELCOME_PILL_PULSE_SLOT_MS =
+  WELCOME_PILL_PULSE_UP_MS +
+  WELCOME_PILL_PULSE_DOWN_MS +
+  WELCOME_PILL_PULSE_BETWEEN_MS;
+const WELCOME_PILL_PULSE_CYCLE_MS =
+  WELCOME_PILLS.length * WELCOME_PILL_PULSE_SLOT_MS +
+  WELCOME_PILL_PULSE_CYCLE_REST_MS;
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const H_PADDING = 24;
@@ -168,6 +208,7 @@ const GOALS: GoalOption[] = [
 const ONBOARDING_MODULES_IMAGE = require("@/assets/images/onboarding/modules.png");
 const ONBOARDING_VIDEOS_IMAGE = require("@/assets/images/onboarding/videos.png");
 const ONBOARDING_WORKBOOKS_IMAGE = require("@/assets/images/onboarding/workbooks.png");
+const ONBOARDING_WELCOME_MOUNTAINS = require("@/assets/images/onboarding/welcome-mountains.webp");
 
 const WAVE_POINTS: [number, number][] = [
   [0, 80],
@@ -187,6 +228,282 @@ const WAVE_PATH_LENGTH = WAVE_POINTS.reduce((acc, point, i) => {
   const [x2, y2] = point;
   return acc + Math.hypot(x2 - x1, y2 - y1);
 }, 0);
+
+function WelcomePill({
+  label,
+  Icon,
+  color,
+  index,
+  active,
+}: {
+  label: string;
+  Icon: LucideIcon;
+  color: string;
+  index: number;
+  active: boolean;
+}) {
+  const opacity = useSharedValue(0);
+  const scale = useSharedValue(1);
+
+  React.useEffect(() => {
+    if (!active) {
+      cancelAnimation(opacity);
+      cancelAnimation(scale);
+      opacity.value = 0;
+      scale.value = 1;
+      return;
+    }
+
+    const fadeDelay =
+      WELCOME_PILL_FADE_START + index * WELCOME_PILL_FADE_STAGGER;
+    const pulseStart =
+      WELCOME_PILL_FADE_START +
+      (WELCOME_PILLS.length - 1) * WELCOME_PILL_FADE_STAGGER +
+      WELCOME_PILL_FADE_DURATION +
+      WELCOME_PILL_PULSE_GAP +
+      index * WELCOME_PILL_PULSE_SLOT_MS;
+
+    opacity.value = 0;
+    scale.value = 1;
+    opacity.value = withDelay(
+      fadeDelay,
+      withTiming(1, {
+        duration: WELCOME_PILL_FADE_DURATION,
+        easing: Easing.out(Easing.cubic),
+      }),
+    );
+    scale.value = withDelay(
+      pulseStart,
+      withRepeat(
+        withSequence(
+          withTiming(WELCOME_PILL_PULSE_SCALE, {
+            duration: WELCOME_PILL_PULSE_UP_MS,
+            easing: Easing.inOut(Easing.sin),
+          }),
+          withTiming(1, {
+            duration: WELCOME_PILL_PULSE_DOWN_MS,
+            easing: Easing.inOut(Easing.sin),
+          }),
+          // Hold still while the other pills pulse + cycle rest.
+          withTiming(1, {
+            duration:
+              WELCOME_PILL_PULSE_CYCLE_MS - WELCOME_PILL_PULSE_SLOT_MS,
+          }),
+        ),
+        -1,
+        false,
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shared values are stable refs
+  }, [active, index]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={style}>
+      <View style={styles.pill}>
+        <View pointerEvents="none">
+          <Icon size={16} color={color} />
+        </View>
+        <Text style={styles.pillText}>{label}</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+function WelcomePills({ active }: { active: boolean }) {
+  return (
+    <View style={styles.pillRow}>
+      {WELCOME_PILLS.map((pill, i) => (
+        <WelcomePill
+          key={pill.key}
+          label={pill.label}
+          Icon={pill.Icon}
+          color={pill.color}
+          index={i}
+          active={active}
+        />
+      ))}
+    </View>
+  );
+}
+
+function OverallProgressPreview({ active }: { active: boolean }) {
+  const gaugeSize = 84;
+  const strokeWidth = 9;
+  const radius = (gaugeSize - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = useSharedValue(0);
+  const barTrackWidth = useSharedValue(0);
+  const [displayPct, setDisplayPct] = useState(0);
+  const [displayWatched, setDisplayWatched] = useState(0);
+
+  React.useEffect(() => {
+    if (!active) {
+      progress.value = 0;
+      setDisplayPct(0);
+      setDisplayWatched(0);
+      return;
+    }
+    progress.value = 0;
+    progress.value = withDelay(
+      180,
+      withTiming(PROGRESS_DEMO_PCT, {
+        duration: 1500,
+        easing: Easing.out(Easing.cubic),
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shared value is a stable ref
+  }, [active]);
+
+  useAnimatedReaction(
+    () => Math.round(progress.value * 100),
+    (pct, prev) => {
+      if (pct === prev) return;
+      runOnJS(setDisplayPct)(pct);
+      runOnJS(setDisplayWatched)(
+        Math.round((pct / 100) * TOTAL_COURSE_VIDEOS),
+      );
+    },
+  );
+
+  const circleProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - progress.value),
+  }));
+
+  const barStyle = useAnimatedStyle(() => {
+    const track = barTrackWidth.value;
+    if (track <= 0) return { width: 0 };
+    return {
+      width: Math.max(
+        progress.value * track,
+        progress.value > 0.001 ? 4 : 0,
+      ),
+    };
+  });
+
+  return (
+    <View style={overallPreviewStyles.card}>
+      <View style={overallPreviewStyles.row}>
+        <View style={overallPreviewStyles.gaugeContainer}>
+          <Svg width={gaugeSize} height={gaugeSize}>
+            <Circle
+              cx={gaugeSize / 2}
+              cy={gaugeSize / 2}
+              r={radius}
+              stroke="#EDE9FE"
+              strokeWidth={strokeWidth}
+              fill="none"
+            />
+            <AnimatedCircle
+              cx={gaugeSize / 2}
+              cy={gaugeSize / 2}
+              r={radius}
+              stroke={MAIN_PURPLE}
+              strokeWidth={strokeWidth}
+              fill="none"
+              strokeLinecap="round"
+              strokeDasharray={`${circumference}`}
+              animatedProps={circleProps}
+              rotation="-90"
+              origin={`${gaugeSize / 2}, ${gaugeSize / 2}`}
+            />
+          </Svg>
+          <View style={overallPreviewStyles.gaugePctWrap} pointerEvents="none">
+            <Text style={overallPreviewStyles.gaugePctText}>{displayPct}%</Text>
+            <Text style={overallPreviewStyles.gaugePctCaption}>Complete</Text>
+          </View>
+        </View>
+        <View style={overallPreviewStyles.info}>
+          <Text style={overallPreviewStyles.label}>Overall Progress</Text>
+          <Text style={overallPreviewStyles.count}>
+            {displayWatched} of {TOTAL_COURSE_VIDEOS} videos watched
+          </Text>
+          <View
+            style={overallPreviewStyles.barBg}
+            onLayout={(e) => {
+              barTrackWidth.value = e.nativeEvent.layout.width;
+            }}
+          >
+            <Animated.View style={[overallPreviewStyles.barFill, barStyle]} />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const overallPreviewStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    marginTop: 12,
+    shadowColor: "#4C3F8F",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  gaugeContainer: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 84,
+    height: 84,
+  },
+  gaugePctWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gaugePctText: {
+    fontSize: 18,
+    fontFamily: AppFonts.headingBold,
+    color: "#1F2937",
+  },
+  gaugePctCaption: {
+    fontSize: 10,
+    fontFamily: AppFonts.bodyMedium,
+    color: "#8E8EA0",
+    marginTop: -1,
+  },
+  info: {
+    flex: 1,
+    gap: 6,
+  },
+  label: {
+    fontSize: 17,
+    fontFamily: AppFonts.headingSemiBold,
+    color: "#1F2937",
+  },
+  count: {
+    fontSize: 14,
+    fontFamily: AppFonts.bodyRegular,
+    color: "#8E8EA0",
+  },
+  barBg: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#EDE9FE",
+    overflow: "hidden",
+    marginTop: 4,
+  },
+  barFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: MAIN_PURPLE,
+  },
+});
 
 function ProgressWave({ active }: { active: boolean }) {
   const draw = useSharedValue(1);
@@ -370,7 +687,7 @@ function TestimonialCard({
         <Image
           source={APP_LOGO}
           style={styles.testimonialLogo}
-          resizeMode="contain"
+          contentFit="contain"
           accessibilityLabel="Peak Performance Code logo"
         />
       </View>
@@ -378,19 +695,38 @@ function TestimonialCard({
   );
 }
 
-function OnboardingTestimonialCarousel() {
+function OnboardingTestimonialCarousel({ active }: { active: boolean }) {
   const scrollRef = useRef<ScrollView>(null);
   const isJumpingRef = useRef(false);
+  const scrollIndexRef = useRef(LOOPED_START_INDEX);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [autoplay, setAutoplay] = useState(true);
 
   useEffect(() => {
     requestAnimationFrame(() => {
+      scrollIndexRef.current = LOOPED_START_INDEX;
       scrollRef.current?.scrollTo({
         x: TESTIMONIAL_CAROUSEL_STRIDE * LOOPED_START_INDEX,
         animated: false,
       });
     });
   }, []);
+
+  useEffect(() => {
+    if (!active || !autoplay) return;
+
+    const id = setInterval(() => {
+      if (isJumpingRef.current) return;
+      const nextIndex = scrollIndexRef.current + 1;
+      scrollIndexRef.current = nextIndex;
+      scrollRef.current?.scrollTo({
+        x: TESTIMONIAL_CAROUSEL_STRIDE * nextIndex,
+        animated: true,
+      });
+    }, 2000);
+
+    return () => clearInterval(id);
+  }, [active, autoplay]);
 
   const toLogicalIndex = (scrollIndex: number) => {
     if (scrollIndex === 0) return TESTIMONIALS.length - 1;
@@ -403,15 +739,17 @@ function OnboardingTestimonialCarousel() {
   ) => {
     if (isJumpingRef.current) return;
 
-    const scrollIndex = Math.round(
+    let scrollIndex = Math.round(
       e.nativeEvent.contentOffset.x / TESTIMONIAL_CAROUSEL_STRIDE,
     );
     setActiveIndex(toLogicalIndex(scrollIndex));
 
     if (scrollIndex === 0) {
       isJumpingRef.current = true;
+      scrollIndex = TESTIMONIALS.length;
+      scrollIndexRef.current = scrollIndex;
       scrollRef.current?.scrollTo({
-        x: TESTIMONIAL_CAROUSEL_STRIDE * TESTIMONIALS.length,
+        x: TESTIMONIAL_CAROUSEL_STRIDE * scrollIndex,
         animated: false,
       });
       requestAnimationFrame(() => {
@@ -422,14 +760,19 @@ function OnboardingTestimonialCarousel() {
 
     if (scrollIndex === LOOPED_TESTIMONIALS.length - 1) {
       isJumpingRef.current = true;
+      scrollIndex = LOOPED_START_INDEX;
+      scrollIndexRef.current = scrollIndex;
       scrollRef.current?.scrollTo({
-        x: TESTIMONIAL_CAROUSEL_STRIDE * LOOPED_START_INDEX,
+        x: TESTIMONIAL_CAROUSEL_STRIDE * scrollIndex,
         animated: false,
       });
       requestAnimationFrame(() => {
         isJumpingRef.current = false;
       });
+      return;
     }
+
+    scrollIndexRef.current = scrollIndex;
   };
 
   return (
@@ -444,6 +787,7 @@ function OnboardingTestimonialCarousel() {
           snapToInterval={TESTIMONIAL_CAROUSEL_STRIDE}
           snapToAlignment="start"
           disableIntervalMomentum
+          onScrollBeginDrag={() => setAutoplay(false)}
           onMomentumScrollEnd={handleCarouselScrollEnd}
           onScrollEndDrag={handleCarouselScrollEnd}
           style={styles.testimonialCarouselScroll}
@@ -477,7 +821,7 @@ function OnboardingTestimonialCarousel() {
           />
         ))}
       </View>
-      <Text style={styles.testimonialCarouselHint}>Swipe for more</Text>
+      <Text style={styles.testimonialCarouselHint}>Swipe to change</Text>
     </View>
   );
 }
@@ -491,6 +835,8 @@ export default function OnboardingScreen() {
   const [index, setIndex] = useState(0);
   const [growthActive, setGrowthActive] = useState(false);
   const [progressActive, setProgressActive] = useState(false);
+  const [welcomeActive, setWelcomeActive] = useState(true);
+  const [socialActive, setSocialActive] = useState(false);
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
 
   useEffect(() => {
@@ -573,7 +919,9 @@ export default function OnboardingScreen() {
       }
       setIndex(i);
       const slide = SLIDES[i];
+      setWelcomeActive(slide?.id === "welcome");
       setGrowthActive(slide?.id === "growth");
+      setSocialActive(slide?.id === "social");
       setProgressActive(slide?.id === "progress");
     },
     [selectedGoals.length],
@@ -622,7 +970,7 @@ export default function OnboardingScreen() {
                 <Image
                   source={APP_LOGO}
                   style={styles.heroLogo}
-                  resizeMode="contain"
+                  contentFit="contain"
                   accessibilityLabel="DEC app logo"
                 />
               </Animated.View>
@@ -630,26 +978,10 @@ export default function OnboardingScreen() {
                 entering={FadeIn.delay(120).duration(450)}
                 style={styles.heroTitle}
               >
-                Welcome to your{"\n"}performance journey
+                Welcome to your <Text style={styles.heroTitlePeak}>peak</Text>{" "}
+                performance journey
               </Animated.Text>
-              <Text style={styles.heroBody}>
-                Science-backed modules for sleep, energy, mindset, movement, and
-                more — designed to fit real life.
-              </Text>
-              <View style={styles.pillRow}>
-                <View style={styles.pill}>
-                  <Brain size={16} color={MAIN_PURPLE} />
-                  <Text style={styles.pillText}>Mind</Text>
-                </View>
-                <View style={styles.pill}>
-                  <Heart size={16} color="#E11D48" />
-                  <Text style={styles.pillText}>Body</Text>
-                </View>
-                <View style={styles.pill}>
-                  <TrendingUp size={16} color="#059669" />
-                  <Text style={styles.pillText}>Soul</Text>
-                </View>
-              </View>
+              <WelcomePills active={welcomeActive} />
             </View>
           </View>
         );
@@ -693,7 +1025,7 @@ export default function OnboardingScreen() {
                 </View>
               </View>
               <View style={styles.slideVisual}>
-                <OnboardingTestimonialCarousel />
+                <OnboardingTestimonialCarousel active={socialActive} />
               </View>
             </View>
           </View>
@@ -710,6 +1042,7 @@ export default function OnboardingScreen() {
                 </Text>
               </View>
               <View style={styles.slideVisual}>
+                <OverallProgressPreview active={progressActive} />
                 <ProgressWave active={progressActive} />
               </View>
             </View>
@@ -815,7 +1148,7 @@ export default function OnboardingScreen() {
                   <Image
                     source={ONBOARDING_MODULES_IMAGE}
                     style={styles.collageImage}
-                    resizeMode="contain"
+                    contentFit="contain"
                     accessibilityLabel="Preview of the modules grid"
                   />
                 </Animated.View>
@@ -842,7 +1175,7 @@ export default function OnboardingScreen() {
                   <Image
                     source={ONBOARDING_VIDEOS_IMAGE}
                     style={styles.collageImage}
-                    resizeMode="contain"
+                    contentFit="contain"
                     accessibilityLabel="Preview of module video lessons"
                   />
                 </Animated.View>
@@ -869,7 +1202,7 @@ export default function OnboardingScreen() {
                   <Image
                     source={ONBOARDING_WORKBOOKS_IMAGE}
                     style={styles.collageImage}
-                    resizeMode="contain"
+                    contentFit="contain"
                     accessibilityLabel="Preview of a module workbook"
                   />
                 </Animated.View>
@@ -919,6 +1252,19 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      {index === 0 ? (
+        <View style={styles.welcomeMountainsBackdrop} pointerEvents="none">
+          <Image
+            source={ONBOARDING_WELCOME_MOUNTAINS}
+            style={styles.welcomeMountains}
+            contentFit="cover"
+            priority="high"
+            cachePolicy="memory-disk"
+            accessibilityLabel="Mountain landscape illustration"
+          />
+        </View>
+      ) : null}
+
       <View style={styles.topBar}>
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
@@ -961,7 +1307,9 @@ export default function OnboardingScreen() {
         onScrollToIndexFailed={onScrollToIndexFailed}
       />
 
-      <View style={styles.footer}>
+      <View
+        style={[styles.footer, index === 0 && styles.footerOverMountains]}
+      >
         <Pressable
           onPress={next}
           disabled={isNextDisabled}
@@ -996,12 +1344,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8F6FC",
   },
+  welcomeMountainsBackdrop: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    // Sit a bit above the Next label so the button still overlaps the art.
+    bottom: 66,
+    height: Math.min(300, Math.round(SCREEN_WIDTH * 0.62)),
+    zIndex: 0,
+    overflow: "hidden",
+  },
+  welcomeMountains: {
+    width: "100%",
+    height: "100%",
+  },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: H_PADDING,
     paddingBottom: 8,
+    zIndex: 2,
   },
   dots: {
     flexDirection: "row",
@@ -1025,6 +1388,8 @@ const styles = StyleSheet.create({
   },
   list: {
     flex: 1,
+    zIndex: 1,
+    backgroundColor: "transparent",
   },
   slide: {
     width: SCREEN_WIDTH,
@@ -1033,6 +1398,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     justifyContent: "center",
     overflow: "hidden",
+    backgroundColor: "transparent",
   },
   slideContent: {
     width: "100%",
@@ -1079,6 +1445,10 @@ const styles = StyleSheet.create({
     lineHeight: 38,
     color: "#111827",
     marginBottom: 16,
+  },
+  heroTitlePeak: {
+    color: MAIN_PURPLE,
+    fontFamily: AppFonts.headingBold,
   },
   heroBody: {
     fontFamily: AppFonts.bodyRegular,
@@ -1240,6 +1610,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: H_PADDING,
     paddingBottom: 20,
     paddingTop: 8,
+    zIndex: 2,
+  },
+  footerOverMountains: {
+    backgroundColor: "transparent",
   },
   primaryBtn: {
     backgroundColor: MAIN_PURPLE,
