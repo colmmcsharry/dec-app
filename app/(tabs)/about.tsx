@@ -6,7 +6,7 @@ import { VideoTestimonialCarousel } from "@/components/video-testimonial-carouse
 import { getPastelAccent, mixHex } from "@/constants/pastel-accents";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
-import { getReviewStoreLabel, requestAppReview } from "@/services/app-review";
+import { getReviewStoreLabel, openStoreReviewPage } from "@/services/app-review";
 import {
   addCustomerInfoListener,
   hasProEntitlement,
@@ -632,7 +632,7 @@ export default function AboutScreen() {
             {getReviewStoreLabel()} makes a big difference.
           </Text>
           <Pressable
-            onPress={() => void requestAppReview()}
+            onPress={() => void openStoreReviewPage()}
             style={({ pressed }) => [
               styles.reviewButton,
               pressed && styles.reviewButtonPressed,

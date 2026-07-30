@@ -36,7 +36,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
     {
       title: "KonMari Intro Video",
       url: "https://www.youtube.com/watch?v=2T-DXav9PtQ",
-      description:  
+      description:
         "A simple introduction to the KonMari method for creating a calmer, tidier space.",
     },
   ],
@@ -63,7 +63,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Morning Routine Overview",
       pdfKey: "module-2-sheet1",
       description:
-        "A quick summary sheet covering the key ideas behind a calmer, more effective morning routine. Use the digital workbook on the module screen for typed, saved exercises.",
+        "A quick summary sheet covering the key ideas behind a calmer, more effective morning routine. ",
       buttonLabel: "Open PDF",
     },
   ],
@@ -107,7 +107,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Energy Management Overview",
       pdfKey: "module-3-sheet1",
       description:
-        "An overview sheet on high-potential hours, energy management, and using your time more intentionally. Use the digital workbook on the module screen for typed, saved exercises.",
+        "An overview sheet on high-potential hours, energy management, and using your time more intentionally. ",
       buttonLabel: "Open PDF",
     },
   ],
@@ -188,7 +188,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Creative Thinking Overview",
       pdfKey: "module-4-sheet1",
       description:
-        "A summary sheet on creativity, problem solving, and bringing a more flexible mindset to challenges. Use the digital workbook on the module screen for typed, saved exercises.",
+        "A summary sheet on creativity, problem solving, and bringing a more flexible mindset to challenges. ",
       buttonLabel: "Open PDF",
     },
   ],
@@ -249,7 +249,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Downtime Overview",
       pdfKey: "module-5-sheet1",
       description:
-        "A summary sheet on why downtime is essential for sustained performance and better recovery. Use the digital workbook on the module screen for typed, saved exercises.",
+        "A summary sheet on why downtime is essential for sustained performance and better recovery. ",
       buttonLabel: "Open PDF",
     },
   ],
@@ -294,7 +294,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Inner Game Overview",
       pdfKey: "module-6-sheet1",
       description:
-        "A summary sheet on self-talk, mindfulness, and building a healthier internal dialogue. Use the digital workbook on the module screen for typed, saved exercises.",
+        "A summary sheet on self-talk, mindfulness, and building a healthier internal dialogue. ",
       buttonLabel: "Open PDF",
     },
   ],
@@ -321,7 +321,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Exercise & Physical Activity Overview",
       pdfKey: "module-7-sheet1",
       description:
-        "A summary resource on why movement matters and how to make it work alongside real life and work. Use the digital workbook on the module screen for typed, saved exercises.",
+        "A summary resource on why movement matters and how to make it work alongside real life and work. ",
       buttonLabel: "Open PDF",
     },
   ],
@@ -348,7 +348,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Nutrition & Hydration Overview",
       pdfKey: "module-8-sheet1",
       description:
-        "A summary sheet on eating and drinking for better energy, concentration, and performance. Use the digital workbook on the module screen for typed, saved exercises.",
+        "A summary sheet on eating and drinking for better energy, concentration, and performance. ",
       buttonLabel: "Open PDF",
     },
   ],
@@ -416,7 +416,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "Confidence, Charisma & Assertiveness Overview",
       pdfKey: "module-9-sheet1",
       description:
-        "A summary sheet on confidence, public anxiety, presence, and becoming more authentic under pressure. Use the digital workbook on the module screen for typed, saved exercises.",
+        "A summary sheet on confidence, public anxiety, presence, and becoming more authentic under pressure. ",
       buttonLabel: "Open PDF",
     },
   ],
@@ -476,7 +476,7 @@ export const SUPPLEMENTAL_RESOURCES: Record<string, SupplementalResource[]> = {
       title: "4 Questions Reflection Sheet",
       pdfKey: "module-10-sheet1",
       description:
-        "A self-reflection worksheet to help you clarify what you want and why it matters. Use the digital workbook on the module screen for typed, saved exercises.",
+        "A self-reflection worksheet to help you clarify what you want and why it matters. ",
       buttonLabel: "Open PDF",
     },
   ],

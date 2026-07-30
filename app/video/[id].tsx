@@ -23,7 +23,7 @@ import {
   getVideoAutoplayEnabled,
   setVideoAutoplayEnabled,
 } from "@/services/video-autoplay";
-import { maybeRequestReviewAfterFirstVideoCompleted } from "@/services/app-review";
+import { maybeRequestReviewAfterFirstModuleCompleted } from "@/services/app-review";
 import {
   hasProEntitlement,
   requirePro,
@@ -31,7 +31,8 @@ import {
 import { isFreePreviewVideo } from "@/lib/free-preview-video";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Check, ChevronRight } from "lucide-react-native";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Check, ChevronRight, Lock } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -147,18 +148,13 @@ export default function VideoDetailScreen() {
   }, [currentIndex, moduleVideos]);
 
   const isWatchingFreePreview = isFreePreviewVideo(categorySlug, activeVideoId);
+  // Pro / trial can chain from the free first lesson; free users stop there.
   const canChainToNextVideo = hasPro || !isWatchingFreePreview;
 
   const nextVideoEmbedUrl = useMemo(() => {
-    if (isWatchingFreePreview) return null;
     if (!autoplayEnabled || !nextVideo || !canChainToNextVideo) return null;
     return buildVimeoEmbedUrl(nextVideo.url);
-  }, [
-    autoplayEnabled,
-    canChainToNextVideo,
-    isWatchingFreePreview,
-    nextVideo,
-  ]);
+  }, [autoplayEnabled, canChainToNextVideo, nextVideo]);
 
   const moduleDef = categorySlug ? MODULE_WORKBOOKS[categorySlug] : undefined;
 
@@ -350,29 +346,25 @@ export default function VideoDetailScreen() {
 
   const markCurrentVideoWatched = useCallback(async () => {
     if (!categorySlug || !activeVideoId) {
-      return { finishedLastVideo: false, promptFirstVideoReview: false };
+      return { finishedLastVideo: false };
     }
 
-    const wasAlreadyWatched = await isVideoWatched(categorySlug, activeVideoId);
     await markVideoWatched(categorySlug, activeVideoId);
     setWatched(true);
-
-    const promptFirstVideoReview =
-      !wasAlreadyWatched && isFreePreviewVideo(categorySlug, activeVideoId);
-
-    if (promptFirstVideoReview) {
-      void maybeRequestReviewAfterFirstVideoCompleted();
-    }
 
     const isLastVideoInModule =
       moduleVideos.length > 0 &&
       moduleVideos[moduleVideos.length - 1].id === activeVideoId;
 
     if (isLastVideoInModule) {
+      // Review prompt only after finishing Module 1 end-to-end.
+      if (categorySlug === MODULE_ORDER[0]) {
+        void maybeRequestReviewAfterFirstModuleCompleted();
+      }
       triggerCompletion();
-      return { finishedLastVideo: true, promptFirstVideoReview };
+      return { finishedLastVideo: true };
     }
-    return { finishedLastVideo: false, promptFirstVideoReview };
+    return { finishedLastVideo: false };
   }, [activeVideoId, categorySlug, moduleVideos, triggerCompletion]);
 
   const handleMarkWatched = async () => {
@@ -387,18 +379,26 @@ export default function VideoDetailScreen() {
       const { finishedLastVideo } = await markCurrentVideoWatched();
       if (finishedLastVideo) return;
 
-      if (isWatchingFreePreview) return;
+      // Free users stop after the preview lesson; Pro/trial continue.
+      if (isWatchingFreePreview && !canChainToNextVideo) return;
 
       if (continued && canChainToNextVideo) {
         setStreamIndex((prev) => {
           const base = prev ?? (routeVideoIndex >= 0 ? routeVideoIndex : 0);
           return base + 1;
         });
+        // If play() briefly stalled after loadVideo, nudge it again.
+        setTimeout(() => {
+          videoPlayerRef.current?.ensurePlaying();
+        }, 700);
         return;
       }
 
       if (autoplayEnabledRef.current && nextVideo && canChainToNextVideo) {
         handleNextVideo();
+        setTimeout(() => {
+          videoPlayerRef.current?.ensurePlaying();
+        }, 900);
       }
     },
     [
@@ -428,6 +428,8 @@ export default function VideoDetailScreen() {
     resource: (typeof supplementalResources)[number]
   ) => {
     if (openingResourceKey) return;
+    // Resources stay Pro-only even when the lesson itself is a free preview.
+    if (!(await requirePro())) return;
 
     try {
       setOpeningResourceKey(resourceKey);
@@ -534,7 +536,7 @@ export default function VideoDetailScreen() {
         </View>
 
         <View style={styles.infoSection}>
-          {!isWatchingFreePreview ? (
+          {canChainToNextVideo ? (
             <View style={[styles.autoplayRow, isDark && styles.autoplayRowDark]}>
               <View style={styles.autoplayCopy}>
                 <Text style={[styles.autoplayLabel, isDark && styles.textDark]}>
@@ -632,43 +634,66 @@ export default function VideoDetailScreen() {
               {supplementalResources.map((resource, index) => {
                 const resourceKey = `${resource.title}-${index}`;
                 const isOpening = openingResourceKey === resourceKey;
+                const resourceLocked = !hasPro;
+                const iconColor = isDark ? "#ECEDEE" : "#7187CE";
 
-                return (
-                  <View
-                    key={`${resource.url ?? resource.title}-${index}`}
-                    style={[styles.resourceCard, isDark && styles.resourceCardDark]}
-                  >
-                    <Text
-                      style={[styles.resourceLabel, isDark && styles.textDark]}
-                    >
-                      {resource.title}
-                    </Text>
+                const cardBody = (
+                  <>
+                    <View style={styles.resourceTitleRow} pointerEvents="none">
+                      <IconSymbol
+                        name="doc.text.fill"
+                        size={18}
+                        color={iconColor}
+                      />
+                      <Text
+                        style={[
+                          styles.resourceLabel,
+                          isDark && styles.textDark,
+                        ]}
+                      >
+                        {resource.title}
+                      </Text>
+                    </View>
                     {resource.description ? (
                       <Text
-                        style={[styles.resourceDescription, isDark && styles.subtextDark]}
+                        pointerEvents="none"
+                        style={[
+                          styles.resourceDescription,
+                          isDark && styles.subtextDark,
+                          resourceLocked && styles.resourceDescriptionLocked,
+                        ]}
                       >
                         {resource.description}
                       </Text>
                     ) : null}
 
-                    {isYouTubeUrl(resource.url) ? (
+                    {!resourceLocked && isYouTubeUrl(resource.url) ? (
                       <View style={styles.resourcePlayerWrap}>
                         <WebView
                           style={styles.resourcePlayer}
-                          source={{ uri: getYouTubeEmbedUrl(resource.url ?? "") }}
+                          source={{
+                            uri: getYouTubeEmbedUrl(resource.url ?? ""),
+                          }}
                           allowsInlineMediaPlayback
                           mediaPlaybackRequiresUserAction
                           allowsFullscreenVideo
                           javaScriptEnabled
+                          // Nested scroll inside ScrollView — keep YouTube controls tappable.
+                          nestedScrollEnabled
+                          scrollEnabled={false}
                         />
                       </View>
-                    ) : (
+                    ) : null}
+
+                    {!resourceLocked && !isYouTubeUrl(resource.url) ? (
                       <Pressable
                         style={({ pressed }) => [
                           styles.resourceLinkButton,
                           { opacity: pressed || isOpening ? 0.75 : 1 },
                         ]}
-                        onPress={() => handleOpenResource(resourceKey, resource)}
+                        onPress={() =>
+                          void handleOpenResource(resourceKey, resource)
+                        }
                         disabled={isOpening}
                         accessibilityRole="button"
                         accessibilityLabel={`Open ${resource.title}`}
@@ -680,7 +705,60 @@ export default function VideoDetailScreen() {
                               (resource.pdfKey ? "Open PDF" : "Open Resource")}
                         </Text>
                       </Pressable>
-                    )}
+                    ) : null}
+
+                    {resourceLocked ? (
+                      <>
+                        <View
+                          style={styles.resourceLockedMediaPlaceholder}
+                          pointerEvents="none"
+                        />
+                        <View
+                          style={[
+                            styles.resourceLockedOverlay,
+                            isDark && styles.resourceLockedOverlayDark,
+                          ]}
+                          pointerEvents="none"
+                        />
+                        <View
+                          style={styles.resourceLockCenter}
+                          pointerEvents="none"
+                        >
+                          <View style={styles.resourceLockCircle}>
+                            <Lock size={26} color="#FFFFFF" strokeWidth={2.2} />
+                          </View>
+                        </View>
+                      </>
+                    ) : null}
+                  </>
+                );
+
+                return resourceLocked ? (
+                  <Pressable
+                    key={`${resource.url ?? resource.title}-${index}`}
+                    style={[
+                      styles.resourceCard,
+                      styles.resourceCardLocked,
+                      isDark && styles.resourceCardDark,
+                    ]}
+                    onPress={() =>
+                      void handleOpenResource(resourceKey, resource)
+                    }
+                    disabled={isOpening}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Unlock ${resource.title}`}
+                  >
+                    {cardBody}
+                  </Pressable>
+                ) : (
+                  <View
+                    key={`${resource.url ?? resource.title}-${index}`}
+                    style={[
+                      styles.resourceCard,
+                      isDark && styles.resourceCardDark,
+                    ]}
+                  >
+                    {cardBody}
                   </View>
                 );
               })}
@@ -979,15 +1057,28 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F7",
     borderRadius: 16,
     padding: 14,
+    overflow: "hidden",
+    position: "relative",
+  },
+  resourceCardLocked: {
+    minHeight: 120,
+    justifyContent: "center",
   },
   resourceCardDark: {
     backgroundColor: "#1E1E32",
   },
+  resourceTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+    paddingRight: 4,
+  },
   resourceLabel: {
+    flex: 1,
     fontSize: 15,
     fontFamily: AppFonts.bodyBold,
     color: "#2C3E50",
-    marginBottom: 8,
   },
   resourceDescription: {
     fontSize: 14,
@@ -996,16 +1087,49 @@ const styles = StyleSheet.create({
     fontFamily: AppFonts.bodyRegular,
     marginBottom: 12,
   },
+  resourceDescriptionLocked: {
+    marginBottom: 0,
+  },
   resourcePlayerWrap: {
     width: "100%",
     aspectRatio: 16 / 9,
     borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "#000",
+    position: "relative",
   },
   resourcePlayer: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000",
+  },
+  /** Gives locked cards height so the padlock overlay has something to cover. */
+  resourceLockedMediaPlaceholder: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    borderRadius: 12,
+    backgroundColor: "#D1D5DB",
+  },
+  resourceLockedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(120, 120, 128, 0.55)",
+    zIndex: 1,
+  },
+  resourceLockedOverlayDark: {
+    backgroundColor: "rgba(20, 20, 32, 0.65)",
+  },
+  resourceLockCenter: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2,
+  },
+  resourceLockCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   resourceLinkButton: {
     backgroundColor: "#7187CE",

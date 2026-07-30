@@ -184,7 +184,7 @@ export async function requirePro(): Promise<boolean> {
 }
 
 /**
- * Pro gate for a module video. The first video in Module 1 (Sleep) is free
+ * Pro gate for a module video. The first video in each module is free
  * for everyone as a preview.
  */
 export async function requireVideoAccess(
