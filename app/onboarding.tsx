@@ -1,7 +1,5 @@
 import { EmailUpdatesSection } from "@/components/email-updates-section";
-import {
-  MODULE_HEADER_BACKGROUNDS,
-} from "@/components/module-card-art";
+import { MODULE_HEADER_BACKGROUNDS } from "@/components/module-card-art";
 import { VideoPlayer, type VideoPlayerHandle } from "@/components/video-player";
 import { MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
@@ -73,7 +71,7 @@ const WELCOME_PILLS = [
   { key: "soul", label: "Soul", Icon: TrendingUp, color: "#059669" },
 ] as const;
 
-const WELCOME_PILL_FADE_START = 400;
+const WELCOME_PILL_FADE_START = 1000;
 const WELCOME_PILL_FADE_STAGGER = 380;
 const WELCOME_PILL_FADE_DURATION = 700;
 const WELCOME_PILL_PULSE_GAP = 500;
@@ -1099,7 +1097,9 @@ export default function OnboardingScreen() {
           <View style={styles.slide}>
             <View style={styles.slideContent}>
               <View style={styles.slideCopy}>
-                <Text style={styles.slideTitle}>What do you want to improve?</Text>
+                <Text style={styles.slideTitle}>
+                  What do you want to improve?
+                </Text>
                 <Text style={styles.slideBody}>Select all that apply</Text>
               </View>
               <View style={styles.slideVisual}>

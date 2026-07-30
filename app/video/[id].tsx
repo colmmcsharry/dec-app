@@ -153,7 +153,7 @@ export default function VideoDetailScreen() {
 
   const nextVideoEmbedUrl = useMemo(() => {
     if (!autoplayEnabled || !nextVideo || !canChainToNextVideo) return null;
-    return buildVimeoEmbedUrl(nextVideo.url);
+    return buildVimeoEmbedUrl(nextVideo.url, { autoplay: true });
   }, [autoplayEnabled, canChainToNextVideo, nextVideo]);
 
   const moduleDef = categorySlug ? MODULE_WORKBOOKS[categorySlug] : undefined;
@@ -336,7 +336,7 @@ export default function VideoDetailScreen() {
 
   const handleNextVideo = useCallback(() => {
     if (!nextVideo || moduleVideos.length === 0) return;
-    const embedUrl = buildVimeoEmbedUrl(nextVideo.url);
+    const embedUrl = buildVimeoEmbedUrl(nextVideo.url, { autoplay: true });
     setStreamIndex((prev) => {
       const base = prev ?? (routeVideoIndex >= 0 ? routeVideoIndex : 0);
       return base + 1;
@@ -530,6 +530,7 @@ export default function VideoDetailScreen() {
             ref={videoPlayerRef}
             key={`${categorySlug ?? ""}-${id ?? ""}`}
             videoUrl={activeVideoUrl}
+            autoPlay
             nextVideoEmbedUrl={nextVideoEmbedUrl}
             onEnded={handleVideoEnded}
           />

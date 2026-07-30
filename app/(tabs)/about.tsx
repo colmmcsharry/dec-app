@@ -289,14 +289,14 @@ function WhoAmISection({
 }
 
 const TESTIMONIAL_IMAGES: ImageSourcePropType[] = [
-  require("@/assets/images/about/testimonials/testimonial-2.jpg"),
+  require("@/assets/images/about/testimonials/testimonial-8.jpg"),
   require("@/assets/images/about/testimonials/testimonial-1.jpg"),
   require("@/assets/images/about/testimonials/testimonial-3.jpg"),
   require("@/assets/images/about/testimonials/testimonial-4.jpg"),
   require("@/assets/images/about/testimonials/testimonial-5.jpg"),
   require("@/assets/images/about/testimonials/testimonial-6.jpg"),
   require("@/assets/images/about/testimonials/testimonial-7.jpg"),
-  require("@/assets/images/about/testimonials/testimonial-8.jpg"),
+  require("@/assets/images/about/testimonials/testimonial-2.jpg"),
 ];
 
 function TestimonialImageCarousel({ isDark }: { isDark: boolean }) {
