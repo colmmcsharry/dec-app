@@ -14,18 +14,15 @@ interface VideoPlayerProps {
   title?: string;
   /** Shown until the Vimeo WebView finishes loading. */
   posterUrl?: string;
-  /**
-   * Start playback as soon as the player is ready (module lesson screens only).
-   * Leave false for About / onboarding embeds — those use a simple iframe.
-   */
-  autoPlay?: boolean;
   /** Embed URL for the next video — queued inside the WebView for gapless autoplay. */
   nextVideoEmbedUrl?: string | null;
   /** Called when the Vimeo player fires `ended`. `continued` is true if the next video started playing. */
   onEnded?: (continued: boolean) => void;
 }
 
-const BASE_PLAYER_PARAMS: Record<string, string> = {
+const PLAYER_PARAMS: Record<string, string> = {
+  autoplay: "1",
+  muted: "0",
   title: "0",
   byline: "0",
   portrait: "0",
@@ -36,20 +33,11 @@ const BASE_PLAYER_PARAMS: Record<string, string> = {
   playsinline: "1",
 };
 
-export function buildVimeoEmbedUrl(
-  url: string,
-  options?: { autoplay?: boolean },
-) {
-  const params: Record<string, string> = {
-    ...BASE_PLAYER_PARAMS,
-    autoplay: options?.autoplay ? "1" : "0",
-    muted: "0",
-  };
-
+export function buildVimeoEmbedUrl(url: string) {
   if (url.includes("player.vimeo.com")) {
     const [base, existingQuery = ""] = url.split("?");
     const merged = new URLSearchParams(existingQuery);
-    for (const [key, value] of Object.entries(params)) {
+    for (const [key, value] of Object.entries(PLAYER_PARAMS)) {
       merged.set(key, value);
     }
     return `${base}?${merged.toString()}`;
@@ -57,66 +45,20 @@ export function buildVimeoEmbedUrl(
 
   const match = url.match(/vimeo\.com\/(\d+)/);
   if (match) {
-    const merged = new URLSearchParams(params);
+    const merged = new URLSearchParams(PLAYER_PARAMS);
     return `https://player.vimeo.com/video/${match[1]}?${merged.toString()}`;
   }
 
   return url;
 }
 
-/** Plain iframe — same approach as before lesson autoplay. Best for tap-to-play. */
-function buildSimplePlayerHtml(embedUrl: string) {
-  const safeUrl = embedUrl
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <style>
-    * { margin: 0; padding: 0; }
-    html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
-    iframe {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      border: none;
-    }
-  </style>
-</head>
-<body>
-  <iframe
-    id="vimeo"
-    src="${safeUrl}"
-    allow="autoplay; fullscreen; picture-in-picture"
-    allowfullscreen
-  ></iframe>
-  <script>
-    (function () {
-      var iframe = document.getElementById("vimeo");
-      function postToVimeo(method) {
-        if (!iframe || !iframe.contentWindow) return;
-        iframe.contentWindow.postMessage(JSON.stringify({ method: method }), "*");
-      }
-      window.__pause = function () { postToVimeo("pause"); };
-      window.__loadAndPlay = function () {};
-      window.__ensurePlaying = function () {};
-      window.__setPendingAutoplay = function () {};
-    })();
-  </script>
-</body>
-</html>`;
-}
-
 /**
- * Player.js embed used for module lessons — supports start-autoplay and
- * gapless next-video chaining.
+ * Inline Vimeo player. Autoplay chaining must only report `continued: true`
+ * after play() actually starts — otherwise RN advances UI while Vimeo stays paused
+ * (common under memory pressure / audio session contention from other apps).
  */
-function buildLessonPlayerHtml(embedUrl: string, autoPlay: boolean) {
+function buildPlayerHtml(embedUrl: string) {
   const safeUrl = embedUrl.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-  const autoPlayJs = autoPlay ? "true" : "false";
 
   return `<!DOCTYPE html>
 <html>
@@ -133,12 +75,11 @@ function buildLessonPlayerHtml(embedUrl: string, autoPlay: boolean) {
   <div id="player"></div>
   <script>
     (function () {
-      var shouldAutoPlay = ${autoPlayJs};
-
       function sleep(ms) {
         return new Promise(function (resolve) { setTimeout(resolve, ms); });
       }
 
+      /** Prefer id+hash — more reliable than a full embed URL for loadVideo. */
       function parseVimeoTarget(url) {
         var idMatch = String(url).match(/\\/video\\/(\\d+)/);
         var hashMatch = String(url).match(/[?&]h=([a-zA-Z0-9]+)/);
@@ -199,14 +140,13 @@ function buildLessonPlayerHtml(embedUrl: string, autoPlay: boolean) {
         dnt: true,
         autopause: false,
         playsinline: true,
-        autoplay: shouldAutoPlay,
+        autoplay: true,
       });
 
-      if (shouldAutoPlay) {
-        player.ready().then(function () {
-          return playWithRetry(player, 6);
-        }).catch(function () {});
-      }
+      // Start playback when the lesson page opens (thumbnail tap → this screen).
+      player.ready().then(function () {
+        return playWithRetry(player, 6);
+      }).catch(function () {});
 
       window.__pendingAutoplay = null;
 
@@ -216,7 +156,9 @@ function buildLessonPlayerHtml(embedUrl: string, autoPlay: boolean) {
 
       window.__loadAndPlay = function (url) {
         window.__pendingAutoplay = null;
-        return loadAndPlayInternal(url).catch(function () {});
+        return loadAndPlayInternal(url).catch(function () {
+          /* RN may show play UI; user can tap play */
+        });
       };
 
       window.__pause = function () {
@@ -244,6 +186,7 @@ function buildLessonPlayerHtml(embedUrl: string, autoPlay: boolean) {
             post({ type: "ended", continued: true });
           })
           .catch(function () {
+            // Tell RN autoplay did not stick so it can retry via loadAndPlay.
             post({ type: "ended", continued: false, autoplayFailed: true });
           });
       });
@@ -261,55 +204,31 @@ export type VideoPlayerHandle = {
 
 export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
   function VideoPlayer(
-    {
-      videoUrl,
-      title,
-      posterUrl,
-      autoPlay = false,
-      nextVideoEmbedUrl,
-      onEnded,
-    },
+    { videoUrl, title, posterUrl, nextVideoEmbedUrl, onEnded },
     ref,
   ) {
     const webViewRef = useRef<WebView>(null);
     const initialEmbedUrlRef = useRef<string | null>(null);
-    const modeRef = useRef<"simple" | "lesson">("simple");
-    const autoPlayRef = useRef(autoPlay);
     const [showPoster, setShowPoster] = useState(Boolean(posterUrl));
     const hasUrl = Boolean(videoUrl?.trim());
-
-    // Lesson mode when we need start-autoplay or next-video chaining.
-    const useLessonPlayer = Boolean(
-      autoPlay || nextVideoEmbedUrl || onEnded,
-    );
-
     const embedUrl = useMemo(
-      () =>
-        hasUrl
-          ? buildVimeoEmbedUrl(videoUrl, { autoplay: Boolean(autoPlay) })
-          : "",
-      [autoPlay, hasUrl, videoUrl],
+      () => (hasUrl ? buildVimeoEmbedUrl(videoUrl) : ""),
+      [hasUrl, videoUrl],
     );
 
     if (initialEmbedUrlRef.current === null && embedUrl) {
       initialEmbedUrlRef.current = embedUrl;
-      autoPlayRef.current = autoPlay;
-      modeRef.current = useLessonPlayer ? "lesson" : "simple";
     }
 
-    const html = useMemo(() => {
-      if (!initialEmbedUrlRef.current) return "";
-      if (modeRef.current === "simple") {
-        return buildSimplePlayerHtml(initialEmbedUrlRef.current);
-      }
-      return buildLessonPlayerHtml(
-        initialEmbedUrlRef.current,
-        autoPlayRef.current,
-      );
-    }, []);
+    const html = useMemo(
+      () =>
+        initialEmbedUrlRef.current
+          ? buildPlayerHtml(initialEmbedUrlRef.current)
+          : "",
+      [],
+    );
 
     const syncPendingAutoplay = (nextUrl: string | null | undefined) => {
-      if (modeRef.current !== "lesson") return;
       const script = `
       (function () {
         if (window.__setPendingAutoplay) {
