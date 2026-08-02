@@ -1,5 +1,5 @@
-import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import type { MarketingEmailSource } from "@/constants/marketing-email";
+import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import {
   getMarketingEmailPrefs,
@@ -7,8 +7,9 @@ import {
   subscribeMarketingEmail,
   unsubscribeMarketingEmail,
 } from "@/services/marketing-email";
+import { useFocusEffect } from "@react-navigation/native";
 import { Mail } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,11 +24,17 @@ type EmailUpdatesSectionProps = {
   source: MarketingEmailSource;
   /** Onboarding slide uses a simpler layout without the outer card chrome. */
   variant?: "card" | "slide";
+  /**
+   * Home: hide the whole block once subscribed (About keeps unsubscribe).
+   * Prefs stay shared so About ↔ Home stay in sync.
+   */
+  hideWhenSubscribed?: boolean;
 };
 
 export function EmailUpdatesSection({
   source,
   variant = "card",
+  hideWhenSubscribed = false,
 }: EmailUpdatesSectionProps) {
   const { isDark } = useTheme();
   const [email, setEmail] = useState("");
@@ -43,9 +50,12 @@ export function EmailUpdatesSection({
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  // Re-read on focus so Home hides/shows after About subscribe/unsubscribe.
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   const handleSubscribe = async () => {
     setError(null);
@@ -94,9 +104,15 @@ export function EmailUpdatesSection({
 
   const isSlide = variant === "slide";
 
+  if (hideWhenSubscribed && (loading || optedIn)) {
+    return null;
+  }
+
   if (loading) {
     return (
-      <View style={[isSlide ? styles.slideWrap : styles.card, styles.loadingWrap]}>
+      <View
+        style={[isSlide ? styles.slideWrap : styles.card, styles.loadingWrap]}
+      >
         <ActivityIndicator color={MAIN_PURPLE} />
       </View>
     );
@@ -115,19 +131,24 @@ export function EmailUpdatesSection({
         </View>
       ) : null}
 
-      <Text style={[isSlide ? styles.slideTitle : styles.title, isDark && styles.titleDark]}>
+      <Text
+        style={[
+          isSlide ? styles.slideTitle : styles.title,
+          isDark && styles.titleDark,
+        ]}
+      >
         {isSlide ? "Stay in the loop" : "Get updates from Declan"}
       </Text>
       <Text style={[styles.body, isDark && styles.bodyDark]}>
         {isSlide
-          ? "Optional — tips, new content, live workouts, and occasional offers. Unsubscribe anytime."
-          : "Regular tips, new content, and offers from Declan. Unsubscribe anytime."}
+          ? "Optional — tips, new content, live workouts, and occasional offers."
+          : "Regular tips, new content, and offers."}
       </Text>
 
       {optedIn ? (
         <View style={[styles.successBox, isDark && styles.successBoxDark]}>
           <Text style={[styles.successText, isDark && styles.successTextDark]}>
-            ✓  Subscribed as {email}
+            ✓ Subscribed as {email}
           </Text>
           <Pressable
             onPress={handleUnsubscribe}
@@ -218,11 +239,14 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     padding: 16,
-    backgroundColor: "#F5F5F7",
+    backgroundColor: "#FFFFFF",
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#EDE8F5",
   },
   cardDark: {
     backgroundColor: "#1E1E32",
+    borderColor: "#2A2D3E",
   },
   loadingWrap: {
     minHeight: 120,

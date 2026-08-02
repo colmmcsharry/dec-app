@@ -1,45 +1,34 @@
 import { MAIN_PURPLE } from "@/constants/theme";
-import {
-  hasCompletedOnboarding,
-  setOnboardingComplete,
-} from "@/services/onboarding-storage";
-import { hasProEntitlement } from "@/services/purchases";
+import { setOnboardingComplete } from "@/services/onboarding-storage";
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
-type Destination = "/onboarding" | "/(tabs)";
-
 /**
- * Entry router. We use a *soft* paywall model:
+ * Entry router — soft-paywall experiment:
  *
- * 1. Pro subscribers → tabs (skip onboarding + paywall even after reinstall).
- * 2. New free users → onboarding → paywall at the end.
- * 3. Returning free users (onboarded, no Pro) → tabs; paywall only on gated taps.
+ * Everyone (new + returning) goes straight to the main tabs so they see the
+ * free modules first. Paywall still appears on gated taps elsewhere.
+ *
+ * Onboarding UI is kept at `/onboarding` (dev preview / future re-enable)
+ * but is not used as the default first-run path.
  */
 export default function Index() {
-  const [destination, setDestination] = useState<Destination | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const pro = await hasProEntitlement();
-      if (cancelled) return;
-      if (pro) {
-        void setOnboardingComplete();
-        setDestination("/(tabs)");
-        return;
-      }
-      const onboarded = await hasCompletedOnboarding();
-      if (cancelled) return;
-      setDestination(onboarded ? "/(tabs)" : "/onboarding");
+      // Mark complete so other flows treat the user as past first-run setup.
+      await setOnboardingComplete();
+      if (!cancelled) setReady(true);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (!destination) {
+  if (!ready) {
     return (
       <View
         style={{
@@ -54,5 +43,5 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={destination} />;
+  return <Redirect href="/(tabs)" />;
 }

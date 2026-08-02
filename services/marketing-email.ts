@@ -36,7 +36,7 @@ export async function getMarketingEmailPrefs(): Promise<MarketingEmailPrefs> {
       optedIn: optedIn === "1",
       subscribedAt,
       source:
-        source === "about" || source === "onboarding"
+        source === "about" || source === "onboarding" || source === "home"
           ? source
           : null,
     };

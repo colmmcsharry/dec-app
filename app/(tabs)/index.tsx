@@ -1,3 +1,4 @@
+import { EmailUpdatesSection } from "@/components/email-updates-section";
 import { HomeGreetingArt } from "@/components/home-greeting-art";
 import { MainTabHeader, ThemeToggle } from "@/components/main-tab-header";
 import {
@@ -853,6 +854,8 @@ export default function HomeScreen() {
             </Pressable>
           </Pressable>
         </Modal>
+
+        <EmailUpdatesSection source="home" hideWhenSubscribed />
 
         <View style={styles.modulesTitleRow}>
           <Text
