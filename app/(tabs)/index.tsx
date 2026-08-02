@@ -17,6 +17,7 @@ import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_VIDEOS } from "@/data/module-videos";
 import { MODULE_PDFS } from "@/data/pdf-assets";
+import { FREE_MODULE_SLUGS } from "@/lib/free-preview-video";
 import { getQuoteBackgroundOfTheDay, getQuoteOfTheDay } from "@/data/quotes";
 import {
     DEFAULT_REMINDER_HOUR,
@@ -33,7 +34,7 @@ import DateTimePicker, {
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { ChevronRight, Flame, Maximize2 } from "lucide-react-native";
+import { ChevronRight, Crown, Flame, Maximize2 } from "lucide-react-native";
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
     Alert,
@@ -316,6 +317,10 @@ const MODULE_CATEGORY_ROWS = MODULE_ORDER.map((slug) => {
     icon: <Icon size={22} color={theme.iconColor} strokeWidth={2.4} />,
   };
 });
+
+const FREE_MODULE_COUNT = FREE_MODULE_SLUGS.length;
+const FREE_MODULE_ROWS = MODULE_CATEGORY_ROWS.slice(0, FREE_MODULE_COUNT);
+const PREMIUM_MODULE_ROWS = MODULE_CATEGORY_ROWS.slice(FREE_MODULE_COUNT);
 
 export default function HomeScreen() {
   const { isDark } = useTheme();
@@ -857,9 +862,46 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {/* Categories Grid */}
         <View style={styles.grid}>
-          {MODULE_CATEGORY_ROWS.map((category) => {
+          {FREE_MODULE_ROWS.map((category) => {
+            const totalCount = (MODULE_VIDEOS[category.slug] || []).length;
+            const watchedCount = (progress[category.slug] || []).length;
+            return (
+              <CategoryCard
+                key={category.slug}
+                {...category}
+                totalCount={totalCount}
+                watchedCount={watchedCount}
+                isDark={isDark}
+              />
+            );
+          })}
+        </View>
+
+        <View
+          style={styles.premiumModulesHeader}
+          accessibilityRole="header"
+          accessibilityLabel="Premium Only modules"
+        >
+          <View pointerEvents="none">
+            <Crown
+              size={18}
+              color={isDark ? "#8B75C4" : "#3D348B"}
+              strokeWidth={2.2}
+            />
+          </View>
+          <Text
+            style={[
+              styles.premiumModulesLabel,
+              isDark && styles.premiumModulesLabelDark,
+            ]}
+          >
+            Premium Only
+          </Text>
+        </View>
+
+        <View style={styles.grid}>
+          {PREMIUM_MODULE_ROWS.map((category) => {
             const totalCount = (MODULE_VIDEOS[category.slug] || []).length;
             const watchedCount = (progress[category.slug] || []).length;
             return (
@@ -1118,6 +1160,22 @@ const styles = StyleSheet.create({
   },
   modulesTitleDark: {
     color: "#ECEDEE",
+  },
+  premiumModulesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 32,
+    marginBottom: 12,
+    marginLeft: 2,
+  },
+  premiumModulesLabel: {
+    fontSize: 16,
+    fontFamily: AppFonts.headingBold,
+    color: "#3D348B",
+  },
+  premiumModulesLabelDark: {
+    color: "#8B75C4",
   },
   overallProgressCard: {
     backgroundColor: "#FFFFFF",

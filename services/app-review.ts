@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import * as StoreReview from "expo-store-review";
-import { Linking, Platform } from "react-native";
+import { Alert, Linking, Platform } from "react-native";
 
 export const APP_STORE_ID = "6761314761";
 
@@ -42,14 +42,40 @@ export async function openStoreReviewPage(): Promise<void> {
 
 /**
  * Opportunistic native review (e.g. after finishing Module 1).
- * Explicit "Leave a review" buttons should use `openStoreReviewPage` —
- * on Android, Play's in-app API often reports available then shows nothing.
+ * Explicit "Leave a review" buttons should use `openStoreReviewPage`.
+ *
+ * - iOS: in-app StoreReview sheet when available
+ * - Android: confirmation dialog first — never dump straight into Play Store
  */
 export async function requestAppReview(): Promise<void> {
   if (Platform.OS === "web") return;
 
   if (Platform.OS === "ios" && (await StoreReview.hasAction())) {
     await StoreReview.requestReview();
+    return;
+  }
+
+  if (Platform.OS === "android") {
+    await new Promise<void>((resolve) => {
+      Alert.alert(
+        "Enjoying the course?",
+        "If Module 1 helped, would you mind leaving a quick review on Google Play? It really helps others find Peak Performance Code.",
+        [
+          {
+            text: "Not now",
+            style: "cancel",
+            onPress: () => resolve(),
+          },
+          {
+            text: "Leave a review",
+            onPress: () => {
+              void openStoreReviewPage().finally(() => resolve());
+            },
+          },
+        ],
+        { cancelable: true, onDismiss: () => resolve() },
+      );
+    });
     return;
   }
 

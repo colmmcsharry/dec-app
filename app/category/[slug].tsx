@@ -17,8 +17,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BookOpen, Check, ChevronRight, FileText, Lock, Youtube } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
 import { getWatchedVideos } from '@/services/progress';
-import { requirePro, requireVideoAccess, hasProEntitlement } from '@/services/purchases';
-import { isFreePreviewVideo } from '@/lib/free-preview-video';
+import {
+  hasProEntitlement,
+  requireModuleAccess,
+  requireVideoAccess,
+} from '@/services/purchases';
+import { isFreeModule, isFreePreviewVideo } from '@/lib/free-preview-video';
 import { MODULE_VIDEOS, VideoEntry } from '@/data/module-videos';
 import { MODULE_WORKBOOKS } from '@/data/module-workbooks';
 import { MODULE_PDFS, type PdfEntry } from '@/data/pdf-assets';
@@ -110,7 +114,7 @@ export default function CategoryScreen() {
 
   const openModulePdf = async (pdf: PdfEntry) => {
     if (!slug) return;
-    if (!(await requirePro())) return;
+    if (!(await requireModuleAccess(slug))) return;
     router.push({
       pathname: '/pdf-viewer',
       params: { pdfKey: pdf.id, title: pdf.title },
@@ -118,7 +122,8 @@ export default function CategoryScreen() {
   };
 
   const openModuleLink = async (link: ModuleLinkResource) => {
-    if (!(await requirePro())) return;
+    if (!slug) return;
+    if (!(await requireModuleAccess(slug))) return;
     await Linking.openURL(link.url);
   };
 
@@ -279,6 +284,7 @@ export default function CategoryScreen() {
           <View style={styles.videoList}>
             {videos.map((video, index) => {
               const isWatched = watchedIds.includes(video.id);
+              const moduleIsFree = isFreeModule(slug);
               const isFreePreview = isFreePreviewVideo(slug, video.id);
               const isLocked = !hasPro && !isFreePreview;
               return (
@@ -329,7 +335,7 @@ export default function CategoryScreen() {
                         <Text style={styles.durationText}>{formatDuration(video.duration)}</Text>
                       </View>
                     ) : null}
-                    {isFreePreview && !isWatched ? (
+                    {moduleIsFree && index === 0 && !hasPro && !isWatched ? (
                       <View style={styles.freePreviewBadge}>
                         <Text style={styles.freePreviewBadgeText}>Free</Text>
                       </View>
@@ -466,7 +472,7 @@ export default function CategoryScreen() {
                 { opacity: pressed ? 0.8 : 1 },
               ]}
               onPress={async () => {
-                if (!(await requirePro())) return;
+                if (!(await requireModuleAccess(slug))) return;
                 router.push(hrefModuleDigitalWorkbook(slug));
               }}
               accessibilityRole="button"

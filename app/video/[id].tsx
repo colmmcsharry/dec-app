@@ -26,9 +26,10 @@ import {
 import { maybeRequestReviewAfterFirstModuleCompleted } from "@/services/app-review";
 import {
   hasProEntitlement,
+  requireModuleAccess,
   requirePro,
 } from "@/services/purchases";
-import { isFreePreviewVideo } from "@/lib/free-preview-video";
+import { isFreeModule, isFreePreviewVideo } from "@/lib/free-preview-video";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -147,9 +148,9 @@ export default function VideoDetailScreen() {
     return moduleVideos[currentIndex + 1];
   }, [currentIndex, moduleVideos]);
 
-  const isWatchingFreePreview = isFreePreviewVideo(categorySlug, activeVideoId);
-  // Pro / trial can chain from the free first lesson; free users stop there.
-  const canChainToNextVideo = hasPro || !isWatchingFreePreview;
+  const moduleIsFree = isFreeModule(categorySlug);
+  // Free modules can chain fully; premium modules need Pro.
+  const canChainToNextVideo = hasPro || moduleIsFree;
 
   const nextVideoEmbedUrl = useMemo(() => {
     if (!autoplayEnabled || !nextVideo || !canChainToNextVideo) return null;
@@ -206,6 +207,7 @@ export default function VideoDetailScreen() {
 
   useEffect(() => {
     if (!categorySlug || !activeVideoId) return;
+    if (isFreeModule(categorySlug)) return;
     if (isFreePreviewVideo(categorySlug, activeVideoId)) return;
     void (async () => {
       const pro = await hasProEntitlement();
@@ -255,8 +257,9 @@ export default function VideoDetailScreen() {
     [backdropAnim, cardAnim, clearCompletionTimers],
   );
 
-  const goToNextModule = useCallback(() => {
+  const goToNextModule = useCallback(async () => {
     if (completionNavigatedRef.current || !nextModuleInfo) return;
+    if (!(await requireModuleAccess(nextModuleInfo.slug))) return;
     completionNavigatedRef.current = true;
     hideCompletionOverlay(() => {
       router.replace({
@@ -379,8 +382,8 @@ export default function VideoDetailScreen() {
       const { finishedLastVideo } = await markCurrentVideoWatched();
       if (finishedLastVideo) return;
 
-      // Free users stop after the preview lesson; Pro/trial continue.
-      if (isWatchingFreePreview && !canChainToNextVideo) return;
+      // Free users stop at the end of free modules; Pro/trial continue.
+      if (!canChainToNextVideo) return;
 
       if (continued && canChainToNextVideo) {
         setStreamIndex((prev) => {
@@ -406,7 +409,6 @@ export default function VideoDetailScreen() {
       canChainToNextVideo,
       categorySlug,
       handleNextVideo,
-      isWatchingFreePreview,
       markCurrentVideoWatched,
       nextVideo,
       routeVideoIndex,
@@ -414,7 +416,8 @@ export default function VideoDetailScreen() {
   );
 
   const handlePlayNextVideo = async () => {
-    if (!(await requirePro())) return;
+    if (!nextVideo) return;
+    if (!moduleIsFree && !(await requirePro())) return;
     handleNextVideo();
   };
 
@@ -428,8 +431,7 @@ export default function VideoDetailScreen() {
     resource: (typeof supplementalResources)[number]
   ) => {
     if (openingResourceKey) return;
-    // Resources stay Pro-only even when the lesson itself is a free preview.
-    if (!(await requirePro())) return;
+    if (!(await requireModuleAccess(categorySlug ?? ""))) return;
 
     try {
       setOpeningResourceKey(resourceKey);
@@ -634,7 +636,7 @@ export default function VideoDetailScreen() {
               {supplementalResources.map((resource, index) => {
                 const resourceKey = `${resource.title}-${index}`;
                 const isOpening = openingResourceKey === resourceKey;
-                const resourceLocked = !hasPro;
+                const resourceLocked = !hasPro && !moduleIsFree;
                 const iconColor = isDark ? "#ECEDEE" : "#7187CE";
 
                 const cardBody = (

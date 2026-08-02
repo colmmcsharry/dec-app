@@ -29,7 +29,7 @@ import { hasBundledPdf } from "@/lib/bundled-pdf-assets";
 import { canUseNativePdfViewer } from "@/lib/native-pdf-capability";
 import { getPdfViewerRemoteUrl, resolvePdfUri } from "@/lib/resolve-pdf-uri";
 import { getPdfWebViewSource } from "@/lib/pdf-viewer-source";
-import { requirePro } from "@/services/purchases";
+import { requirePdfAccess } from "@/services/purchases";
 
 const LARGE_PDF_LOADING_MESSAGE =
   "This is a very large document. Please be patient, the first load can take 20 - 40 seconds.";
@@ -95,10 +95,19 @@ export default function PdfViewerScreen() {
   const [viewerReady, setViewerReady] = useState(false);
   const [showPatientMessage, setShowPatientMessage] = useState(false);
 
+  const resolvedPdfKey = useMemo(
+    () => resolvePdfKey({ pdfKey, downloadId, pdfId }),
+    [pdfKey, downloadId, pdfId],
+  );
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const allowed = await requirePro();
+      if (!resolvedPdfKey) {
+        if (!cancelled) router.back();
+        return;
+      }
+      const allowed = await requirePdfAccess(resolvedPdfKey);
       if (cancelled) return;
       if (!allowed) {
         router.back();
@@ -109,12 +118,7 @@ export default function PdfViewerScreen() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
-
-  const resolvedPdfKey = useMemo(
-    () => resolvePdfKey({ pdfKey, downloadId, pdfId }),
-    [pdfKey, downloadId, pdfId],
-  );
+  }, [resolvedPdfKey, router]);
 
   const catalogEntry = useMemo(
     () => (resolvedPdfKey ? getPdfCatalogEntry(resolvedPdfKey) : undefined),

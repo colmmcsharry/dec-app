@@ -1,5 +1,9 @@
 import { PRO_ENTITLEMENT_ID } from "@/constants/revenuecat";
-import { isFreePreviewVideo } from "@/lib/free-preview-video";
+import {
+  isFreeModule,
+  isFreeModulePdf,
+  isFreePreviewVideo,
+} from "@/lib/free-preview-video";
 import { isTestFlightInstall } from "@/lib/is-testflight-install";
 import { clearOnboardingComplete } from "@/services/onboarding-storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -184,8 +188,7 @@ export async function requirePro(): Promise<boolean> {
 }
 
 /**
- * Pro gate for a module video. The first video in each module is free
- * for everyone as a preview.
+ * Pro gate for a module video. Modules 1–2 (Sleep, Morning Routines) are free.
  */
 export async function requireVideoAccess(
   categorySlug: string,
@@ -195,7 +198,25 @@ export async function requireVideoAccess(
   return requirePro();
 }
 
-export { isFreePreviewVideo } from "@/lib/free-preview-video";
+/** Pro gate for module workbooks, PDFs, and lesson links. */
+export async function requireModuleAccess(
+  categorySlug: string,
+): Promise<boolean> {
+  if (isFreeModule(categorySlug)) return true;
+  return requirePro();
+}
+
+/** Pro gate for a PDF — free when it belongs to Module 1 or 2. */
+export async function requirePdfAccess(pdfKey: string): Promise<boolean> {
+  if (isFreeModulePdf(pdfKey)) return true;
+  return requirePro();
+}
+
+export {
+  isFreeModule,
+  isFreeModulePdf,
+  isFreePreviewVideo,
+} from "@/lib/free-preview-video";
 
 /**
  * TestFlight QA: simulate the free tier and restart from first-launch routing.

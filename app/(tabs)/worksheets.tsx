@@ -8,10 +8,12 @@ import { useTheme } from "@/context/theme-context";
 import { MODULE_SUMMARIES } from "@/data/module-summaries";
 import { MODULE_WORKBOOKS } from "@/data/module-workbooks";
 import { MODULE_PDFS, type PdfEntry } from "@/data/pdf-assets";
+import { FREE_MODULE_SLUGS } from "@/lib/free-preview-video";
 import { hrefModuleDigitalWorkbook } from "@/lib/module-workbook-route";
-import { requirePro } from "@/services/purchases";
+import { requireModuleAccess } from "@/services/purchases";
 import { useRouter } from "expo-router";
-import { AlignLeft, ChevronRight, FileText, Smartphone } from "lucide-react-native";
+import { AlignLeft, ChevronRight, Crown, FileText, Smartphone } from "lucide-react-native";
+import { Fragment } from "react";
 import {
   ImageBackground,
   Platform,
@@ -22,6 +24,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const FREE_MODULE_COUNT = FREE_MODULE_SLUGS.length;
 
 /** Module worksheet cards: neutral ink over illustrated art. */
 const MODULE_INK_LIGHT = "#1E2430";
@@ -38,7 +42,7 @@ export default function WorksheetsScreen() {
   const insets = useSafeAreaInsets();
 
   const openPdf = async (slug: string, pdf: PdfEntry) => {
-    if (!(await requirePro())) return;
+    if (!(await requireModuleAccess(slug))) return;
     router.push({
       pathname: "/pdf-viewer",
       params: { pdfKey: pdf.id, title: pdf.title },
@@ -46,12 +50,12 @@ export default function WorksheetsScreen() {
   };
 
   const openDigitalWorkbook = async (slug: string) => {
-    if (!(await requirePro())) return;
+    if (!(await requireModuleAccess(slug))) return;
     router.push(hrefModuleDigitalWorkbook(slug));
   };
 
   const openModuleSummary = async (slug: string) => {
-    if (!(await requirePro())) return;
+    if (!(await requireModuleAccess(slug))) return;
     router.push({
       pathname: "/module-summary/[slug]",
       params: { slug },
@@ -73,7 +77,7 @@ export default function WorksheetsScreen() {
         subtitle="Read module summaries, print PDFs, or use the Digital Workbooks for typed answers that save on this device."
       />
 
-      {MODULE_ORDER.map((slug) => {
+      {MODULE_ORDER.map((slug, index) => {
         const pdfs = MODULE_PDFS[slug] ?? [];
         const def = MODULE_WORKBOOKS[slug];
         const theme = MODULE_THEMES[slug];
@@ -84,10 +88,34 @@ export default function WorksheetsScreen() {
         const isSleep = slug === "sleep";
         const headingColor = isSleep ? SLEEP_TITLE : MODULE_INK_LIGHT;
         const headingMuted = isSleep ? SLEEP_MUTED : MODULE_MUTED_LIGHT;
+        const showPremiumHeader = index === FREE_MODULE_COUNT;
 
         return (
+          <Fragment key={slug}>
+          {showPremiumHeader ? (
+            <View
+              style={styles.premiumModulesHeader}
+              accessibilityRole="header"
+              accessibilityLabel="Premium Only modules"
+            >
+              <View pointerEvents="none">
+                <Crown
+                  size={18}
+                  color={isDark ? "#8B75C4" : "#3D348B"}
+                  strokeWidth={2.2}
+                />
+              </View>
+              <Text
+                style={[
+                  styles.premiumModulesLabel,
+                  isDark && styles.premiumModulesLabelDark,
+                ]}
+              >
+                Premium Only
+              </Text>
+            </View>
+          ) : null}
           <ImageBackground
-            key={slug}
             source={background}
             style={[
               styles.moduleCard,
@@ -231,6 +259,7 @@ export default function WorksheetsScreen() {
             </View>
             </View>
           </ImageBackground>
+          </Fragment>
         );
       })}
     </ScrollView>
@@ -247,6 +276,22 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
+  },
+  premiumModulesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+    marginBottom: 12,
+    marginLeft: 2,
+  },
+  premiumModulesLabel: {
+    fontSize: 16,
+    fontFamily: AppFonts.headingBold,
+    color: "#3D348B",
+  },
+  premiumModulesLabelDark: {
+    color: "#8B75C4",
   },
   moduleCard: {
     borderRadius: 22,
