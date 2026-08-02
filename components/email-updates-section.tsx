@@ -13,28 +13,39 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { RectButton } from "react-native-gesture-handler";
 
 type EmailUpdatesSectionProps = {
   source: MarketingEmailSource;
   /** Onboarding slide uses a simpler layout without the outer card chrome. */
   variant?: "card" | "slide";
   /**
-   * Home: hide the whole block once subscribed (About keeps unsubscribe).
-   * Prefs stay shared so About ↔ Home stay in sync.
+   * Home / welcome: hide the whole block once subscribed (About keeps unsubscribe).
+   * Prefs stay shared so surfaces stay in sync.
    */
   hideWhenSubscribed?: boolean;
+  /** Override the default card title. */
+  title?: string;
+  /** Override the default supporting line. Pass `null` to hide. */
+  body?: string | null;
+  /** Hide the small “Email updates” eyebrow row. */
+  hideEyebrow?: boolean;
 };
 
 export function EmailUpdatesSection({
   source,
   variant = "card",
   hideWhenSubscribed = false,
+  title,
+  body,
+  hideEyebrow = false,
 }: EmailUpdatesSectionProps) {
   const { isDark } = useTheme();
   const [email, setEmail] = useState("");
@@ -42,6 +53,8 @@ export function EmailUpdatesSection({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Keep success UI visible after subscribe on hideWhenSubscribed surfaces. */
+  const [justSubscribed, setJustSubscribed] = useState(false);
 
   const refresh = useCallback(async () => {
     const prefs = await getMarketingEmailPrefs();
@@ -58,6 +71,8 @@ export function EmailUpdatesSection({
   );
 
   const handleSubscribe = async () => {
+    // Dismiss first so the keyboard doesn't steal this press / the next one.
+    Keyboard.dismiss();
     setError(null);
     if (!isValidMarketingEmail(email)) {
       setError("Please enter a valid email address.");
@@ -74,6 +89,7 @@ export function EmailUpdatesSection({
     }
 
     setOptedIn(true);
+    setJustSubscribed(true);
   };
 
   const handleUnsubscribe = () => {
@@ -104,7 +120,9 @@ export function EmailUpdatesSection({
 
   const isSlide = variant === "slide";
 
-  if (hideWhenSubscribed && (loading || optedIn)) {
+  // Already subscribed from a previous visit — hide. After a fresh subscribe
+  // on this screen, keep the success state visible for feedback.
+  if (hideWhenSubscribed && (loading || (optedIn && !justSubscribed))) {
     return null;
   }
 
@@ -118,9 +136,19 @@ export function EmailUpdatesSection({
     );
   }
 
+  const resolvedTitle =
+    title ?? (isSlide ? "Stay in the loop" : "Get updates from Declan");
+  const resolvedBody =
+    body === null
+      ? null
+      : (body ??
+        (isSlide
+          ? "Optional — tips, new content, live workouts, and occasional offers."
+          : "Regular tips, new content, and offers."));
+
   const content = (
     <>
-      {!isSlide ? (
+      {!isSlide && !hideEyebrow ? (
         <View style={styles.cardHeader}>
           <View style={[styles.iconWrap, isDark && styles.iconWrapDark]}>
             <Mail size={20} color={MAIN_PURPLE} strokeWidth={2.2} />
@@ -131,21 +159,34 @@ export function EmailUpdatesSection({
         </View>
       ) : null}
 
-      <Text
-        style={[
-          isSlide ? styles.slideTitle : styles.title,
-          isDark && styles.titleDark,
-        ]}
-      >
-        {isSlide ? "Stay in the loop" : "Get updates from Declan"}
-      </Text>
-      <Text style={[styles.body, isDark && styles.bodyDark]}>
-        {isSlide
-          ? "Optional — tips, new content, live workouts, and occasional offers."
-          : "Regular tips, new content, and offers."}
-      </Text>
+      {optedIn && hideWhenSubscribed ? (
+        <View style={[styles.successBox, isDark && styles.successBoxDark]}>
+          <Text style={[styles.successTitle, isDark && styles.successTextDark]}>
+            You’re subscribed — thank you!
+          </Text>
+          <Text style={[styles.successText, isDark && styles.successTextDark]}>
+            We’ll be in touch at {email}.
+          </Text>
+        </View>
+      ) : (
+        <>
+          <Text
+            style={[
+              isSlide ? styles.slideTitle : styles.title,
+              isDark && styles.titleDark,
+            ]}
+          >
+            {resolvedTitle}
+          </Text>
+          {resolvedBody ? (
+            <Text style={[styles.body, isDark && styles.bodyDark]}>
+              {resolvedBody}
+            </Text>
+          ) : null}
+        </>
+      )}
 
-      {optedIn ? (
+      {optedIn && !hideWhenSubscribed ? (
         <View style={[styles.successBox, isDark && styles.successBoxDark]}>
           <Text style={[styles.successText, isDark && styles.successTextDark]}>
             ✓ Subscribed as {email}
@@ -161,7 +202,9 @@ export function EmailUpdatesSection({
             </Text>
           </Pressable>
         </View>
-      ) : (
+      ) : null}
+
+      {!optedIn ? (
         <>
           <TextInput
             value={email}
@@ -176,6 +219,9 @@ export function EmailUpdatesSection({
             autoCorrect={false}
             textContentType="emailAddress"
             autoComplete="email"
+            returnKeyType="done"
+            blurOnSubmit
+            onSubmitEditing={() => void handleSubscribe()}
             editable={!submitting}
             style={[
               styles.input,
@@ -185,24 +231,27 @@ export function EmailUpdatesSection({
             accessibilityLabel="Email address"
           />
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          <Pressable
+          <RectButton
             onPress={() => void handleSubscribe()}
-            disabled={submitting}
-            style={({ pressed }) => [
+            enabled={!submitting}
+            style={[
               styles.subscribeButton,
-              { opacity: submitting ? 0.7 : pressed ? 0.9 : 1 },
+              submitting ? styles.subscribeButtonDisabled : null,
             ]}
+            underlayColor="rgba(0,0,0,0.15)"
             accessibilityRole="button"
             accessibilityLabel="Subscribe to email updates"
           >
-            {submitting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.subscribeButtonText}>Subscribe</Text>
-            )}
-          </Pressable>
+            <View pointerEvents="none" style={styles.subscribeButtonInner}>
+              {submitting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.subscribeButtonText}>Subscribe</Text>
+              )}
+            </View>
+          </RectButton>
         </>
-      )}
+      ) : null}
     </>
   );
 
@@ -328,6 +377,13 @@ const styles = StyleSheet.create({
   subscribeButton: {
     backgroundColor: MAIN_PURPLE,
     borderRadius: 12,
+    minHeight: 48,
+    overflow: "hidden",
+  },
+  subscribeButtonDisabled: {
+    opacity: 0.7,
+  },
+  subscribeButtonInner: {
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
@@ -346,6 +402,11 @@ const styles = StyleSheet.create({
   },
   successBoxDark: {
     backgroundColor: "#1A2E28",
+  },
+  successTitle: {
+    fontFamily: AppFonts.bodyBold,
+    fontSize: 16,
+    color: "#1F2937",
   },
   successText: {
     fontFamily: AppFonts.bodyMedium,

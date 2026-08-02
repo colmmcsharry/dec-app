@@ -54,7 +54,7 @@ const categoryInfo: Record<string, { title: string; color: string; moduleNumber:
   sleep: { title: 'Sleep', color: '#E5D9F2', moduleNumber: 1 },
   'morning-routines': { title: 'Morning Routines', color: '#FFF3DC', moduleNumber: 2 },
   'energy-management': { title: 'Energy Management', color: '#D4F1E8', moduleNumber: 3 },
-  'mindfulness': { title: 'Creativity', color: '#EADBF7', moduleNumber: 4 },
+  'mindfulness': { title: 'Creative Solutions', color: '#EADBF7', moduleNumber: 4 },
   'move-2-perform': { title: 'Recovery', color: '#DBE9F7', moduleNumber: 5 },
   'thinking-2-perform': { title: 'Thinking 2 Perform', color: '#F7DBF0', moduleNumber: 6 },
   'recovery': { title: 'Move 2 Perform', color: '#D9E9F7', moduleNumber: 7 },

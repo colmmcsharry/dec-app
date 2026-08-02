@@ -1,9 +1,14 @@
 import { CelebrationBadge } from "@/components/celebration-badge";
+import { EmailUpdatesSection } from "@/components/email-updates-section";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
+import {
+  getMarketingEmailPrefs,
+  markMarketingEmailPremiumThankYou,
+} from "@/services/marketing-email";
 import { useRouter } from "expo-router";
 import { Calendar, Sparkles, Target } from "lucide-react-native";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -63,10 +68,30 @@ export default function WelcomeScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const [existingEmail, setExistingEmail] = useState<string | null>(null);
+  const [emailReady, setEmailReady] = useState(false);
 
   const cardAnim = useRef(new Animated.Value(0)).current;
   const tipAnims = useRef(TIPS.map(() => new Animated.Value(0))).current;
   const ctaAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const prefs = await getMarketingEmailPrefs();
+      if (cancelled) return;
+
+      if (prefs.optedIn && prefs.email) {
+        setExistingEmail(prefs.email);
+        // Silent Kit mark for thank-you automation (does not change signup_source).
+        void markMarketingEmailPremiumThankYou();
+      }
+      setEmailReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     Animated.spring(cardAnim, {
@@ -113,6 +138,7 @@ export default function WelcomeScreen() {
 
       <ScrollView
         contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
         <Animated.View
@@ -146,6 +172,31 @@ export default function WelcomeScreen() {
             set of digital workbooks.
           </Text>
         </Animated.View>
+
+        {emailReady && existingEmail ? (
+          <View style={[styles.existingEmailCard, isDark && styles.existingEmailCardDark]}>
+            <Text
+              style={[styles.existingEmailTitle, isDark && styles.textDark]}
+            >
+              You’re on the list — thank you!
+            </Text>
+            <Text
+              style={[styles.existingEmailBody, isDark && styles.bodyDark]}
+            >
+              We’ll send a thank-you note to {existingEmail}.
+            </Text>
+          </View>
+        ) : null}
+
+        {emailReady && !existingEmail ? (
+          <EmailUpdatesSection
+            source="welcome"
+            hideWhenSubscribed
+            hideEyebrow
+            title="We'd like to send you a thank you e-mail!"
+            body="Optional — leave your email and we’ll send a thank-you note plus occasional updates."
+          />
+        ) : null}
 
         <Text style={[styles.sectionLabel, isDark && styles.sectionLabelDark]}>
           A few tips before you dive in
@@ -304,6 +355,30 @@ const styles = StyleSheet.create({
   },
   bodyDark: {
     color: "#D8DAE6",
+  },
+  existingEmailCard: {
+    backgroundColor: "#E6F5F0",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#C5E8DA",
+    gap: 6,
+  },
+  existingEmailCardDark: {
+    backgroundColor: "#1A2E28",
+    borderColor: "#2A4A3C",
+  },
+  existingEmailTitle: {
+    fontFamily: AppFonts.bodyBold,
+    fontSize: 16,
+    color: TEXT_PRIMARY,
+  },
+  existingEmailBody: {
+    fontFamily: AppFonts.bodyMedium,
+    fontSize: 15,
+    lineHeight: 22,
+    color: TEXT_SECONDARY,
   },
   sectionLabel: {
     fontSize: 12,

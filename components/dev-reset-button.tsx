@@ -5,7 +5,7 @@ import {
 } from "@/services/purchases";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { Crown, Play, RotateCcw } from "lucide-react-native";
+import { Crown, PartyPopper, Play, RotateCcw } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Purchases from "react-native-purchases";
@@ -18,6 +18,8 @@ import Purchases from "react-native-purchases";
  *
  * - **Preview onboarding** — (`variant="inline"` only) opens the full carousel
  *   with `preview=1` so you can exit without marking onboarding complete.
+ * - **Preview welcome** — (`variant="inline"` only) opens the post-purchase /
+ *   post-trial thank-you screen (for Expo Go when paywalls are unavailable).
  */
 export function DevResetButton({
   variant = "floating",
@@ -82,22 +84,42 @@ export function DevResetButton({
       pointerEvents="box-none"
     >
       {variant === "inline" ? (
-        <Pressable
-          onPress={() =>
-            router.push({ pathname: "/onboarding", params: { preview: "1" } })
-          }
-          style={({ pressed }) => [
-            styles.pill,
-            styles.pillPreview,
-            { opacity: pressed ? 0.85 : 0.95 },
-          ]}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Preview full onboarding flow"
-        >
-          <Play size={12} color="#FFFFFF" strokeWidth={2.5} />
-          <Text style={styles.pillText}>Preview onboarding</Text>
-        </Pressable>
+        <>
+          <Pressable
+            onPress={() =>
+              router.push({ pathname: "/onboarding", params: { preview: "1" } })
+            }
+            style={({ pressed }) => [
+              styles.pill,
+              styles.pillPreview,
+              { opacity: pressed ? 0.85 : 0.95 },
+            ]}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Preview full onboarding flow"
+          >
+            <View pointerEvents="none">
+              <Play size={12} color="#FFFFFF" strokeWidth={2.5} />
+            </View>
+            <Text style={styles.pillText}>Preview onboarding</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/welcome")}
+            style={({ pressed }) => [
+              styles.pill,
+              styles.pillWelcome,
+              { opacity: pressed ? 0.85 : 0.95 },
+            ]}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Preview post-purchase welcome screen"
+          >
+            <View pointerEvents="none">
+              <PartyPopper size={12} color="#FFFFFF" strokeWidth={2.5} />
+            </View>
+            <Text style={styles.pillText}>Preview welcome</Text>
+          </Pressable>
+        </>
       ) : null}
       <Pressable
         onPress={toggleDevPro}
@@ -169,6 +191,9 @@ const styles = StyleSheet.create({
   },
   pillPreview: {
     backgroundColor: "#0284C7",
+  },
+  pillWelcome: {
+    backgroundColor: "#C026D3",
   },
   pillText: {
     color: "#FFFFFF",

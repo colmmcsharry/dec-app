@@ -6,6 +6,8 @@ const CORS_HEADERS = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const VALID_SOURCES = new Set(["about", "onboarding", "home", "welcome"]);
+
 function jsonResponse(status, body) {
   return new Response(JSON.stringify(body), {
     status,
@@ -50,6 +52,85 @@ async function findSubscriberByEmail(apiKey, email) {
   return result.data.subscribers[0];
 }
 
+function resolveSource(raw) {
+  const source = String(raw ?? "").trim().toLowerCase();
+  return VALID_SOURCES.has(source) ? source : "unknown";
+}
+
+function tagEnvForSource(source) {
+  switch (source) {
+    case "about":
+      return "KIT_TAG_ABOUT";
+    case "onboarding":
+      return "KIT_TAG_ONBOARDING";
+    case "home":
+      return "KIT_TAG_HOME";
+    case "welcome":
+      return "KIT_TAG_WELCOME";
+    default:
+      return null;
+  }
+}
+
+async function upsertSubscriber(apiKey, email, fields) {
+  let upsert = await kitRequest(apiKey, "/subscribers", {
+    method: "POST",
+    body: JSON.stringify({
+      email_address: email,
+      state: "active",
+      fields,
+    }),
+  });
+
+  if (!upsert.ok) {
+    console.warn(
+      "[kit-subscribe] upsert with fields failed; retrying without fields",
+      upsert.status,
+      upsert.data,
+    );
+    upsert = await kitRequest(apiKey, "/subscribers", {
+      method: "POST",
+      body: JSON.stringify({
+        email_address: email,
+        state: "active",
+      }),
+    });
+  }
+
+  return upsert;
+}
+
+async function addTagIfConfigured(apiKey, email, tagEnvName) {
+  if (!tagEnvName) return;
+  const tagId = Netlify.env.get(tagEnvName);
+  if (!tagId) {
+    console.warn(`[kit-subscribe] no ${tagEnvName} set`);
+    return;
+  }
+
+  const tagAdd = await kitRequest(apiKey, `/tags/${tagId}/subscribers`, {
+    method: "POST",
+    body: JSON.stringify({ email_address: email }),
+  });
+  if (!tagAdd.ok && tagAdd.status !== 409) {
+    console.warn("[kit-subscribe] tag add failed", tagAdd.status, tagAdd.data);
+  }
+}
+
+/** Marks a converter for thank-you automation without changing signup_source. */
+async function markPremium(apiKey, email) {
+  const upsert = await upsertSubscriber(apiKey, email, {
+    started_premium: "yes",
+  });
+  if (!upsert.ok) {
+    console.error("[kit-subscribe] mark_premium failed", upsert.status, upsert.data);
+    return jsonResponse(502, { error: "Could not update your email preferences." });
+  }
+
+  await addTagIfConfigured(apiKey, email, "KIT_TAG_WELCOME");
+  return jsonResponse(200, { ok: true, status: "marked_premium" });
+}
+
 export default async function handler(request) {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -78,8 +159,12 @@ export default async function handler(request) {
   const email = String(payload.email ?? "")
     .trim()
     .toLowerCase();
-  const action = payload.action === "unsubscribe" ? "unsubscribe" : "subscribe";
-  const source = payload.source === "about" ? "about" : "onboarding";
+  const rawAction = String(payload.action ?? "subscribe").trim().toLowerCase();
+  const action =
+    rawAction === "unsubscribe" || rawAction === "mark_premium"
+      ? rawAction
+      : "subscribe";
+  const source = resolveSource(payload.source);
 
   if (!EMAIL_RE.test(email)) {
     return jsonResponse(400, { error: "Please enter a valid email address." });
@@ -104,16 +189,17 @@ export default async function handler(request) {
     return jsonResponse(200, { ok: true, status: "unsubscribed" });
   }
 
-  const subscriberBody = {
-    email_address: email,
-    state: "active",
-  };
+  if (action === "mark_premium") {
+    return markPremium(apiKey, email);
+  }
 
-  const upsert = await kitRequest(apiKey, "/subscribers", {
-    method: "POST",
-    body: JSON.stringify(subscriberBody),
-  });
+  // Fresh opt-in. Keep signup_source as first-touch; mark converters when source is welcome.
+  const fields = { signup_source: source };
+  if (source === "welcome") {
+    fields.started_premium = "yes";
+  }
 
+  const upsert = await upsertSubscriber(apiKey, email, fields);
   if (!upsert.ok) {
     console.error("[kit-subscribe] upsert failed", upsert.status, upsert.data);
     return jsonResponse(502, { error: "Could not save your email. Try again." });
@@ -131,20 +217,7 @@ export default async function handler(request) {
     });
   }
 
-  const tagId =
-    source === "about"
-      ? Netlify.env.get("KIT_TAG_ABOUT")
-      : Netlify.env.get("KIT_TAG_ONBOARDING");
+  await addTagIfConfigured(apiKey, email, tagEnvForSource(source));
 
-  if (tagId) {
-    const tagAdd = await kitRequest(apiKey, `/tags/${tagId}/subscribers`, {
-      method: "POST",
-      body: JSON.stringify({ email_address: email }),
-    });
-    if (!tagAdd.ok && tagAdd.status !== 409) {
-      console.warn("[kit-subscribe] tag add failed", tagAdd.status, tagAdd.data);
-    }
-  }
-
-  return jsonResponse(200, { ok: true, status: "subscribed" });
+  return jsonResponse(200, { ok: true, status: "subscribed", source });
 }

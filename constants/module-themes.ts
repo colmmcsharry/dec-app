@@ -69,7 +69,7 @@ export const MODULE_THEMES: Record<string, ModuleTheme> = {
     iconColor: "#A87BC9",
     backgroundColor: "#EADBF7",
     textColor: "#7B5299",
-    shortName: "Creativity",
+    shortName: "Creative Solutions",
   },
   "move-2-perform": {
     slug: "move-2-perform",

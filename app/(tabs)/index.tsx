@@ -155,7 +155,7 @@ const CARD_TITLES: Record<(typeof MODULE_ORDER)[number], string> = {
   sleep: "Sleep",
   "morning-routines": "Morning Routines",
   "energy-management": "Energy Management",
-  mindfulness: "Creativity",
+  mindfulness: "Creative Solutions",
   "move-2-perform": "Recovery",
   "thinking-2-perform": "Thinking 2 Perform",
   recovery: "Move 2 Perform",
