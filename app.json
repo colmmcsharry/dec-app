@@ -2,7 +2,7 @@
   "expo": {
     "name": "Peak Performance Code",
     "slug": "daily-diesel",
-    "version": "1.4.11",
+    "version": "1.4.12",
     "orientation": "portrait",
     "icon": "./assets/images/logo-square.png",
     "scheme": "dailydiesel",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "32",
+      "buildNumber": "33",
       "bundleIdentifier": "com.colmmcs.dailydiesel",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.colmmcs.dailydiesel",
-      "versionCode": 32,
+      "versionCode": 33,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo-square.png",
         "backgroundColor": "#A8B5E0"

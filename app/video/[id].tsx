@@ -30,6 +30,7 @@ import {
   requirePro,
 } from "@/services/purchases";
 import { isFreeModule, isFreePreviewVideo } from "@/lib/free-preview-video";
+import { useLowPowerMode } from "expo-battery";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -41,6 +42,7 @@ import {
   Easing,
   ImageBackground,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -81,6 +83,7 @@ export default function VideoDetailScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isLowPowerMode = useLowPowerMode();
   const scrollRef = useRef<ScrollView | null>(null);
   const videoPlayerRef = useRef<VideoPlayerHandle>(null);
   const [streamIndex, setStreamIndex] = useState<number | null>(null);
@@ -541,12 +544,28 @@ export default function VideoDetailScreen() {
           {canChainToNextVideo ? (
             <View style={[styles.autoplayRow, isDark && styles.autoplayRowDark]}>
               <View style={styles.autoplayCopy}>
-                <Text style={[styles.autoplayLabel, isDark && styles.textDark]}>
+                <Text
+                  style={[
+                    styles.autoplayLabel,
+                    isDark && styles.textDark,
+                    Platform.OS === "ios" && isLowPowerMode
+                      ? null
+                      : styles.autoplayLabelSolo,
+                  ]}
+                >
                   Autoplay next video
                 </Text>
-                <Text style={[styles.autoplayHint, isDark && styles.subtextDark]}>
-                  Plays the next lesson when this one finishes
-                </Text>
+                {Platform.OS === "ios" && isLowPowerMode ? (
+                  <Text
+                    style={[
+                      styles.autoplayHint,
+                      styles.autoplayHintWarning,
+                      isDark && styles.autoplayHintWarningDark,
+                    ]}
+                  >
+                    Autoplay may not work while Low Power Mode is on
+                  </Text>
+                ) : null}
               </View>
               <Switch
                 value={autoplayEnabled}
@@ -972,13 +991,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: AppFonts.bodyBold,
     color: "#2C3E50",
-    marginBottom: 2,
+    marginBottom: 4,
+  },
+  autoplayLabelSolo: {
+    marginBottom: 0,
   },
   autoplayHint: {
     fontSize: 13,
     lineHeight: 18,
     fontFamily: AppFonts.bodyRegular,
-    color: "#6B7280",
+  },
+  autoplayHintWarning: {
+    color: "#B45309",
+  },
+  autoplayHintWarningDark: {
+    color: "#FCD34D",
   },
   watchedButton: {
     backgroundColor: "#7187CE",
