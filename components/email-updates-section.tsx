@@ -7,7 +7,7 @@ import {
   subscribeMarketingEmail,
   unsubscribeMarketingEmail,
 } from "@/services/marketing-email";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { Mail } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {

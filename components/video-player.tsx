@@ -383,12 +383,13 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
           onLoadEnd={handleLoadEnd}
         />
         {showPoster && posterUrl ? (
-          <Image
-            source={{ uri: posterUrl }}
-            style={styles.poster}
-            resizeMode="cover"
-            pointerEvents="none"
-          />
+          <View pointerEvents="none" style={styles.poster}>
+            <Image
+              source={{ uri: posterUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          </View>
         ) : null}
       </View>
     );
@@ -409,11 +410,11 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   poster: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "#000",
   },
   errorContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(200, 50, 50, 0.8)",

@@ -506,7 +506,7 @@ const overallPreviewStyles = StyleSheet.create({
     height: 84,
   },
   gaugePctWrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1426,11 +1426,11 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   goalCellImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 14,
   },
   goalCellScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 14,
   },
   goalCellInner: {

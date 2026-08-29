@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   patientOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "center",
     alignItems: "center",
     gap: 12,

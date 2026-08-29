@@ -32,7 +32,7 @@ import { requireVideoAccess } from "@/services/purchases";
 import DateTimePicker, {
     DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { ChevronRight, Crown, Flame, Maximize2 } from "lucide-react-native";
@@ -237,14 +237,14 @@ const CategoryCard = memo(function CategoryCard({
         {background ? (
           <ImageBackground
             source={background}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             imageStyle={styles.cardImage}
             resizeMode="cover"
           />
         ) : (
           <View
             style={[
-              StyleSheet.absoluteFillObject,
+              StyleSheet.absoluteFill,
               styles.cardImage,
               { backgroundColor: MAIN_PURPLE },
             ]}
@@ -255,7 +255,7 @@ const CategoryCard = memo(function CategoryCard({
             colors={[overlayScrim[0], overlayScrim[1]]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
-            style={[StyleSheet.absoluteFillObject, styles.cardImage]}
+            style={[StyleSheet.absoluteFill, styles.cardImage]}
             pointerEvents="none"
           />
         ) : null}
@@ -1210,7 +1210,7 @@ const styles = StyleSheet.create({
     height: 84,
   },
   gaugePctWrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },

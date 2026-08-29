@@ -45,7 +45,7 @@ import {
   TextInput,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  type TextInputFocusEventData,
+  type FocusEvent,
   UIManager,
   View,
 } from "react-native";
@@ -157,7 +157,7 @@ function useAndroidKeyboardScroll(scrollRef: RefObject<ScrollView | null>) {
   }, []);
 
   const scrollInputIntoView = useCallback(
-    (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
+    (event: FocusEvent) => {
       if (blurClearTimeoutRef.current) {
         clearTimeout(blurClearTimeoutRef.current);
         blurClearTimeoutRef.current = null;
@@ -300,7 +300,7 @@ export default function ModuleWorkbookScreen() {
       }
 
       sectionView.measureInWindow((_x, sectionY) => {
-        scrollView.measureInWindow((_sx, scrollViewportY) => {
+        (scrollView as unknown as View).measureInWindow((_sx, scrollViewportY) => {
           const y = scrollYRef.current + (sectionY - scrollViewportY) - 12;
           scrollView.scrollTo({ y: Math.max(0, y), animated: true });
         });
@@ -1721,13 +1721,13 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   ratingModalRoot: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 1000,
     elevation: 1000,
     justifyContent: "flex-end",
   },
   ratingModalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.45)",
   },
   ratingModalSheet: {
@@ -1892,7 +1892,7 @@ type WeeklyPlanSectionViewProps = {
   isDark: boolean;
   onToggleDay: (sectionId: string, dayIndex: number) => void;
   onPlanAction: (sectionId: string, value: string) => void;
-  onInputFocus: (event: NativeSyntheticEvent<TextInputFocusEventData>) => void;
+  onInputFocus: (event: FocusEvent) => void;
   onInputBlur: () => void;
 };
 

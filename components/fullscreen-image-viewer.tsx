@@ -175,10 +175,10 @@ export function FullscreenImageThumbnail({
         accessibilityRole="button"
         accessibilityLabel={`${accessibilityLabel}. Tap to view full screen.`}
       >
-        <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           <Image
             source={source}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             contentFit="contain"
             accessibilityLabel={accessibilityLabel}
           />
@@ -193,7 +193,7 @@ export function FullscreenImageThumbnail({
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2000,
     elevation: 2000,
     backgroundColor: "rgba(0,0,0,0.94)",

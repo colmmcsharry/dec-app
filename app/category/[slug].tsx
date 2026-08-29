@@ -12,7 +12,7 @@ import {
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from "expo-router/react-navigation";
 import { LinearGradient } from 'expo-linear-gradient';
 import { BookOpen, Check, ChevronRight, FileText, Lock, Youtube } from 'lucide-react-native';
 import { useTheme } from '@/context/theme-context';
@@ -144,7 +144,7 @@ export default function CategoryScreen() {
         {moduleBackground ? (
           <ImageBackground
             source={moduleBackground}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             imageStyle={styles.heroHeaderImage}
             resizeMode="cover"
           />
@@ -154,7 +154,7 @@ export default function CategoryScreen() {
             colors={[overlayScrim[0], overlayScrim[1]]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
         ) : null}

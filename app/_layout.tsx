@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from "expo-router/react-navigation";
 import { Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { Karla_400Regular, Karla_500Medium, Karla_700Bold } from '@expo-google-fonts/karla';
 import { Asset } from 'expo-asset';
@@ -32,7 +32,7 @@ function AppContent() {
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       {Platform.OS !== 'web' && <NotificationResponseHandler />}
-      <Stack screenOptions={{ headerBackTitleVisible: false, headerBackTitle: ' ' }}>
+      <Stack screenOptions={{ headerBackTitle: ' ' }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="paywall-placeholder" options={{ headerShown: false, animation: 'fade' }} />

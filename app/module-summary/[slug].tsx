@@ -117,7 +117,7 @@ export default function ModuleSummaryScreen() {
           {headerArt ? (
             <ImageBackground
               source={headerArt}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
               imageStyle={styles.heroArtImage}
               resizeMode="cover"
             />
@@ -127,7 +127,7 @@ export default function ModuleSummaryScreen() {
               colors={[overlayScrim[0], overlayScrim[1]]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
-              style={[StyleSheet.absoluteFillObject, styles.heroArtImage]}
+              style={[StyleSheet.absoluteFill, styles.heroArtImage]}
               pointerEvents="none"
             />
           ) : null}

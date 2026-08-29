@@ -72,7 +72,7 @@ export function PremiumStatusModal({ visible, onClose }: PremiumStatusModalProps
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 1000,
     elevation: 1000,
     justifyContent: "center",
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     padding: 28,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.45)",
   },
   card: {

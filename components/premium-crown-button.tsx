@@ -5,7 +5,7 @@ import {
   configurePurchases,
   hasProEntitlement,
 } from "@/services/purchases";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { useRouter } from "expo-router";
 import { Check, Crown } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";

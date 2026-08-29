@@ -1,8 +1,12 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { isMediaPathReady, mediaUrl } from "@/lib/media-base-url";
-import { Audio, type AVPlaybackStatus } from "expo-av";
+import {
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus,
+} from "expo-audio";
 import { Pause, Play } from "lucide-react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { RectButton } from "react-native-gesture-handler";
 
@@ -12,12 +16,12 @@ type ArticleAudioPlayerProps = {
   isDark: boolean;
 };
 
-function formatTime(ms: number): string {
-  if (!Number.isFinite(ms) || ms < 0) return "0:00";
-  const totalSeconds = Math.floor(ms / 1000);
+function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const totalSeconds = Math.floor(seconds);
   const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  const secs = totalSeconds % 60;
+  return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
 export function ArticleAudioPlayer({
@@ -25,208 +29,68 @@ export function ArticleAudioPlayer({
   path,
   isDark,
 }: ArticleAudioPlayerProps) {
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const loadPromiseRef = useRef<Promise<Audio.Sound | null> | null>(null);
-  const playRequestIdRef = useRef(0);
-  const [loading, setLoading] = useState(false);
   const [startingPlayback, setStartingPlayback] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [positionMs, setPositionMs] = useState(0);
-  const [durationMs, setDurationMs] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const uri = mediaUrl(path);
   const mediaReady = isMediaPathReady(path);
-
-  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-    if (!status.isLoaded) {
-      if (status.error) {
-        setError("Could not play this episode.");
-        setStartingPlayback(false);
-        setLoading(false);
-      }
-      return;
-    }
-
-    setPositionMs(status.positionMillis);
-    if (status.durationMillis != null && status.durationMillis > 0) {
-      setDurationMs(status.durationMillis);
-    }
-    setPlaying(status.isPlaying);
-    if (status.isPlaying) {
-      setStartingPlayback(false);
-      setLoading(false);
-    }
-
-    if (status.didJustFinish) {
-      setPlaying(false);
-      setStartingPlayback(false);
-      setPositionMs(status.durationMillis ?? 0);
-    }
-  }, []);
+  const player = useAudioPlayer(mediaReady ? { uri } : null, {
+    updateInterval: 250,
+    downloadFirst: true,
+  });
+  const status = useAudioPlayerStatus(player);
 
   useEffect(() => {
-    void Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      // Keep podcasts playing when the screen locks / app backgrounds.
-      staysActiveInBackground: true,
-      shouldDuckAndroid: true,
-      playThroughEarpieceAndroid: false,
+    void setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: "doNotMix",
     });
-
-    return () => {
-      playRequestIdRef.current += 1;
-      void soundRef.current?.unloadAsync();
-      soundRef.current = null;
-      loadPromiseRef.current = null;
-    };
   }, []);
 
-  // Drop sound when the track URL changes.
   useEffect(() => {
-    playRequestIdRef.current += 1;
-    const existing = soundRef.current;
-    soundRef.current = null;
-    loadPromiseRef.current = null;
-    setPlaying(false);
     setStartingPlayback(false);
-    setPositionMs(0);
-    setDurationMs(0);
     setError(null);
-    if (existing) {
-      void existing.unloadAsync();
-    }
   }, [uri]);
 
-  const ensureSound = useCallback(
-    async (shouldPlay: boolean) => {
-      if (soundRef.current) return soundRef.current;
-      if (!mediaReady) {
-        setError("Media hosting is not configured yet.");
-        return null;
-      }
-
-      if (loadPromiseRef.current) {
-        return loadPromiseRef.current;
-      }
-
-      loadPromiseRef.current = (async () => {
-        setLoading(true);
-        setError(null);
-
-        try {
-          const { sound } = await Audio.Sound.createAsync(
-            { uri },
-            {
-              shouldPlay,
-              progressUpdateIntervalMillis: 250,
-              androidImplementation: "MediaPlayer",
-            },
-            onPlaybackStatusUpdate,
-          );
-          soundRef.current = sound;
-
-          const status = await sound.getStatusAsync();
-          if (status.isLoaded) {
-            if (status.durationMillis != null && status.durationMillis > 0) {
-              setDurationMs(status.durationMillis);
-            }
-            setPlaying(status.isPlaying);
-            if (status.isPlaying) {
-              setStartingPlayback(false);
-            }
-          }
-
-          return sound;
-        } catch {
-          setError(
-            "Could not load this episode. Check your connection or try again later.",
-          );
-          return null;
-        } finally {
-          setLoading(false);
-          loadPromiseRef.current = null;
-        }
-      })();
-
-      return loadPromiseRef.current;
-    },
-    [mediaReady, onPlaybackStatusUpdate, uri],
-  );
-
-  // Warm the file so the first tap can play immediately.
   useEffect(() => {
+    if (status.playing) {
+      setStartingPlayback(false);
+    }
+  }, [status.playing]);
+
+  const togglePlayback = useCallback(() => {
     if (!mediaReady) return;
-    void ensureSound(false);
-  }, [ensureSound, mediaReady]);
 
-  const togglePlayback = useCallback(async () => {
-    if (!mediaReady) return;
-
-    const requestId = ++playRequestIdRef.current;
-
-    if (soundRef.current) {
-      const currentStatus = await soundRef.current.getStatusAsync();
-      if (requestId !== playRequestIdRef.current) return;
-
-      if (currentStatus.isLoaded && currentStatus.isPlaying) {
+    try {
+      if (status.playing) {
         setStartingPlayback(false);
-        await soundRef.current.pauseAsync();
+        player.pause();
         return;
       }
 
       setStartingPlayback(true);
       setError(null);
-      try {
-        if (
-          currentStatus.isLoaded &&
-          currentStatus.durationMillis != null &&
-          currentStatus.positionMillis >= currentStatus.durationMillis - 500
-        ) {
-          await soundRef.current.setPositionAsync(0);
-        }
-        await soundRef.current.playAsync();
-      } catch {
-        if (requestId === playRequestIdRef.current) {
-          setStartingPlayback(false);
-          setError("Could not play this episode.");
-        }
+
+      const nearEnd =
+        status.duration > 0 && status.currentTime >= status.duration - 0.5;
+      if (nearEnd) {
+        player.seekTo(0);
       }
-      return;
-    }
-
-    setStartingPlayback(true);
-    setError(null);
-
-    // First tap: create already playing so we don't need a second gesture.
-    const sound = await ensureSound(true);
-    if (requestId !== playRequestIdRef.current) return;
-
-    if (!sound) {
-      setStartingPlayback(false);
-      return;
-    }
-
-    try {
-      const status = await sound.getStatusAsync();
-      if (!status.isLoaded) {
-        setStartingPlayback(false);
-        return;
-      }
-      if (!status.isPlaying) {
-        await sound.playAsync();
-      }
+      player.play();
     } catch {
-      if (requestId === playRequestIdRef.current) {
-        setStartingPlayback(false);
-        setError("Could not play this episode.");
-      }
+      setStartingPlayback(false);
+      setError("Could not play this episode.");
     }
-  }, [ensureSound, mediaReady]);
+  }, [mediaReady, player, status.currentTime, status.duration, status.playing]);
 
-  const progress = durationMs > 0 ? Math.min(1, positionMs / durationMs) : 0;
-  const showSpinner = loading || startingPlayback;
-  const showPause = playing && !showSpinner;
+  const progress =
+    status.duration > 0
+      ? Math.min(1, status.currentTime / status.duration)
+      : 0;
+  const showSpinner =
+    startingPlayback || (mediaReady && status.isBuffering && !status.playing);
+  const showPause = status.playing && !showSpinner;
 
   return (
     <View
@@ -245,7 +109,7 @@ export function ArticleAudioPlayer({
       ) : (
         <View style={styles.controlsRow}>
           <RectButton
-            onPress={() => void togglePlayback()}
+            onPress={togglePlayback}
             enabled={mediaReady && !showSpinner}
             style={[
               styles.playButton,
@@ -276,7 +140,7 @@ export function ArticleAudioPlayer({
               />
             </View>
             <Text style={[styles.timeText, isDark && styles.subtextDark]}>
-              {formatTime(positionMs)} / {formatTime(durationMs)}
+              {formatTime(status.currentTime)} / {formatTime(status.duration)}
             </Text>
           </View>
         </View>
@@ -347,7 +211,7 @@ const styles = StyleSheet.create({
   },
   progressWrap: {
     flex: 1,
-    gap: 6,
+    gap: 4,
   },
   progressTrack: {
     height: 6,
@@ -360,7 +224,6 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: "100%",
-    borderRadius: 3,
     backgroundColor: MAIN_PURPLE,
   },
   timeText: {

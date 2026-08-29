@@ -9,7 +9,7 @@ import appJson from "./app.json";
  * Google Play API key is not committed if you prefer.
  */
 export default ({ config }: ConfigContext): ExpoConfig => {
-  const base = appJson.expo;
+  const base = appJson.expo as ExpoConfig;
 
   return {
     ...config,
