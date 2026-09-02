@@ -1,4 +1,3 @@
-import { ArticleAudioPlayer } from "@/components/article-audio-player";
 import { ScreenBackButton } from "@/components/screen-back-button";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
@@ -12,7 +11,7 @@ import {
 } from "@/services/wordpress-posts";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { openBrowserAsync } from "expo-web-browser";
-import { FileText, Headphones } from "lucide-react-native";
+import { FileText } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -274,6 +273,20 @@ function ArticleBlockView({
       );
     }
     case "link":
+      if (block.prefix != null || block.suffix != null) {
+        return (
+          <Text style={[styles.paragraph, isDark && styles.bodyDark]}>
+            {block.prefix}
+            <Text
+              style={[styles.linkText, isDark && styles.linkTextDark]}
+              onPress={() => void openBrowserAsync(block.url)}
+            >
+              {block.label}
+            </Text>
+            {block.suffix}
+          </Text>
+        );
+      }
       return (
         <Pressable
           onPress={() => void openBrowserAsync(block.url)}
@@ -406,14 +419,8 @@ export default function ArticleScreen() {
       >
         <ScreenBackButton color={isDark ? "#ECEDEE" : "#1E2430"} />
         <View style={styles.kindBadge}>
-          {article.kind === "podcast" ? (
-            <Headphones size={14} color={MAIN_PURPLE} />
-          ) : (
-            <FileText size={14} color={MAIN_PURPLE} />
-          )}
-          <Text style={styles.kindBadgeText}>
-            {article.kind === "podcast" ? "Podcast & Article" : "Article"}
-          </Text>
+          <FileText size={14} color={MAIN_PURPLE} />
+          <Text style={styles.kindBadgeText}>Article</Text>
         </View>
       </View>
 
@@ -451,22 +458,6 @@ export default function ArticleScreen() {
           <Text style={[styles.title, isDark && styles.textDark]}>
             {article.title}
           </Text>
-
-          {article.podcasts && article.podcasts.length > 0 ? (
-            <View style={styles.podcastSection}>
-              <Text style={[styles.sectionLabel, isDark && styles.textDark]}>
-                Listen
-              </Text>
-              {article.podcasts.map((track) => (
-                <ArticleAudioPlayer
-                  key={track.id}
-                  title={track.title}
-                  path={track.path}
-                  isDark={isDark}
-                />
-              ))}
-            </View>
-          ) : null}
 
           <View style={styles.bodySection}>
             {article.blocks.map((block, index) => (
@@ -545,15 +536,6 @@ const styles = StyleSheet.create({
   },
   subtextDark: {
     color: "#AEB3C4",
-  },
-  podcastSection: {
-    marginBottom: 24,
-  },
-  sectionLabel: {
-    fontFamily: AppFonts.headingSemiBold,
-    fontSize: 18,
-    color: WORKBOOK_TEXT,
-    marginBottom: 10,
   },
   bodySection: {
     gap: 0,

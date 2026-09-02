@@ -88,6 +88,23 @@ export async function markVideoWatched(categorySlug: string, videoId: string): P
   await saveProgressData(data);
 }
 
+/** Mark every lesson in the module watched (used by continuous “whole” videos). */
+export async function markModuleComplete(categorySlug: string): Promise<void> {
+  const videos = MODULE_VIDEOS[categorySlug];
+  if (!videos?.length) return;
+
+  const data = await getPrunedProgressData();
+  data[categorySlug] = videos.map((video) => video.id);
+  await saveProgressData(data);
+}
+
+export async function isModuleComplete(categorySlug: string): Promise<boolean> {
+  const videos = MODULE_VIDEOS[categorySlug];
+  if (!videos?.length) return false;
+  const watched = await getWatchedVideos(categorySlug);
+  return watched.length >= videos.length;
+}
+
 export async function getWatchedVideos(categorySlug: string): Promise<string[]> {
   const data = await getPrunedProgressData();
   return data[categorySlug] || [];

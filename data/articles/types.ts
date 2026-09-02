@@ -4,7 +4,7 @@ export type ArticleBlock =
   | { type: "quote"; text: string }
   | { type: "emphasis"; text: string }
   | { type: "list"; items: string[] }
-  | { type: "link"; label: string; url: string }
+  | { type: "link"; label: string; url: string; prefix?: string; suffix?: string }
   | { type: "image"; path: string; caption?: string; alt?: string };
 
 export type ArticlePodcastTrack = {

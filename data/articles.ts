@@ -33,8 +33,17 @@ function latestByKind(kind: Article["kind"]): Article | undefined {
   )[0];
 }
 
-export function getFeaturedPodcast(): Article | undefined {
-  return latestByKind("podcast");
+/** Local curated pieces that should appear in the Articles feed (with WordPress). */
+const ARTICLES_FEED_SLUGS = new Set([
+  "danny-lennon-diet",
+  "sean-mcgarrity-sales",
+]);
+
+export function getLocalArticlesForFeed(): Article[] {
+  return ARTICLES.filter(
+    (article) =>
+      article.kind === "article" && ARTICLES_FEED_SLUGS.has(article.slug),
+  ).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }
 
 export function getFeaturedArticle(): Article | undefined {

@@ -1,5 +1,6 @@
 import { MODULE_ORDER } from "@/constants/module-themes";
 import { MODULE_VIDEOS } from "@/data/module-videos";
+import { isModuleWholeVideoId } from "@/data/module-whole-videos";
 import { SUPPLEMENTAL_RESOURCES } from "@/data/supplemental-resources";
 
 /** Modules 1–2 are free for everyone (videos, workbooks, lesson resources). */
@@ -15,7 +16,7 @@ export function isFreeModule(slug: string | undefined): boolean {
 }
 
 /**
- * Any lesson in a free module is unlocked for non‑Pro users.
+ * Any lesson (or continuous whole video) in a free module is unlocked for non‑Pro users.
  * Modules 3–10 still require Pro.
  */
 export function isFreePreviewVideo(
@@ -24,6 +25,7 @@ export function isFreePreviewVideo(
 ): boolean {
   if (!categorySlug || !videoId) return false;
   if (!isFreeModule(categorySlug)) return false;
+  if (isModuleWholeVideoId(categorySlug, videoId)) return true;
   return (MODULE_VIDEOS[categorySlug] ?? []).some((v) => v.id === videoId);
 }
 

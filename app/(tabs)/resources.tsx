@@ -11,7 +11,6 @@ import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { getFeaturedDownload } from "@/data/downloads";
 import { getFeaturedGymRoutine } from "@/data/gym-routines";
-import { getFeaturedPodcast } from "@/data/articles";
 import { requirePro } from "@/services/purchases";
 import {
   loadWordpressArticles,
@@ -22,12 +21,11 @@ import {
   Download,
   Dumbbell,
   FileText,
-  Headphones,
   Target,
   Zap,
   type LucideIcon,
 } from "lucide-react-native";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -143,8 +141,6 @@ export default function ResourcesScreen() {
   const insets = useSafeAreaInsets();
   const featuredDownload = getFeaturedDownload();
   const featuredGymRoutine = getFeaturedGymRoutine();
-  // Hardcoded Sean / Danny podcasts — not the WordPress feed.
-  const featuredPodcast = useMemo(() => getFeaturedPodcast(), []);
   const [featuredArticle, setFeaturedArticle] = useState<WordpressArticle | null>(
     null,
   );
@@ -197,12 +193,6 @@ export default function ResourcesScreen() {
     router.push({
       pathname: "/articles",
       params: { kind: "article" },
-    });
-
-  const openPodcasts = () =>
-    router.push({
-      pathname: "/articles",
-      params: { kind: "podcast" },
     });
 
   const openArticle = async (slug: string) => {
@@ -261,24 +251,6 @@ export default function ResourcesScreen() {
           ) : (
             <ArticleListCardSkeleton isDark={isDark} />
           )}
-        </FeatureSection>
-      ) : null}
-
-      {featuredPodcast ? (
-        <FeatureSection
-          title="Podcasts"
-          titleIcon={Headphones}
-          variant="blue"
-          eyebrow="Latest Podcast"
-          isDark={isDark}
-          viewAllLabel="View All Podcasts"
-          onViewAll={openPodcasts}
-        >
-          <ArticleListCard
-            article={featuredPodcast}
-            isDark={isDark}
-            onPress={() => void openArticle(featuredPodcast.slug)}
-          />
         </FeatureSection>
       ) : null}
 

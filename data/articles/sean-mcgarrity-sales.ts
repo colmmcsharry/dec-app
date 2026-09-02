@@ -10,27 +10,28 @@ export const SEAN_MCGARRITY_SALES_ARTICLE: Article = {
   publishedAt: "2016-10-13",
   excerpt:
     "Sean McGarrity shares how he rebuilt after bankruptcy — with 12 practical sales lessons on belief, trust, timing, and authentic connection.",
-  kind: "podcast",
+  kind: "article",
   thumbnail: `${WP_UPLOADS}/sean-mcgarrity.jpg`,
-  podcasts: [
-    {
-      id: "full",
-      title: "Full podcast",
-      path: `${WP_UPLOADS}/sean-mcgarrity-podcast-final-version.wav`,
-    },
-  ],
   blocks: [
+    {
+      type: "link",
+      prefix:
+        "Listen to the audio clips from this interview on my old blog, by clicking ",
+      label: "HERE",
+      suffix: ".",
+      url: "https://performancetreanor.wordpress.com/2016/10/13/podcast-how-to-perform-in-a-sales-environment-with-12-tips-from-top-entrepreneur-sean-mcgarrity/",
+    },
     {
       type: "quote",
       text: "I show them that sales in my mind is so easy. It's just so easy to sell shit. And your problem is that you think it is all this mystical stuff that you've got to do. There's all these steps and words and things. There's not!",
     },
     {
       type: "paragraph",
-      text: "Sean McGarrity went bankrupt when his automobile dealership went bust. He then chose to build up a business from scratch, training personal trainers in a unique fashion. Here is his story in our first podcast.",
+      text: "Sean McGarrity went bankrupt when his automobile dealership went bust. He then chose to build up a business from scratch, training personal trainers in a unique fashion. Here is his story.",
     },
     {
       type: "emphasis",
-      text: "Please note there is a small amount of bad language throughout before proceeding.",
+      text: "Please note there is a small amount of bad language throughout.",
     },
     {
       type: "paragraph",
@@ -211,10 +212,6 @@ export const SEAN_MCGARRITY_SALES_ARTICLE: Article = {
       path: `${WP_UPLOADS}/gymshot.jpg`,
       alt: "Personal trainers at Elite Fitness",
       caption: "Was price going to stop these personal trainers?",
-    },
-    {
-      type: "paragraph",
-      text: "Listen to the full podcast above for Sean's complete story and every clip in context.",
     },
   ],
 };

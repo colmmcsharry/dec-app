@@ -30,6 +30,9 @@ export const VIMEO_CONFIG = {
 
   /** About page video testimonials */
   testimonialsFolder: '29392954',
+
+  /** Continuous “Module N whole” videos (app uses static IDs in module-whole-videos.ts) */
+  wholesFolder: '30404575',
 };
 
 // Note: Vimeo personal access tokens don't expire. Set it once and you're good.

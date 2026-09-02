@@ -9,7 +9,7 @@ import {
   View,
   Image,
 } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { RectButton, TouchableOpacity } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useIsFocused } from "expo-router/react-navigation";
@@ -24,6 +24,7 @@ import {
 } from '@/services/purchases';
 import { isFreeModule, isFreePreviewVideo } from '@/lib/free-preview-video';
 import { MODULE_VIDEOS, VideoEntry } from '@/data/module-videos';
+import { getModuleWholeVideo } from '@/data/module-whole-videos';
 import { MODULE_WORKBOOKS } from '@/data/module-workbooks';
 import { MODULE_PDFS, type PdfEntry } from '@/data/pdf-assets';
 import {
@@ -70,6 +71,7 @@ export default function CategoryScreen() {
   const insets = useSafeAreaInsets();
 
   const videos: VideoEntry[] = MODULE_VIDEOS[slug] || [];
+  const wholeVideo = slug ? getModuleWholeVideo(slug) : undefined;
   const workbookDef = slug ? MODULE_WORKBOOKS[slug] : undefined;
   const modulePdfs: PdfEntry[] = slug ? (MODULE_PDFS[slug] ?? []) : [];
   const moduleLinks: ModuleLinkResource[] = slug
@@ -275,6 +277,93 @@ export default function CategoryScreen() {
       </View>
 
       <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
+        {wholeVideo ? (
+          <View style={styles.wholeVideoWrap}>
+            <RectButton
+              style={[
+                styles.wholeVideoCard,
+                isDark && styles.wholeVideoCardDark,
+              ]}
+              underlayColor={isDark ? '#2A2A42' : '#EDE8F7'}
+              onPress={async () => {
+                if (!(await requireVideoAccess(slug ?? '', wholeVideo.id))) {
+                  return;
+                }
+                router.push({
+                  pathname: '/video/[id]',
+                  params: {
+                    id: wholeVideo.id,
+                    title: wholeVideo.title,
+                    url: wholeVideo.url,
+                    categoryColor: info.color,
+                    categorySlug: slug,
+                    whole: '1',
+                  },
+                });
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Watch module ${info.moduleNumber} as one continuous video`}
+            >
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.wholeVideoAccent,
+                  { backgroundColor: getPastelAccent('lavender', isDark).accent },
+                ]}
+              />
+              <View pointerEvents="none" style={styles.wholeVideoThumb}>
+                {wholeVideo.thumbnail ? (
+                  <Image
+                    source={{ uri: wholeVideo.thumbnail }}
+                    style={styles.wholeVideoThumbImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.wholeVideoThumbFallback} />
+                )}
+                <View style={styles.wholeVideoPlayCircle}>
+                  <Text style={styles.wholeVideoPlayIcon}>▶</Text>
+                </View>
+              </View>
+              <View pointerEvents="none" style={styles.wholeVideoCopy}>
+                <Text
+                  style={[
+                    styles.wholeVideoEyebrow,
+                    isDark && styles.wholeVideoEyebrowDark,
+                  ]}
+                >
+                  Watch entire module
+                </Text>
+                <Text
+                  style={[
+                    styles.wholeVideoTitle,
+                    isDark && styles.textDark,
+                  ]}
+                  numberOfLines={2}
+                >
+                  Prefer one long video?
+                </Text>
+                <Text
+                  style={[
+                    styles.wholeVideoMeta,
+                    isDark && styles.subtextDark,
+                  ]}
+                >
+                  {wholeVideo.duration
+                    ? `${Math.ceil(wholeVideo.duration / 60)} mins`
+                    : 'Full module in one sitting'}
+                </Text>
+              </View>
+              <View pointerEvents="none" style={styles.wholeVideoChevron}>
+                <ChevronRight
+                  size={20}
+                  color={isDark ? '#B7A8E0' : '#7187CE'}
+                  strokeWidth={2.4}
+                />
+              </View>
+            </RectButton>
+          </View>
+        ) : null}
         {videos.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No videos available yet</Text>
@@ -686,6 +775,101 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 12,
     gap: 30,
+  },
+  wholeVideoWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+  wholeVideoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 88,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E4DFF0',
+    overflow: 'hidden',
+    paddingRight: 10,
+  },
+  wholeVideoCardDark: {
+    backgroundColor: '#1E1E32',
+    borderColor: '#2D3044',
+  },
+  wholeVideoAccent: {
+    width: 4,
+    alignSelf: 'stretch',
+  },
+  wholeVideoThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 12,
+    marginLeft: 12,
+    marginVertical: 10,
+    overflow: 'hidden',
+    backgroundColor: '#D8D2E8',
+  },
+  wholeVideoThumbImage: {
+    width: '100%',
+    height: '100%',
+  },
+  wholeVideoThumbFallback: {
+    flex: 1,
+    backgroundColor: '#C8BEDC',
+  },
+  wholeVideoPlayCircle: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -16,
+    marginLeft: -16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(107, 91, 140, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  wholeVideoPlayIcon: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    marginLeft: 2,
+  },
+  wholeVideoCopy: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 2,
+  },
+  wholeVideoEyebrow: {
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    fontFamily: AppFonts.bodyMedium,
+    color: '#7187CE',
+    marginBottom: 2,
+  },
+  wholeVideoEyebrowDark: {
+    color: '#B7A8E0',
+  },
+  wholeVideoTitle: {
+    fontSize: 16,
+    lineHeight: 21,
+    fontFamily: AppFonts.headingSemiBold,
+    color: '#2C3E50',
+  },
+  wholeVideoMeta: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: AppFonts.bodyRegular,
+    color: '#8E8EA0',
+    marginTop: 2,
+  },
+  wholeVideoChevron: {
+    width: 28,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   workbookWrap: {
     paddingHorizontal: 20,

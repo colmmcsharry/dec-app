@@ -9,22 +9,18 @@ export const DANNY_LENNON_DIET_ARTICLE: Article = {
     "Change your diet for the better: 5 Saucy Secrets from Top Nutritionist Danny Lennon",
   publishedAt: "2017-08-22",
   excerpt:
-    "Performance nutritionist Danny Lennon shares five practical secrets for better eating — with the full 45-minute podcast included.",
-  kind: "podcast",
+    "Performance nutritionist Danny Lennon shares five practical secrets for better eating.",
+  kind: "article",
   thumbnail: `${WP_UPLOADS}/danny-lennon.jpeg`,
-  podcasts: [
-    {
-      id: "part-1",
-      title: "Podcast Part 1",
-      path: `${WP_UPLOADS}/danny-lennon-performance-treanor-podcast-part-1.wav`,
-    },
-    {
-      id: "part-2",
-      title: "Podcast Part 2",
-      path: `${WP_UPLOADS}/danny-lennon-performance-treanor-podcast-part-2.wav`,
-    },
-  ],
   blocks: [
+    {
+      type: "link",
+      prefix:
+        "Listen to the audio clips from this interview on my old blog, by clicking ",
+      label: "HERE",
+      suffix: ".",
+      url: "https://performancetreanor.wordpress.com/2017/08/22/change-your-diet-for-the-better-5-saucy-secrets-from-top-nutritionist-danny-lennon-full-podcast-included/",
+    },
     {
       type: "paragraph",
       text: "Don't keep making the same mistakes. Figure out where you want your diet to take you.",
@@ -229,10 +225,6 @@ export const DANNY_LENNON_DIET_ARTICLE: Article = {
     {
       type: "paragraph",
       text: "Thanks to Danny for sharing these top tips.",
-    },
-    {
-      type: "paragraph",
-      text: "If you've got a taste for what was discussed and want more, listen to the full 45-minute podcast above — split into two parts.",
     },
   ],
 };

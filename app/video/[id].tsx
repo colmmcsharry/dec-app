@@ -18,11 +18,17 @@ import { MODULE_ORDER, MODULE_THEMES } from "@/constants/module-themes";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
 import { MODULE_VIDEOS } from "@/data/module-videos";
+import { getModuleWholeVideo } from "@/data/module-whole-videos";
 import { MODULE_WORKBOOKS } from "@/data/module-workbooks";
 import { SUPPLEMENTAL_RESOURCES } from "@/data/supplemental-resources";
 import { isFreeModule, isFreePreviewVideo } from "@/lib/free-preview-video";
 import { maybeRequestReviewAfterFirstModuleCompleted } from "@/services/app-review";
-import { isVideoWatched, markVideoWatched } from "@/services/progress";
+import {
+  isModuleComplete,
+  isVideoWatched,
+  markModuleComplete,
+  markVideoWatched,
+} from "@/services/progress";
 import {
   hasProEntitlement,
   requireModuleAccess,
@@ -74,13 +80,15 @@ function isYouTubeUrl(url?: string) {
 }
 
 export default function VideoDetailScreen() {
-  const { id, title, url, categoryColor, categorySlug } = useLocalSearchParams<{
-    id: string;
-    title: string;
-    url: string;
-    categoryColor?: string;
-    categorySlug?: string;
-  }>();
+  const { id, title, url, categoryColor, categorySlug, whole } =
+    useLocalSearchParams<{
+      id: string;
+      title: string;
+      url: string;
+      categoryColor?: string;
+      categorySlug?: string;
+      whole?: string;
+    }>();
   const { isDark } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -110,6 +118,17 @@ export default function VideoDetailScreen() {
   const autoplayEnabledRef = useRef(autoplayEnabled);
   autoplayEnabledRef.current = autoplayEnabled;
 
+  const isWholeModule = whole === "1";
+  const wholeVideo =
+    isWholeModule && categorySlug
+      ? getModuleWholeVideo(categorySlug)
+      : undefined;
+  const moduleNumber = useMemo(() => {
+    if (!categorySlug) return 0;
+    const idx = (MODULE_ORDER as readonly string[]).indexOf(categorySlug);
+    return idx >= 0 ? idx + 1 : 0;
+  }, [categorySlug]);
+
   const backgroundColor = isDark ? "#1A1A2E" : categoryColor || "#E5D9F2";
   const moduleBackground = categorySlug
     ? MODULE_HEADER_BACKGROUNDS[categorySlug]
@@ -127,33 +146,43 @@ export default function VideoDetailScreen() {
 
   const moduleVideos = categorySlug ? (MODULE_VIDEOS[categorySlug] ?? []) : [];
   const routeVideoIndex = useMemo(
-    () => moduleVideos.findIndex((v) => v.id === id),
-    [id, moduleVideos],
+    () =>
+      isWholeModule ? -1 : moduleVideos.findIndex((v) => v.id === id),
+    [id, isWholeModule, moduleVideos],
   );
   const currentIndex =
     streamIndex ?? (routeVideoIndex >= 0 ? routeVideoIndex : 0);
-  const activeVideo = moduleVideos[currentIndex] ?? {
-    id: id ?? "",
-    title: title ?? "",
-    url: url ?? "",
-  };
+  const activeVideo = isWholeModule
+    ? {
+        id: wholeVideo?.id ?? id ?? "",
+        title: wholeVideo?.title ?? title ?? "",
+        url: wholeVideo?.url ?? url ?? "",
+      }
+    : (moduleVideos[currentIndex] ?? {
+        id: id ?? "",
+        title: title ?? "",
+        url: url ?? "",
+      });
   const activeVideoId = activeVideo.id;
   const activeVideoTitle = activeVideo.title;
   const activeVideoUrl = activeVideo.url;
 
-  const supplementalResources =
-    SUPPLEMENTAL_RESOURCES[`${categorySlug ?? ""}:${activeVideoId}`] ?? [];
+  const supplementalResources = isWholeModule
+    ? []
+    : (SUPPLEMENTAL_RESOURCES[`${categorySlug ?? ""}:${activeVideoId}`] ??
+      []);
 
   const nextVideo = useMemo(() => {
-    if (moduleVideos.length === 0) return null;
+    if (isWholeModule || moduleVideos.length === 0) return null;
     if (currentIndex < 0 || currentIndex >= moduleVideos.length - 1)
       return null;
     return moduleVideos[currentIndex + 1];
-  }, [currentIndex, moduleVideos]);
+  }, [currentIndex, isWholeModule, moduleVideos]);
 
   const moduleIsFree = isFreeModule(categorySlug);
-  // Free modules can chain fully; premium modules need Pro.
-  const canChainToNextVideo = hasPro || moduleIsFree;
+  // Free modules can chain fully; premium modules need Pro. Whole videos never chain.
+  const canChainToNextVideo =
+    !isWholeModule && (hasPro || moduleIsFree);
 
   const nextVideoEmbedUrl = useMemo(() => {
     if (!autoplayEnabled || !nextVideo || !canChainToNextVideo) return null;
@@ -182,13 +211,16 @@ export default function VideoDetailScreen() {
     setOpeningResourceKey(null);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
 
-    if (categorySlug && id) {
+    if (!categorySlug) return;
+    if (isWholeModule) {
+      isModuleComplete(categorySlug).then(setWatched);
+    } else if (id) {
       isVideoWatched(categorySlug, id).then(setWatched);
     }
-  }, [categorySlug, id]);
+  }, [categorySlug, id, isWholeModule]);
 
   useEffect(() => {
-    if (streamIndex === null) return;
+    if (isWholeModule || streamIndex === null) return;
 
     endedHandledRef.current = false;
     setWatched(false);
@@ -198,7 +230,7 @@ export default function VideoDetailScreen() {
     if (categorySlug && activeVideoId) {
       isVideoWatched(categorySlug, activeVideoId).then(setWatched);
     }
-  }, [activeVideoId, categorySlug, streamIndex]);
+  }, [activeVideoId, categorySlug, isWholeModule, streamIndex]);
 
   useEffect(() => {
     void getVideoAutoplayEnabled().then(setAutoplayEnabled);
@@ -350,6 +382,16 @@ export default function VideoDetailScreen() {
       return { finishedLastVideo: false };
     }
 
+    if (isWholeModule) {
+      await markModuleComplete(categorySlug);
+      setWatched(true);
+      if (categorySlug === MODULE_ORDER[0]) {
+        void maybeRequestReviewAfterFirstModuleCompleted();
+      }
+      triggerCompletion();
+      return { finishedLastVideo: true };
+    }
+
     await markVideoWatched(categorySlug, activeVideoId);
     setWatched(true);
 
@@ -366,7 +408,13 @@ export default function VideoDetailScreen() {
       return { finishedLastVideo: true };
     }
     return { finishedLastVideo: false };
-  }, [activeVideoId, categorySlug, moduleVideos, triggerCompletion]);
+  }, [
+    activeVideoId,
+    categorySlug,
+    isWholeModule,
+    moduleVideos,
+    triggerCompletion,
+  ]);
 
   const handleMarkWatched = async () => {
     await markCurrentVideoWatched();
@@ -493,7 +541,7 @@ export default function VideoDetailScreen() {
             >
               Now Playing
             </Text>
-            {moduleVideos.length > 0 ? (
+            {moduleVideos.length > 0 && !isWholeModule ? (
               <Text
                 pointerEvents="none"
                 style={[styles.videoCounter, { color: headerFg }]}
@@ -589,17 +637,30 @@ export default function VideoDetailScreen() {
                 </Text>
               </View>
             ) : (
-              <TouchableOpacity
-                style={styles.watchedButton}
-                onPress={handleMarkWatched}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.watchedButtonText}>Mark as Watched</Text>
-              </TouchableOpacity>
+              <View style={styles.watchedActionBlock}>
+                <TouchableOpacity
+                  style={styles.watchedButton}
+                  onPress={handleMarkWatched}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.watchedButtonText}>Mark as Watched</Text>
+                </TouchableOpacity>
+                {isWholeModule && moduleNumber > 0 ? (
+                  <Text
+                    style={[
+                      styles.wholeModuleWarning,
+                      isDark && styles.wholeModuleWarningDark,
+                    ]}
+                  >
+                    Pressing this button will mark module {moduleNumber} as
+                    100% completed
+                  </Text>
+                ) : null}
+              </View>
             )}
 
             {watched &&
-              (nextVideo ? (
+              (nextVideo && !isWholeModule ? (
                 <Pressable
                   style={({ pressed }) => [
                     styles.nextVideoButton,
@@ -1021,17 +1082,30 @@ const styles = StyleSheet.create({
   autoplayHintWarningDark: {
     color: "#FCD34D",
   },
+  watchedActionBlock: {
+    marginBottom: 20,
+  },
   watchedButton: {
     backgroundColor: "#7187CE",
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
-    marginBottom: 20,
   },
   watchedButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontFamily: AppFonts.bodyBold,
+  },
+  wholeModuleWarning: {
+    marginTop: 10,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
+    fontFamily: AppFonts.bodyRegular,
+    color: "#B45309",
+  },
+  wholeModuleWarningDark: {
+    color: "#FCD34D",
   },
   watchedStatus: {
     alignSelf: "center",

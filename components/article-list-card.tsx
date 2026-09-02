@@ -1,7 +1,7 @@
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { getArticleThumbnail } from "@/data/articles";
 import type { Article } from "@/data/articles/types";
-import { ChevronRight, FileText, Headphones } from "lucide-react-native";
+import { ChevronRight, FileText } from "lucide-react-native";
 import { Image, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 type ArticleListCardProps = {
@@ -16,8 +16,6 @@ export function ArticleListCard({
   onPress,
 }: ArticleListCardProps) {
   const thumbnail = getArticleThumbnail(article);
-  const kindLabel = article.kind === "podcast" ? "Podcast" : "Article";
-  const KindIcon = article.kind === "podcast" ? Headphones : FileText;
 
   return (
     <Pressable
@@ -28,7 +26,7 @@ export function ArticleListCard({
       ]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Open ${kindLabel.toLowerCase()}: ${article.title}`}
+      accessibilityLabel={`Open article: ${article.title}`}
     >
       <View style={styles.row}>
         {thumbnail ? (
@@ -51,7 +49,7 @@ export function ArticleListCard({
           </View>
         ) : (
           <View style={[styles.iconCircle, isDark && styles.iconCircleDark]}>
-            <KindIcon size={28} color={isDark ? "#ECEDEE" : MAIN_PURPLE} />
+            <FileText size={28} color={isDark ? "#ECEDEE" : MAIN_PURPLE} />
           </View>
         )}
 

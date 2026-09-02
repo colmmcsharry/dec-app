@@ -6,44 +6,46 @@ import {
 } from "@/components/screen-back-button";
 import { AppFonts, MAIN_PURPLE } from "@/constants/theme";
 import { useTheme } from "@/context/theme-context";
-import { ARTICLES } from "@/data/articles";
+import { getLocalArticlesForFeed, type Article } from "@/data/articles";
 import { requirePro } from "@/services/purchases";
 import {
   fetchWordpressArticles,
   loadWordpressArticles,
   type WordpressArticle,
 } from "@/services/wordpress-posts";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const LIST_SKELETON_COUNT = 5;
 
+function mergeArticlesByDate(
+  local: Article[],
+  wordpress: WordpressArticle[],
+): Array<Article | WordpressArticle> {
+  const localSlugs = new Set(local.map((article) => article.slug));
+  const combined = [
+    ...local,
+    ...wordpress.filter((article) => !localSlugs.has(article.slug)),
+  ];
+  return combined.sort((a, b) =>
+    b.publishedAt.localeCompare(a.publishedAt),
+  );
+}
+
 export default function ArticlesScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { kind } = useLocalSearchParams<{ kind?: string }>();
-  const isPodcastList = kind === "podcast";
 
-  const localPodcasts = useMemo(
-    () => ARTICLES.filter((article) => article.kind === "podcast"),
-    [],
-  );
+  const localArticles = useMemo(() => getLocalArticlesForFeed(), []);
 
   const [posts, setPosts] = useState<WordpressArticle[]>([]);
-  const [loading, setLoading] = useState(!isPodcastList);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Podcasts are the hardcoded Sean / Danny entries — no WordPress fetch.
-    if (isPodcastList) {
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -72,27 +74,12 @@ export default function ArticlesScreen() {
     return () => {
       cancelled = true;
     };
-  }, [isPodcastList]);
+  }, []);
 
-  const filteredArticles = useMemo(() => {
-    if (isPodcastList) return localPodcasts;
-    if (kind === "article") return posts;
-    return posts;
-  }, [isPodcastList, kind, localPodcasts, posts]);
-
-  const headerTitle =
-    kind === "article"
-      ? "Articles"
-      : kind === "podcast"
-        ? "Podcasts"
-        : "Articles & Podcasts";
-
-  const subtitle =
-    kind === "article"
-      ? "The latest blogs and articles from Declan"
-      : kind === "podcast"
-        ? "Podcast episodes and interviews"
-        : "Articles and podcast episodes";
+  const filteredArticles = useMemo(
+    () => mergeArticlesByDate(localArticles, posts),
+    [localArticles, posts],
+  );
 
   const openArticle = async (slug: string) => {
     if (!(await requirePro())) return;
@@ -130,7 +117,7 @@ export default function ArticlesScreen() {
           pointerEvents="none"
           style={[styles.headerTitle, isDark && styles.textDark]}
         >
-          {headerTitle}
+          Articles
         </Text>
         <View pointerEvents="none" style={styles.headerSpacer} />
       </View>
@@ -143,7 +130,7 @@ export default function ArticlesScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.subtitle, isDark && styles.subtextDark]}>
-          {subtitle}
+          The latest blogs and articles from Declan
         </Text>
 
         {loading
@@ -165,7 +152,7 @@ export default function ArticlesScreen() {
 
         {!loading && !error && filteredArticles.length === 0 ? (
           <Text style={[styles.stateText, isDark && styles.subtextDark]}>
-            No {kind === "podcast" ? "podcasts" : "articles"} found yet.
+            No articles found yet.
           </Text>
         ) : null}
 
