@@ -649,7 +649,7 @@ export default function VideoDetailScreen() {
                       isDark && styles.wholeModuleWarningDark,
                     ]}
                   >
-                    Pressing this button will mark module {moduleNumber} as 100%
+                    This will mark module {moduleNumber} as 100%
                     completed
                   </Text>
                 ) : null}

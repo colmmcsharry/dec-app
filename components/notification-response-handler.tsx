@@ -1,15 +1,28 @@
-import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
-import { DAILY_REMINDER_ID } from '@/services/notifications';
+import {
+  DAILY_REMINDER_ID,
+  isExpoGoAndroid,
+} from '@/services/notifications';
 
 /**
  * Daily reminder tap → /daily-quote.
  * When the app is open, Android often skips the banner — open the quote screen directly.
+ *
+ * Skipped on Android Expo Go (SDK 53+): importing expo-notifications throws there.
  */
 export function NotificationResponseHandler() {
+  if (isExpoGoAndroid) {
+    return null;
+  }
+  return <NotificationResponseHandlerInner />;
+}
+
+function NotificationResponseHandlerInner() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Notifications = require('expo-notifications') as typeof import('expo-notifications');
   const router = useRouter();
   const lastResponse = Notifications.useLastNotificationResponse();
 

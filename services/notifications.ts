@@ -1,11 +1,14 @@
 /**
  * Local notifications for the daily quote reminder.
  * Scheduling matches Oz Speak (aussie-react): expo-notifications DAILY trigger.
+ *
+ * Android Expo Go (SDK 53+) throws if `expo-notifications` is imported — skip loading there.
+ * Use a development build / TestFlight / store build for real reminder testing on Android.
  */
 
-import { Alert, Linking, Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { Alert, Linking, Platform } from 'react-native';
 
 export const DAILY_REMINDER_ID = 'daily-diesel-reminder';
 const ANDROID_CHANNEL_ID = 'daily-reminders';
@@ -13,13 +16,23 @@ const EXACT_ALARM_HINT_KEY = '__dd_exact_alarm_hint_shown';
 /** Persist chosen time — iOS returns DAILY schedules as calendar triggers without top-level hour/minute. */
 const REMINDER_TIME_KEY = '__dd_daily_reminder_time';
 
-const isNotificationsAvailable =
-  Platform.OS === 'ios' || Platform.OS === 'android';
+/** Remote push APIs were removed from Expo Go on Android; importing the module throws. */
+export const isExpoGoAndroid =
+  Platform.OS === 'android' && Constants.appOwnership === 'expo';
+
+// Lazy-load so Expo Go Android never evaluates the native module entry.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Notifications = isExpoGoAndroid
+  ? null
+  : (require('expo-notifications') as typeof import('expo-notifications'));
+
+const isNotificationsAvailable = Notifications != null;
 
 /** Android NotificationManager.INTERRUPTION_FILTER_ALL */
 const INTERRUPTION_FILTER_ALL = 1;
 
 type ReminderTime = { hour: number; minute: number };
+type NotificationTrigger = import('expo-notifications').NotificationTrigger;
 
 async function saveReminderTime(hour: number, minute: number): Promise<void> {
   try {
@@ -70,7 +83,7 @@ export function formatReminderClockTime(hour: number, minute: number): string {
 
 /** Read hour/minute from Android `daily` or iOS `calendar` trigger shapes. */
 function reminderTimeFromTrigger(
-  trigger: Notifications.NotificationTrigger | null,
+  trigger: NotificationTrigger | null,
 ): ReminderTime | null {
   if (!trigger || typeof trigger !== 'object') return null;
 
@@ -107,7 +120,7 @@ function reminderTimeFromTrigger(
 }
 
 function setForegroundNotificationHandler(): void {
-  if (!isNotificationsAvailable) return;
+  if (!Notifications) return;
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,
@@ -123,7 +136,7 @@ export const DEFAULT_REMINDER_HOUR = 9;
 export const DEFAULT_REMINDER_MINUTE = 0;
 
 async function ensureAndroidNotificationChannel(): Promise<void> {
-  if (Platform.OS !== 'android') return;
+  if (!Notifications || Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
     name: 'Daily reminders',
     importance: Notifications.AndroidImportance.HIGH,
@@ -134,7 +147,9 @@ async function ensureAndroidNotificationChannel(): Promise<void> {
 }
 
 function warnIfDoNotDisturb(
-  settings: Awaited<ReturnType<typeof Notifications.getPermissionsAsync>>,
+  settings: Awaited<
+    ReturnType<NonNullable<typeof Notifications>['getPermissionsAsync']>
+  >,
 ): void {
   if (Platform.OS !== 'android') return;
   const filter = settings.android?.interruptionFilter;
@@ -162,7 +177,7 @@ function promptOpenNotificationSettings(): void {
 }
 
 export async function requestNotificationPermission(): Promise<boolean> {
-  if (!isNotificationsAvailable) return false;
+  if (!Notifications || !isNotificationsAvailable) return false;
 
   const existing = await Notifications.getPermissionsAsync();
   if (existing.granted) {
@@ -188,7 +203,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 export async function hasNotificationPermission(): Promise<boolean> {
-  if (!isNotificationsAvailable) return false;
+  if (!Notifications || !isNotificationsAvailable) return false;
   const { granted } = await Notifications.getPermissionsAsync();
   return granted;
 }
@@ -197,7 +212,7 @@ export async function scheduleDailyReminder(
   hour: number = DEFAULT_REMINDER_HOUR,
   minute: number = DEFAULT_REMINDER_MINUTE,
 ): Promise<string | null> {
-  if (!isNotificationsAvailable) return null;
+  if (!Notifications || !isNotificationsAvailable) return null;
   const granted = await requestNotificationPermission();
   if (!granted) return null;
 
@@ -261,7 +276,7 @@ export async function scheduleDailyReminder(
 }
 
 export async function cancelDailyReminder(): Promise<void> {
-  if (!isNotificationsAvailable) return;
+  if (!Notifications || !isNotificationsAvailable) return;
   await Notifications.cancelScheduledNotificationAsync(DAILY_REMINDER_ID);
   await clearReminderTime();
 }
@@ -278,7 +293,7 @@ export type DailyReminderStatus = {
  * wrong wall-clock time even when scheduling is fine).
  */
 export async function getDailyReminderStatus(): Promise<DailyReminderStatus | null> {
-  if (!isNotificationsAvailable) return null;
+  if (!Notifications || !isNotificationsAvailable) return null;
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   const daily = scheduled.find((t) => t.identifier === DAILY_REMINDER_ID);
   if (!daily) return null;
