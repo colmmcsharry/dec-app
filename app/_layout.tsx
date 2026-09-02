@@ -10,6 +10,7 @@ import { ActivityIndicator, Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
+import { BrandedNoteHost } from '@/components/branded-note-modal';
 import { NotificationResponseHandler } from '@/components/notification-response-handler';
 import { ThemeProvider, useTheme } from '@/context/theme-context';
 import { configurePurchases } from '@/services/purchases';
@@ -30,9 +31,11 @@ function AppContent() {
   }, []);
 
   return (
-    <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-      {Platform.OS !== 'web' && <NotificationResponseHandler />}
-      <Stack screenOptions={{ headerBackTitle: ' ' }}>
+    <View style={{ flex: 1 }}>
+      <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+        {Platform.OS !== 'web' && <NotificationResponseHandler />}
+        <View style={{ flex: 1 }}>
+        <Stack screenOptions={{ headerBackTitle: ' ' }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="paywall-placeholder" options={{ headerShown: false, animation: 'fade' }} />
@@ -152,8 +155,11 @@ function AppContent() {
         />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
+        </View>
+      <BrandedNoteHost />
       <StatusBar style={isDark ? 'light' : 'dark'} />
-    </NavThemeProvider>
+      </NavThemeProvider>
+    </View>
   );
 }
 

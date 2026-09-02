@@ -6,25 +6,43 @@
  * Use a development build / TestFlight / store build for real reminder testing on Android.
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
-import { Alert, Linking, Platform } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
+import { Alert, Linking, Platform } from "react-native";
 
-export const DAILY_REMINDER_ID = 'daily-diesel-reminder';
-const ANDROID_CHANNEL_ID = 'daily-reminders';
-const EXACT_ALARM_HINT_KEY = '__dd_exact_alarm_hint_shown';
+export const DAILY_REMINDER_ID = "daily-diesel-reminder";
+export const HABIT_MORNING_REMINDER_ID = "habit-morning-reminder";
+export const HABIT_NIGHTTIME_REMINDER_ID = "habit-nighttime-reminder";
+
+/** Shown on the notification and again in-app when the user taps it. */
+export const HABIT_REMINDER_NOTE =
+  "This is a reminder. Whether you're doing our worksheets or some other healthy habit, get to it!";
+
+export function isHabitReminderId(identifier: string): boolean {
+  return (
+    identifier === HABIT_MORNING_REMINDER_ID ||
+    identifier === HABIT_NIGHTTIME_REMINDER_ID
+  );
+}
+
+const ANDROID_CHANNEL_ID = "daily-reminders";
+const EXACT_ALARM_HINT_KEY = "__dd_exact_alarm_hint_shown";
 /** Persist chosen time — iOS returns DAILY schedules as calendar triggers without top-level hour/minute. */
-const REMINDER_TIME_KEY = '__dd_daily_reminder_time';
+const REMINDER_TIME_KEY = "__dd_daily_reminder_time";
+const HABIT_MORNING_TIME_KEY = "__dd_habit_morning_reminder_time";
+const HABIT_NIGHTTIME_TIME_KEY = "__dd_habit_nighttime_reminder_time";
+
+export type HabitReminderKind = "morning" | "nighttime";
 
 /** Remote push APIs were removed from Expo Go on Android; importing the module throws. */
 export const isExpoGoAndroid =
-  Platform.OS === 'android' && Constants.appOwnership === 'expo';
+  Platform.OS === "android" && Constants.appOwnership === "expo";
 
 // Lazy-load so Expo Go Android never evaluates the native module entry.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+ 
 const Notifications = isExpoGoAndroid
   ? null
-  : (require('expo-notifications') as typeof import('expo-notifications'));
+  : (require("expo-notifications") as typeof import("expo-notifications"));
 
 const isNotificationsAvailable = Notifications != null;
 
@@ -32,12 +50,45 @@ const isNotificationsAvailable = Notifications != null;
 const INTERRUPTION_FILTER_ALL = 1;
 
 type ReminderTime = { hour: number; minute: number };
-type NotificationTrigger = import('expo-notifications').NotificationTrigger;
+type NotificationTrigger = import("expo-notifications").NotificationTrigger;
 
-async function saveReminderTime(hour: number, minute: number): Promise<void> {
+const HABIT_REMINDER_CONFIG: Record<
+  HabitReminderKind,
+  {
+    id: string;
+    storageKey: string;
+    title: string;
+    body: string;
+    defaultHour: number;
+    defaultMinute: number;
+  }
+> = {
+  morning: {
+    id: HABIT_MORNING_REMINDER_ID,
+    storageKey: HABIT_MORNING_TIME_KEY,
+    title: "Habit reminder",
+    body: HABIT_REMINDER_NOTE,
+    defaultHour: 7,
+    defaultMinute: 0,
+  },
+  nighttime: {
+    id: HABIT_NIGHTTIME_REMINDER_ID,
+    storageKey: HABIT_NIGHTTIME_TIME_KEY,
+    title: "Habit reminder",
+    body: HABIT_REMINDER_NOTE,
+    defaultHour: 21,
+    defaultMinute: 0,
+  },
+};
+
+async function saveReminderTimeForKey(
+  key: string,
+  hour: number,
+  minute: number,
+): Promise<void> {
   try {
     await AsyncStorage.setItem(
-      REMINDER_TIME_KEY,
+      key,
       JSON.stringify({ hour, minute } satisfies ReminderTime),
     );
   } catch {
@@ -45,14 +96,16 @@ async function saveReminderTime(hour: number, minute: number): Promise<void> {
   }
 }
 
-async function loadReminderTime(): Promise<ReminderTime | null> {
+async function loadReminderTimeForKey(
+  key: string,
+): Promise<ReminderTime | null> {
   try {
-    const raw = await AsyncStorage.getItem(REMINDER_TIME_KEY);
+    const raw = await AsyncStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<ReminderTime>;
     if (
-      typeof parsed.hour !== 'number' ||
-      typeof parsed.minute !== 'number' ||
+      typeof parsed.hour !== "number" ||
+      typeof parsed.minute !== "number" ||
       parsed.hour < 0 ||
       parsed.hour > 23 ||
       parsed.minute < 0 ||
@@ -66,52 +119,89 @@ async function loadReminderTime(): Promise<ReminderTime | null> {
   }
 }
 
-async function clearReminderTime(): Promise<void> {
+async function clearReminderTimeForKey(key: string): Promise<void> {
   try {
-    await AsyncStorage.removeItem(REMINDER_TIME_KEY);
+    await AsyncStorage.removeItem(key);
   } catch {
     /* ignore */
   }
+}
+
+async function saveReminderTime(hour: number, minute: number): Promise<void> {
+  await saveReminderTimeForKey(REMINDER_TIME_KEY, hour, minute);
+}
+
+async function loadReminderTime(): Promise<ReminderTime | null> {
+  return loadReminderTimeForKey(REMINDER_TIME_KEY);
+}
+
+async function clearReminderTime(): Promise<void> {
+  await clearReminderTimeForKey(REMINDER_TIME_KEY);
+}
+
+function maybeHintExactAlarms(): void {
+  if (Platform.OS !== "android" || Platform.Version < 31) return;
+  void (async () => {
+    try {
+      if ((await AsyncStorage.getItem(EXACT_ALARM_HINT_KEY)) === "1") return;
+      await AsyncStorage.setItem(EXACT_ALARM_HINT_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    Alert.alert(
+      "Allow alarms & reminders",
+      "On Android 12+, open Settings → Peak Performance Code → Alarms & reminders and turn it on so your daily reminder fires when the app is in the background.",
+      [
+        { text: "Not now", style: "cancel" },
+        {
+          text: "Open Settings",
+          onPress: () => {
+            void Linking.openSettings();
+          },
+        },
+      ],
+    );
+  })();
 }
 
 /** Format a wall-clock reminder time for UI (never use OS “next fire” Date). */
 export function formatReminderClockTime(hour: number, minute: number): string {
   const d = new Date();
   d.setHours(hour, minute, 0, 0);
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 /** Read hour/minute from Android `daily` or iOS `calendar` trigger shapes. */
 function reminderTimeFromTrigger(
   trigger: NotificationTrigger | null,
 ): ReminderTime | null {
-  if (!trigger || typeof trigger !== 'object') return null;
+  if (!trigger || typeof trigger !== "object") return null;
 
   if (
-    'type' in trigger &&
-    trigger.type === 'daily' &&
-    'hour' in trigger &&
-    typeof trigger.hour === 'number'
+    "type" in trigger &&
+    trigger.type === "daily" &&
+    "hour" in trigger &&
+    typeof trigger.hour === "number"
   ) {
     return {
       hour: trigger.hour,
-      minute: typeof trigger.minute === 'number' ? trigger.minute : 0,
+      minute: typeof trigger.minute === "number" ? trigger.minute : 0,
     };
   }
 
   if (
-    'dateComponents' in trigger &&
+    "dateComponents" in trigger &&
     trigger.dateComponents &&
-    typeof trigger.dateComponents === 'object'
+    typeof trigger.dateComponents === "object"
   ) {
     const parts = trigger.dateComponents as {
       hour?: number;
       minute?: number;
     };
-    if (typeof parts.hour === 'number') {
+    if (typeof parts.hour === "number") {
       return {
         hour: parts.hour,
-        minute: typeof parts.minute === 'number' ? parts.minute : 0,
+        minute: typeof parts.minute === "number" ? parts.minute : 0,
       };
     }
   }
@@ -136,11 +226,11 @@ export const DEFAULT_REMINDER_HOUR = 9;
 export const DEFAULT_REMINDER_MINUTE = 0;
 
 async function ensureAndroidNotificationChannel(): Promise<void> {
-  if (!Notifications || Platform.OS !== 'android') return;
+  if (!Notifications || Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
-    name: 'Daily reminders',
+    name: "Daily reminders",
     importance: Notifications.AndroidImportance.HIGH,
-    sound: 'default',
+    sound: "default",
     enableVibrate: true,
     vibrationPattern: [0, 250, 250, 250],
   });
@@ -148,26 +238,26 @@ async function ensureAndroidNotificationChannel(): Promise<void> {
 
 function warnIfDoNotDisturb(
   settings: Awaited<
-    ReturnType<NonNullable<typeof Notifications>['getPermissionsAsync']>
+    ReturnType<NonNullable<typeof Notifications>["getPermissionsAsync"]>
   >,
 ): void {
-  if (Platform.OS !== 'android') return;
+  if (Platform.OS !== "android") return;
   const filter = settings.android?.interruptionFilter;
   if (filter == null || filter === INTERRUPTION_FILTER_ALL) return;
   Alert.alert(
-    'Do Not Disturb is on',
-    'Your phone is in Do Not Disturb mode, so reminders may not appear on the lock screen or while you use other apps. Turn off Do Not Disturb, or allow Peak Performance Code as an exception.',
+    "Do Not Disturb is on",
+    "Your phone is in Do Not Disturb mode, so reminders may not appear on the lock screen or while you use other apps. Turn off Do Not Disturb, or allow Peak Performance Code as an exception.",
   );
 }
 
 function promptOpenNotificationSettings(): void {
   Alert.alert(
-    'Turn on notifications',
-    'Enable notifications for Peak Performance Code in Settings, then try setting your reminder again.',
+    "Turn on notifications",
+    "Enable notifications for Peak Performance Code in Settings, then try setting your reminder again.",
     [
-      { text: 'Not now', style: 'cancel' },
+      { text: "Not now", style: "cancel" },
       {
-        text: 'Open Settings',
+        text: "Open Settings",
         onPress: () => {
           void Linking.openSettings();
         },
@@ -220,7 +310,7 @@ export async function scheduleDailyReminder(
   await Notifications.cancelScheduledNotificationAsync(DAILY_REMINDER_ID);
 
   const trigger =
-    Platform.OS === 'android'
+    Platform.OS === "android"
       ? {
           type: Notifications.SchedulableTriggerInputTypes.DAILY as const,
           hour,
@@ -239,7 +329,7 @@ export async function scheduleDailyReminder(
       title: "Your Daily Diesel is ready!",
       body: "Tap to read today's motivational quote.",
       sound: true,
-      ...(Platform.OS === 'android'
+      ...(Platform.OS === "android"
         ? { priority: Notifications.AndroidNotificationPriority.HIGH }
         : {}),
     },
@@ -247,30 +337,7 @@ export async function scheduleDailyReminder(
   });
 
   await saveReminderTime(hour, minute);
-
-  if (Platform.OS === 'android' && Platform.Version >= 31) {
-    void (async () => {
-      try {
-        if ((await AsyncStorage.getItem(EXACT_ALARM_HINT_KEY)) === '1') return;
-        await AsyncStorage.setItem(EXACT_ALARM_HINT_KEY, '1');
-      } catch {
-        /* ignore */
-      }
-      Alert.alert(
-        'Allow alarms & reminders',
-        'On Android 12+, open Settings → Peak Performance Code → Alarms & reminders and turn it on so your daily reminder fires when the app is in the background.',
-        [
-          { text: 'Not now', style: 'cancel' },
-          {
-            text: 'Open Settings',
-            onPress: () => {
-              void Linking.openSettings();
-            },
-          },
-        ],
-      );
-    })();
-  }
+  maybeHintExactAlarms();
 
   return identifier;
 }
@@ -302,7 +369,8 @@ export async function getDailyReminderStatus(): Promise<DailyReminderStatus | nu
   // Stored wins. iOS calendar `dateComponents` can disagree with what the user picked.
   const fromTrigger = stored ? null : reminderTimeFromTrigger(daily.trigger);
   const hour = stored?.hour ?? fromTrigger?.hour ?? DEFAULT_REMINDER_HOUR;
-  const minute = stored?.minute ?? fromTrigger?.minute ?? DEFAULT_REMINDER_MINUTE;
+  const minute =
+    stored?.minute ?? fromTrigger?.minute ?? DEFAULT_REMINDER_MINUTE;
 
   if (!stored) {
     await saveReminderTime(hour, minute);
@@ -322,4 +390,118 @@ export async function getNextReminderDate(): Promise<Date | null> {
   const d = new Date();
   d.setHours(status.hour, status.minute, 0, 0);
   return d;
+}
+
+export function getHabitReminderDefaults(
+  kind: HabitReminderKind,
+): ReminderTime {
+  const config = HABIT_REMINDER_CONFIG[kind];
+  return { hour: config.defaultHour, minute: config.defaultMinute };
+}
+
+export async function scheduleHabitReminder(
+  kind: HabitReminderKind,
+  hour?: number,
+  minute?: number,
+): Promise<string | null> {
+  if (!Notifications || !isNotificationsAvailable) return null;
+  const config = HABIT_REMINDER_CONFIG[kind];
+  const h = hour ?? config.defaultHour;
+  const m = minute ?? config.defaultMinute;
+
+  const granted = await requestNotificationPermission();
+  if (!granted) return null;
+
+  await ensureAndroidNotificationChannel();
+  await Notifications.cancelScheduledNotificationAsync(config.id);
+
+  const trigger =
+    Platform.OS === "android"
+      ? {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY as const,
+          hour: h,
+          minute: m,
+          channelId: ANDROID_CHANNEL_ID,
+        }
+      : {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY as const,
+          hour: h,
+          minute: m,
+        };
+
+  const identifier = await Notifications.scheduleNotificationAsync({
+    identifier: config.id,
+    content: {
+      title: config.title,
+      body: config.body,
+      sound: true,
+      ...(Platform.OS === "android"
+        ? { priority: Notifications.AndroidNotificationPriority.HIGH }
+        : {}),
+    },
+    trigger,
+  });
+
+  await saveReminderTimeForKey(config.storageKey, h, m);
+  maybeHintExactAlarms();
+
+  return identifier;
+}
+
+export async function cancelHabitReminder(
+  kind: HabitReminderKind,
+): Promise<void> {
+  if (!Notifications || !isNotificationsAvailable) return;
+  const config = HABIT_REMINDER_CONFIG[kind];
+  await Notifications.cancelScheduledNotificationAsync(config.id);
+  await clearReminderTimeForKey(config.storageKey);
+}
+
+export async function getHabitReminderStatus(
+  kind: HabitReminderKind,
+): Promise<DailyReminderStatus | null> {
+  if (!Notifications || !isNotificationsAvailable) return null;
+  const config = HABIT_REMINDER_CONFIG[kind];
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const entry = scheduled.find((t) => t.identifier === config.id);
+  if (!entry) return null;
+
+  const stored = await loadReminderTimeForKey(config.storageKey);
+  const fromTrigger = stored ? null : reminderTimeFromTrigger(entry.trigger);
+  const hour = stored?.hour ?? fromTrigger?.hour ?? config.defaultHour;
+  const minute = stored?.minute ?? fromTrigger?.minute ?? config.defaultMinute;
+
+  if (!stored) {
+    await saveReminderTimeForKey(config.storageKey, hour, minute);
+  }
+
+  return {
+    hour,
+    minute,
+    label: formatReminderClockTime(hour, minute),
+  };
+}
+
+export async function getHabitReminderPickerDate(
+  kind: HabitReminderKind,
+): Promise<Date> {
+  const status = await getHabitReminderStatus(kind);
+  const defaults = getHabitReminderDefaults(kind);
+  const d = new Date();
+  d.setHours(
+    status?.hour ?? defaults.hour,
+    status?.minute ?? defaults.minute,
+    0,
+    0,
+  );
+  return d;
+}
+
+/** True if either habit reminder is scheduled. */
+export async function hasAnyHabitReminder(): Promise<boolean> {
+  const [morning, nighttime] = await Promise.all([
+    getHabitReminderStatus("morning"),
+    getHabitReminderStatus("nighttime"),
+  ]);
+  return !!(morning || nighttime);
 }

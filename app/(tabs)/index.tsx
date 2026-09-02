@@ -23,6 +23,7 @@ import { getQuoteBackgroundOfTheDay, getQuoteOfTheDay } from "@/data/quotes";
 import {
     DEFAULT_REMINDER_HOUR,
     DEFAULT_REMINDER_MINUTE,
+    cancelDailyReminder,
     getDailyReminderStatus,
     getNextReminderDate,
     scheduleDailyReminder,
@@ -410,6 +411,18 @@ export default function HomeScreen() {
     [refreshReminderState],
   );
 
+  const removeDailyReminder = useCallback(async () => {
+    await cancelDailyReminder();
+    setShowTimePicker(false);
+    setDailyReminderOn(false);
+    setNextReminderTime(null);
+    await refreshReminderState();
+    Alert.alert(
+      "Reminder removed",
+      "You won't get Daily Diesel notifications until you turn them back on.",
+    );
+  }, [refreshReminderState]);
+
   const enableDailyReminder = useCallback(async () => {
     if (Platform.OS === "android") {
       const value = new Date();
@@ -445,27 +458,46 @@ export default function HomeScreen() {
         { text: "9:00 AM", onPress: () => scheduleAt(9, 0, "9:00 AM") },
         { text: "12:00 PM", onPress: () => scheduleAt(12, 0, "12:00 PM") },
         { text: "6:00 PM", onPress: () => scheduleAt(18, 0, "6:00 PM") },
+        {
+          text: "Remove reminder",
+          style: "destructive" as const,
+          onPress: () => void removeDailyReminder(),
+        },
         { text: "Cancel", style: "cancel" as const },
       ]);
       return;
     }
     if (Platform.OS === "android") {
-      getNextReminderDate().then((initialDate) => {
-        const value = initialDate ?? new Date(new Date().setHours(9, 0, 0, 0));
-        DateTimePickerAndroid.open({
-          value,
-          mode: "time",
-          onChange: (event, date) => {
-            if (event.type === "set" && date) {
-              const lbl = date.toLocaleTimeString([], {
-                hour: "numeric",
-                minute: "2-digit",
+      Alert.alert("Daily reminder", undefined, [
+        {
+          text: "Change time",
+          onPress: () => {
+            getNextReminderDate().then((initialDate) => {
+              const value =
+                initialDate ?? new Date(new Date().setHours(9, 0, 0, 0));
+              DateTimePickerAndroid.open({
+                value,
+                mode: "time",
+                onChange: (event, date) => {
+                  if (event.type === "set" && date) {
+                    const lbl = date.toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    });
+                    scheduleAt(date.getHours(), date.getMinutes(), lbl);
+                  }
+                },
               });
-              scheduleAt(date.getHours(), date.getMinutes(), lbl);
-            }
+            });
           },
-        });
-      });
+        },
+        {
+          text: "Remove reminder",
+          style: "destructive",
+          onPress: () => void removeDailyReminder(),
+        },
+        { text: "Cancel", style: "cancel" },
+      ]);
       return;
     }
     getNextReminderDate().then((d) => {
@@ -475,7 +507,7 @@ export default function HomeScreen() {
       }
       setShowTimePicker(true);
     });
-  }, [scheduleAt]);
+  }, [removeDailyReminder, scheduleAt]);
 
   const confirmPickerTime = useCallback(async () => {
     setShowTimePicker(false);
@@ -851,6 +883,13 @@ export default function HomeScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
+              <TouchableOpacity
+                style={styles.timePickerRemoveHit}
+                onPress={() => void removeDailyReminder()}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.timePickerRemoveText}>Remove reminder</Text>
+              </TouchableOpacity>
             </Pressable>
           </Pressable>
         </Modal>
@@ -1432,5 +1471,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: AppFonts.bodyBold,
     color: "#fff",
+  },
+  timePickerRemoveHit: {
+    marginTop: 14,
+    paddingVertical: 10,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  timePickerRemoveText: {
+    fontSize: 15,
+    fontFamily: AppFonts.bodyBold,
+    color: "#C45C5C",
   },
 });
