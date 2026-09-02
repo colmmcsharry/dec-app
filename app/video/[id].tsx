@@ -146,8 +146,7 @@ export default function VideoDetailScreen() {
 
   const moduleVideos = categorySlug ? (MODULE_VIDEOS[categorySlug] ?? []) : [];
   const routeVideoIndex = useMemo(
-    () =>
-      isWholeModule ? -1 : moduleVideos.findIndex((v) => v.id === id),
+    () => (isWholeModule ? -1 : moduleVideos.findIndex((v) => v.id === id)),
     [id, isWholeModule, moduleVideos],
   );
   const currentIndex =
@@ -169,8 +168,7 @@ export default function VideoDetailScreen() {
 
   const supplementalResources = isWholeModule
     ? []
-    : (SUPPLEMENTAL_RESOURCES[`${categorySlug ?? ""}:${activeVideoId}`] ??
-      []);
+    : (SUPPLEMENTAL_RESOURCES[`${categorySlug ?? ""}:${activeVideoId}`] ?? []);
 
   const nextVideo = useMemo(() => {
     if (isWholeModule || moduleVideos.length === 0) return null;
@@ -181,8 +179,7 @@ export default function VideoDetailScreen() {
 
   const moduleIsFree = isFreeModule(categorySlug);
   // Free modules can chain fully; premium modules need Pro. Whole videos never chain.
-  const canChainToNextVideo =
-    !isWholeModule && (hasPro || moduleIsFree);
+  const canChainToNextVideo = !isWholeModule && (hasPro || moduleIsFree);
 
   const nextVideoEmbedUrl = useMemo(() => {
     if (!autoplayEnabled || !nextVideo || !canChainToNextVideo) return null;
@@ -652,8 +649,8 @@ export default function VideoDetailScreen() {
                       isDark && styles.wholeModuleWarningDark,
                     ]}
                   >
-                    Pressing this button will mark module {moduleNumber} as
-                    100% completed
+                    Pressing this button will mark module {moduleNumber} as 100%
+                    completed
                   </Text>
                 ) : null}
               </View>

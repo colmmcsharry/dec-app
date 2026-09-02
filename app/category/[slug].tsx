@@ -1,5 +1,50 @@
-import React, { useState, useEffect } from 'react';
 import {
+  MODULE_CARD_BRIGHTEN_SCRIMS,
+  MODULE_CARD_DARK_SCRIMS,
+  MODULE_HEADER_BACKGROUNDS,
+} from "@/components/module-card-art";
+import {
+  SCREEN_BACK_BUTTON_WIDTH,
+  ScreenBackButton,
+} from "@/components/screen-back-button";
+import { MODULE_THEMES } from "@/constants/module-themes";
+import {
+  getPastelAccent,
+  mixHex,
+  pastelBoxStyle,
+} from "@/constants/pastel-accents";
+import { AppFonts } from "@/constants/theme";
+import { useTheme } from "@/context/theme-context";
+import { MODULE_VIDEOS, VideoEntry } from "@/data/module-videos";
+import { getModuleWholeVideo } from "@/data/module-whole-videos";
+import { MODULE_WORKBOOKS } from "@/data/module-workbooks";
+import { MODULE_PDFS, type PdfEntry } from "@/data/pdf-assets";
+import {
+  getModuleLinkResources,
+  type ModuleLinkResource,
+} from "@/data/supplemental-resources";
+import { isFreeModule, isFreePreviewVideo } from "@/lib/free-preview-video";
+import { hrefModuleDigitalWorkbook } from "@/lib/module-workbook-route";
+import { getWatchedVideos } from "@/services/progress";
+import {
+  hasProEntitlement,
+  requireModuleAccess,
+  requireVideoAccess,
+} from "@/services/purchases";
+import { LinearGradient } from "expo-linear-gradient";
+import { Stack, router, useLocalSearchParams } from "expo-router";
+import { useIsFocused } from "expo-router/react-navigation";
+import {
+  BookOpen,
+  Check,
+  ChevronRight,
+  FileText,
+  Lock,
+  Youtube,
+} from "lucide-react-native";
+import { useEffect, useState } from "react";
+import {
+  Image,
   ImageBackground,
   Linking,
   Pressable,
@@ -7,66 +52,66 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
-} from 'react-native';
-import { RectButton, TouchableOpacity } from 'react-native-gesture-handler';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
-import { useIsFocused } from "expo-router/react-navigation";
-import { LinearGradient } from 'expo-linear-gradient';
-import { BookOpen, Check, ChevronRight, FileText, Lock, Youtube } from 'lucide-react-native';
-import { useTheme } from '@/context/theme-context';
-import { getWatchedVideos } from '@/services/progress';
-import {
-  hasProEntitlement,
-  requireModuleAccess,
-  requireVideoAccess,
-} from '@/services/purchases';
-import { isFreeModule, isFreePreviewVideo } from '@/lib/free-preview-video';
-import { MODULE_VIDEOS, VideoEntry } from '@/data/module-videos';
-import { getModuleWholeVideo } from '@/data/module-whole-videos';
-import { MODULE_WORKBOOKS } from '@/data/module-workbooks';
-import { MODULE_PDFS, type PdfEntry } from '@/data/pdf-assets';
-import {
-  getModuleLinkResources,
-  type ModuleLinkResource,
-} from '@/data/supplemental-resources';
-import { hrefModuleDigitalWorkbook } from '@/lib/module-workbook-route';
-import { MODULE_THEMES } from '@/constants/module-themes';
-import { AppFonts } from '@/constants/theme';
-import { pastelBoxStyle, getPastelAccent, mixHex } from '@/constants/pastel-accents';
-import {
-  MODULE_CARD_BRIGHTEN_SCRIMS,
-  MODULE_CARD_DARK_SCRIMS,
-  MODULE_HEADER_BACKGROUNDS,
-} from '@/components/module-card-art';
-import {
-  SCREEN_BACK_BUTTON_WIDTH,
-  ScreenBackButton,
-} from '@/components/screen-back-button';
+} from "react-native";
+import { RectButton, TouchableOpacity } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-const categoryInfo: Record<string, { title: string; color: string; moduleNumber: number }> = {
-  sleep: { title: 'Sleep', color: '#E5D9F2', moduleNumber: 1 },
-  'morning-routines': { title: 'Morning Routines', color: '#FFF3DC', moduleNumber: 2 },
-  'energy-management': { title: 'Energy Management', color: '#D4F1E8', moduleNumber: 3 },
-  'mindfulness': { title: 'Creative Solutions', color: '#EADBF7', moduleNumber: 4 },
-  'move-2-perform': { title: 'Recovery', color: '#DBE9F7', moduleNumber: 5 },
-  'thinking-2-perform': { title: 'Thinking 2 Perform', color: '#F7DBF0', moduleNumber: 6 },
-  'recovery': { title: 'Move 2 Perform', color: '#D9E9F7', moduleNumber: 7 },
-  'fuel-2-perform': { title: 'Fuel 2 Perform', color: '#FFDDD9', moduleNumber: 8 },
-  'stress-management': { title: 'Most Authentic You', color: '#F7EADB', moduleNumber: 9 },
-  'habits': { title: 'Building Habits', color: '#DBF7EA', moduleNumber: 10 },
+const categoryInfo: Record<
+  string,
+  { title: string; color: string; moduleNumber: number }
+> = {
+  sleep: { title: "Sleep", color: "#E5D9F2", moduleNumber: 1 },
+  "morning-routines": {
+    title: "Morning Routines",
+    color: "#FFF3DC",
+    moduleNumber: 2,
+  },
+  "energy-management": {
+    title: "Energy Management",
+    color: "#D4F1E8",
+    moduleNumber: 3,
+  },
+  mindfulness: {
+    title: "Creative Solutions",
+    color: "#EADBF7",
+    moduleNumber: 4,
+  },
+  "move-2-perform": { title: "Recovery", color: "#DBE9F7", moduleNumber: 5 },
+  "thinking-2-perform": {
+    title: "Thinking 2 Perform",
+    color: "#F7DBF0",
+    moduleNumber: 6,
+  },
+  recovery: { title: "Move 2 Perform", color: "#D9E9F7", moduleNumber: 7 },
+  "fuel-2-perform": {
+    title: "Fuel 2 Perform",
+    color: "#FFDDD9",
+    moduleNumber: 8,
+  },
+  "stress-management": {
+    title: "Most Authentic You",
+    color: "#F7EADB",
+    moduleNumber: 9,
+  },
+  habits: { title: "Building Habits", color: "#DBF7EA", moduleNumber: 10 },
 };
 
 export default function CategoryScreen() {
-  const { slug, title } = useLocalSearchParams<{ slug: string; title: string }>();
-  const info = categoryInfo[slug] || { title: title || 'Videos', color: '#E5D9F2', moduleNumber: 0 };
+  const { slug, title } = useLocalSearchParams<{
+    slug: string;
+    title: string;
+  }>();
+  const info = categoryInfo[slug] || {
+    title: title || "Videos",
+    color: "#E5D9F2",
+    moduleNumber: 0,
+  };
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -93,7 +138,7 @@ export default function CategoryScreen() {
 
   const watchedCount = watchedIds.length;
   const totalCount = videos.length;
-  const videoLinkAccent = getPastelAccent('red', isDark);
+  const videoLinkAccent = getPastelAccent("red", isDark);
   const videoLinkBackground = mixHex(
     videoLinkAccent.background,
     videoLinkAccent.accent,
@@ -104,7 +149,7 @@ export default function CategoryScreen() {
   const moduleTheme = slug ? MODULE_THEMES[slug] : undefined;
   const ModuleIcon = moduleTheme?.Icon;
   const moduleBackground = slug ? MODULE_HEADER_BACKGROUNDS[slug] : undefined;
-  const isSleep = slug === 'sleep';
+  const isSleep = slug === "sleep";
   // Sleep art is always dark — white type, no wash either way.
   const lightOnArt = isDark || isSleep;
   const overlayScrim =
@@ -118,7 +163,7 @@ export default function CategoryScreen() {
     if (!slug) return;
     if (!(await requireModuleAccess(slug))) return;
     router.push({
-      pathname: '/pdf-viewer',
+      pathname: "/pdf-viewer",
       params: { pdfKey: pdf.id, title: pdf.title },
     });
   };
@@ -129,7 +174,7 @@ export default function CategoryScreen() {
     await Linking.openURL(link.url);
   };
 
-  const backColor = lightOnArt ? '#FFFFFF' : isDark ? '#ECEDEE' : '#2C3E50';
+  const backColor = lightOnArt ? "#FFFFFF" : isDark ? "#ECEDEE" : "#2C3E50";
 
   return (
     <>
@@ -139,7 +184,7 @@ export default function CategoryScreen() {
           styles.heroHeader,
           {
             paddingTop: insets.top + 4,
-            backgroundColor: isDark ? '#1E1E32' : info.color,
+            backgroundColor: isDark ? "#1E1E32" : info.color,
           },
         ]}
       >
@@ -197,7 +242,7 @@ export default function CategoryScreen() {
                     <View pointerEvents="none">
                       <ModuleIcon
                         size={26}
-                        color={moduleTheme?.iconColor ?? '#2C3E50'}
+                        color={moduleTheme?.iconColor ?? "#2C3E50"}
                         strokeWidth={2.4}
                       />
                     </View>
@@ -213,11 +258,8 @@ export default function CategoryScreen() {
                   {info.title}
                 </Text>
               </View>
-              <View
-                pointerEvents="none"
-                style={styles.progressCountBlock}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+              <View pointerEvents="none" style={styles.progressCountBlock}>
+                <View style={{ flexDirection: "row", alignItems: "baseline" }}>
                   <Text
                     style={[
                       styles.progressNumber,
@@ -256,7 +298,7 @@ export default function CategoryScreen() {
                   styles.progressBarFill,
                   {
                     width: `${progressPercent * 100}%`,
-                    backgroundColor: lightOnArt ? '#A8D5C5' : '#5D9B8B',
+                    backgroundColor: lightOnArt ? "#A8D5C5" : "#5D9B8B",
                   },
                 ]}
               />
@@ -266,7 +308,7 @@ export default function CategoryScreen() {
                 pointerEvents="none"
                 style={[
                   styles.progressEncouragement,
-                  { color: lightOnArt ? '#A8D5C5' : '#5D9B8B' },
+                  { color: lightOnArt ? "#A8D5C5" : "#5D9B8B" },
                 ]}
               >
                 Module complete! Great work.
@@ -276,7 +318,10 @@ export default function CategoryScreen() {
         ) : null}
       </View>
 
-      <ScrollView style={[styles.container, isDark && styles.containerDark]} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={[styles.container, isDark && styles.containerDark]}
+        contentContainerStyle={styles.contentContainer}
+      >
         {wholeVideo ? (
           <View style={styles.wholeVideoWrap}>
             <RectButton
@@ -284,20 +329,20 @@ export default function CategoryScreen() {
                 styles.wholeVideoCard,
                 isDark && styles.wholeVideoCardDark,
               ]}
-              underlayColor={isDark ? '#2A2A42' : '#EDE8F7'}
+              underlayColor={isDark ? "#2A2A42" : "#EDE8F7"}
               onPress={async () => {
-                if (!(await requireVideoAccess(slug ?? '', wholeVideo.id))) {
+                if (!(await requireVideoAccess(slug ?? "", wholeVideo.id))) {
                   return;
                 }
                 router.push({
-                  pathname: '/video/[id]',
+                  pathname: "/video/[id]",
                   params: {
                     id: wholeVideo.id,
                     title: wholeVideo.title,
                     url: wholeVideo.url,
                     categoryColor: info.color,
                     categorySlug: slug,
-                    whole: '1',
+                    whole: "1",
                   },
                 });
               }}
@@ -308,7 +353,9 @@ export default function CategoryScreen() {
                 pointerEvents="none"
                 style={[
                   styles.wholeVideoAccent,
-                  { backgroundColor: getPastelAccent('lavender', isDark).accent },
+                  {
+                    backgroundColor: getPastelAccent("lavender", isDark).accent,
+                  },
                 ]}
               />
               <View pointerEvents="none" style={styles.wholeVideoThumb}>
@@ -335,29 +382,23 @@ export default function CategoryScreen() {
                   Watch entire module
                 </Text>
                 <Text
-                  style={[
-                    styles.wholeVideoTitle,
-                    isDark && styles.textDark,
-                  ]}
+                  style={[styles.wholeVideoTitle, isDark && styles.textDark]}
                   numberOfLines={2}
                 >
                   Prefer one long video?
                 </Text>
                 <Text
-                  style={[
-                    styles.wholeVideoMeta,
-                    isDark && styles.subtextDark,
-                  ]}
+                  style={[styles.wholeVideoMeta, isDark && styles.subtextDark]}
                 >
                   {wholeVideo.duration
                     ? `${Math.ceil(wholeVideo.duration / 60)} mins`
-                    : 'Full module in one sitting'}
+                    : "Full module in one sitting"}
                 </Text>
               </View>
               <View pointerEvents="none" style={styles.wholeVideoChevron}>
                 <ChevronRight
                   size={20}
-                  color={isDark ? '#B7A8E0' : '#7187CE'}
+                  color={isDark ? "#B7A8E0" : "#7187CE"}
                   strokeWidth={2.4}
                 />
               </View>
@@ -367,7 +408,9 @@ export default function CategoryScreen() {
         {videos.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No videos available yet</Text>
-            <Text style={styles.emptySubtext}>Check back soon for new content!</Text>
+            <Text style={styles.emptySubtext}>
+              Check back soon for new content!
+            </Text>
           </View>
         ) : (
           <View style={styles.videoList}>
@@ -381,9 +424,10 @@ export default function CategoryScreen() {
                   key={video.id}
                   style={[styles.videoCard, isDark && styles.videoCardDark]}
                   onPress={async () => {
-                    if (!(await requireVideoAccess(slug ?? "", video.id))) return;
+                    if (!(await requireVideoAccess(slug ?? "", video.id)))
+                      return;
                     router.push({
-                      pathname: '/video/[id]',
+                      pathname: "/video/[id]",
                       params: {
                         id: video.id,
                         title: video.title,
@@ -421,7 +465,9 @@ export default function CategoryScreen() {
                     )}
                     {video.duration ? (
                       <View style={styles.durationBadge}>
-                        <Text style={styles.durationText}>{formatDuration(video.duration)}</Text>
+                        <Text style={styles.durationText}>
+                          {formatDuration(video.duration)}
+                        </Text>
                       </View>
                     ) : null}
                     {moduleIsFree && index === 0 && !hasPro && !isWatched ? (
@@ -437,7 +483,15 @@ export default function CategoryScreen() {
                   </View>
                   <View style={styles.videoInfo}>
                     <View style={styles.videoTitleRow}>
-                      <Text style={[styles.videoTitle, isDark && styles.textDark, { flex: 1 }]}>{index + 1}. {video.title}</Text>
+                      <Text
+                        style={[
+                          styles.videoTitle,
+                          isDark && styles.textDark,
+                          { flex: 1 },
+                        ]}
+                      >
+                        {index + 1}. {video.title}
+                      </Text>
                       {isWatched && (
                         <View style={styles.watchedTick}>
                           <Check size={14} color="#fff" strokeWidth={3} />
@@ -445,7 +499,14 @@ export default function CategoryScreen() {
                       )}
                     </View>
                     {video.description && (
-                      <Text style={[styles.videoDescription, isDark && styles.subtextDark]}>{video.description}</Text>
+                      <Text
+                        style={[
+                          styles.videoDescription,
+                          isDark && styles.subtextDark,
+                        ]}
+                      >
+                        {video.description}
+                      </Text>
                     )}
                   </View>
                 </TouchableOpacity>
@@ -472,10 +533,7 @@ export default function CategoryScreen() {
                 accessibilityLabel={`Open PDF: ${pdf.title}`}
               >
                 <View pointerEvents="none">
-                  <FileText
-                    size={20}
-                    color={isDark ? '#FFFFFF' : '#7187CE'}
-                  />
+                  <FileText size={20} color={isDark ? "#FFFFFF" : "#7187CE"} />
                 </View>
                 <Text
                   style={[styles.pdfRowTitle, isDark && styles.textDark]}
@@ -486,7 +544,7 @@ export default function CategoryScreen() {
                 <View pointerEvents="none">
                   <ChevronRight
                     size={18}
-                    color={isDark ? '#9090A8' : '#2C3E50'}
+                    color={isDark ? "#9090A8" : "#2C3E50"}
                     style={{ opacity: isDark ? 1 : 0.55 }}
                   />
                 </View>
@@ -519,10 +577,7 @@ export default function CategoryScreen() {
                 accessibilityLabel={`Open video link: ${link.title}`}
               >
                 <View pointerEvents="none">
-                  <Youtube
-                    size={20}
-                    color={isDark ? '#FFFFFF' : '#E11D48'}
-                  />
+                  <Youtube size={20} color={isDark ? "#FFFFFF" : "#E11D48"} />
                 </View>
                 <View style={styles.linkRowText}>
                   <Text
@@ -533,7 +588,10 @@ export default function CategoryScreen() {
                   </Text>
                   {link.description ? (
                     <Text
-                      style={[styles.linkRowDescription, isDark && styles.subtextDark]}
+                      style={[
+                        styles.linkRowDescription,
+                        isDark && styles.subtextDark,
+                      ]}
                       numberOfLines={2}
                     >
                       {link.description}
@@ -543,7 +601,7 @@ export default function CategoryScreen() {
                 <View pointerEvents="none">
                   <ChevronRight
                     size={18}
-                    color={isDark ? '#9090A8' : '#2C3E50'}
+                    color={isDark ? "#9090A8" : "#2C3E50"}
                     style={{ opacity: isDark ? 1 : 0.55 }}
                   />
                 </View>
@@ -567,15 +625,17 @@ export default function CategoryScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Open module ${workbookDef.moduleNumber} digital workbook`}
             >
-              <Text style={[styles.workbookEyebrow, isDark && styles.subtextDark]}>
+              <Text
+                style={[styles.workbookEyebrow, isDark && styles.subtextDark]}
+              >
                 MODULE {workbookDef.moduleNumber} DIGITAL WORKBOOK
               </Text>
               <Text style={[styles.workbookTitle, isDark && styles.textDark]}>
                 {workbookDef.title} Workbook
               </Text>
               <Text style={[styles.workbookBody, isDark && styles.subtextDark]}>
-                Don&apos;t want to use pen and paper? Here is the digital workbook,
-                which saves on your phone.
+                Don&apos;t want to use pen and paper? Here is the digital
+                workbook, which saves on your phone.
               </Text>
               <View style={styles.workbookButton}>
                 <View pointerEvents="none" style={styles.workbookButtonInner}>
@@ -595,13 +655,23 @@ export default function CategoryScreen() {
                 pastelBoxStyle("blue", isDark),
               ]}
             >
-              <Text style={[styles.resourcesCalloutTitle, isDark && styles.textDark]}>
+              <Text
+                style={[
+                  styles.resourcesCalloutTitle,
+                  isDark && styles.textDark,
+                ]}
+              >
                 Gym Routines & Strength Targets
               </Text>
-              <Text style={[styles.resourcesCalloutBody, isDark && styles.subtextDark]}>
-                You&apos;ll also find gym routines and strength & fitness targets in
-                the Resources section — useful if you want structured programmes to
-                follow or benchmark numbers to aim for.
+              <Text
+                style={[
+                  styles.resourcesCalloutBody,
+                  isDark && styles.subtextDark,
+                ]}
+              >
+                You&apos;ll also find gym routines and strength & fitness
+                targets in the Resources section — useful if you want structured
+                programmes to follow or benchmark numbers to aim for.
               </Text>
               <Pressable
                 style={({ pressed }) => [
@@ -637,7 +707,7 @@ const styles = StyleSheet.create({
   heroHeader: {
     paddingHorizontal: 16,
     paddingBottom: 14,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     zIndex: 20,
@@ -647,27 +717,27 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 20,
   },
   heroNavRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginLeft: -4,
     marginBottom: 8,
     minHeight: 44,
   },
   heroNavModuleLabel: {
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 12,
     fontFamily: AppFonts.headingBold,
-    color: '#8E8EA0',
+    color: "#8E8EA0",
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   heroNavCenterTitle: {
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 17,
     fontFamily: AppFonts.headingSemiBold,
-    color: '#2C3E50',
+    color: "#2C3E50",
   },
   heroNavSpacer: {
     width: SCREEN_BACK_BUTTON_WIDTH,
@@ -679,95 +749,95 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
   },
   progressTitleRow: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     marginRight: 12,
     minWidth: 0,
   },
   progressCountBlock: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F7',
+    backgroundColor: "#F5F5F7",
   },
   containerDark: {
-    backgroundColor: '#121222',
+    backgroundColor: "#121222",
   },
   textDark: {
-    color: '#ECEDEE',
+    color: "#ECEDEE",
   },
   subtextDark: {
-    color: '#9090A8',
+    color: "#9090A8",
   },
   contentContainer: {
     paddingBottom: 40,
     paddingTop: 8,
   },
   progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 2,
   },
   moduleLabelOnArt: {
-    color: 'rgba(255,255,255,0.72)',
+    color: "rgba(255,255,255,0.72)",
   },
   textOnArt: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   subtextOnArt: {
-    color: 'rgba(255,255,255,0.72)',
+    color: "rgba(255,255,255,0.72)",
   },
   progressBarBgOnArt: {
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: "rgba(255,255,255,0.22)",
   },
   progressTitle: {
     flexShrink: 1,
     fontSize: 22,
     fontFamily: AppFonts.headingBold,
-    color: '#2C3E50',
+    color: "#2C3E50",
   },
   progressNumber: {
     fontSize: 28,
     fontFamily: AppFonts.headingBold,
-    color: '#2C3E50',
+    color: "#2C3E50",
   },
   progressTotal: {
     fontSize: 16,
-    color: '#2C3E50',
+    color: "#2C3E50",
     marginTop: -4,
     fontFamily: AppFonts.bodyRegular,
   },
   progressLabel: {
     fontSize: 12,
-    color: '#2C3E50',
-    textAlign: 'right',
+    color: "#2C3E50",
+    textAlign: "right",
     marginTop: 0,
     fontFamily: AppFonts.bodyRegular,
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: '#E8E8EE',
+    backgroundColor: "#E8E8EE",
     borderRadius: 3,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginTop: 10,
   },
   progressBarFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 3,
     minWidth: 0,
   },
   progressEncouragement: {
     fontSize: 13,
-    color: '#8E8EA0',
+    color: "#8E8EA0",
     marginTop: 10,
     fontFamily: AppFonts.bodyRegular,
   },
@@ -782,23 +852,23 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   wholeVideoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     minHeight: 88,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: '#E4DFF0',
-    overflow: 'hidden',
+    borderColor: "#E4DFF0",
+    overflow: "hidden",
     paddingRight: 10,
   },
   wholeVideoCardDark: {
-    backgroundColor: '#1E1E32',
-    borderColor: '#2D3044',
+    backgroundColor: "#1E1E32",
+    borderColor: "#2D3044",
   },
   wholeVideoAccent: {
     width: 4,
-    alignSelf: 'stretch',
+    alignSelf: "stretch",
   },
   wholeVideoThumb: {
     width: 72,
@@ -806,33 +876,33 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginLeft: 12,
     marginVertical: 10,
-    overflow: 'hidden',
-    backgroundColor: '#D8D2E8',
+    overflow: "hidden",
+    backgroundColor: "#D8D2E8",
   },
   wholeVideoThumbImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   wholeVideoThumbFallback: {
     flex: 1,
-    backgroundColor: '#C8BEDC',
+    backgroundColor: "#C8BEDC",
   },
   wholeVideoPlayCircle: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
+    position: "absolute",
+    top: "50%",
+    left: "50%",
     marginTop: -16,
     marginLeft: -16,
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(107, 91, 140, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(107, 91, 140, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   wholeVideoPlayIcon: {
     fontSize: 13,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     marginLeft: 2,
   },
   wholeVideoCopy: {
@@ -844,32 +914,32 @@ const styles = StyleSheet.create({
   wholeVideoEyebrow: {
     fontSize: 11,
     letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     fontFamily: AppFonts.bodyMedium,
-    color: '#7187CE',
+    color: "#7187CE",
     marginBottom: 2,
   },
   wholeVideoEyebrowDark: {
-    color: '#B7A8E0',
+    color: "#B7A8E0",
   },
   wholeVideoTitle: {
     fontSize: 16,
     lineHeight: 21,
     fontFamily: AppFonts.headingSemiBold,
-    color: '#2C3E50',
+    color: "#2C3E50",
   },
   wholeVideoMeta: {
     fontSize: 13,
     lineHeight: 18,
     fontFamily: AppFonts.bodyRegular,
-    color: '#8E8EA0',
+    color: "#8E8EA0",
     marginTop: 2,
   },
   wholeVideoChevron: {
     width: 28,
     height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   workbookWrap: {
     paddingHorizontal: 20,
@@ -887,30 +957,30 @@ const styles = StyleSheet.create({
   resourcesCalloutTitle: {
     fontSize: 18,
     fontFamily: AppFonts.headingSemiBold,
-    color: '#2C3E50',
+    color: "#2C3E50",
     marginBottom: 8,
   },
   resourcesCalloutBody: {
     fontSize: 14,
     lineHeight: 21,
     fontFamily: AppFonts.bodyRegular,
-    color: '#6B7280',
+    color: "#6B7280",
   },
   resourcesCalloutLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     marginTop: 14,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   resourcesCalloutLinkText: {
     fontSize: 15,
     fontFamily: AppFonts.bodyMedium,
-    color: '#7187CE',
-    textDecorationLine: 'underline',
+    color: "#7187CE",
+    textDecorationLine: "underline",
   },
   resourcesCalloutLinkTextDark: {
-    color: '#B7A8E0',
+    color: "#B7A8E0",
   },
   moduleResourcesWrap: {
     paddingHorizontal: 20,
@@ -920,37 +990,37 @@ const styles = StyleSheet.create({
   resourcesHeading: {
     fontSize: 18,
     fontFamily: AppFonts.headingBold,
-    color: '#2C3E50',
+    color: "#2C3E50",
     marginBottom: 6,
   },
   resourcesSub: {
     fontSize: 13,
     lineHeight: 19,
-    color: '#6B7280',
+    color: "#6B7280",
     fontFamily: AppFonts.bodyRegular,
     marginBottom: 12,
   },
   pdfRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#E8E8EE',
+    borderColor: "#E8E8EE",
   },
   pdfRowDark: {
-    backgroundColor: '#1E1E32',
-    borderColor: '#2D3044',
+    backgroundColor: "#1E1E32",
+    borderColor: "#2D3044",
   },
   pdfRowTitle: {
     flex: 1,
     fontSize: 15,
     fontFamily: AppFonts.bodyMedium,
-    color: '#2C3E50',
+    color: "#2C3E50",
   },
   linkRowText: {
     flex: 1,
@@ -960,13 +1030,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontFamily: AppFonts.bodyRegular,
-    color: '#8E8EA0',
+    color: "#8E8EA0",
   },
   workbookCard: {
-    backgroundColor: '#E6F5F0',
+    backgroundColor: "#E6F5F0",
     borderRadius: 20,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -976,52 +1046,52 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   workbookCardDark: {
-    backgroundColor: '#1E1E32',
+    backgroundColor: "#1E1E32",
   },
   workbookEyebrow: {
     fontSize: 12,
     fontFamily: AppFonts.headingBold,
-    color: '#8E8EA0',
+    color: "#8E8EA0",
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     marginBottom: 6,
   },
   workbookTitle: {
     fontSize: 22,
     fontFamily: AppFonts.headingBold,
-    color: '#2C3E50',
+    color: "#2C3E50",
   },
   workbookBody: {
     marginTop: 10,
     fontSize: 14,
     lineHeight: 21,
-    color: '#6B7280',
+    color: "#6B7280",
     fontFamily: AppFonts.bodyRegular,
   },
   workbookButton: {
     marginTop: 16,
-    backgroundColor: '#7187CE',
+    backgroundColor: "#7187CE",
     borderRadius: 12,
     paddingVertical: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: 48,
   },
   workbookButtonInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   workbookButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
     fontFamily: AppFonts.bodyBold,
   },
   videoCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -1031,97 +1101,97 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   videoCardDark: {
-    backgroundColor: '#1E1E32',
+    backgroundColor: "#1E1E32",
   },
   thumbnailContainer: {
-    width: '100%',
+    width: "100%",
     aspectRatio: 16 / 9,
-    backgroundColor: '#E5E7EB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+    backgroundColor: "#E5E7EB",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
   },
   thumbnailImage: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
+    position: "absolute",
+    width: "100%",
+    height: "100%",
   },
   lockedOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(120, 120, 128, 0.55)',
+    backgroundColor: "rgba(120, 120, 128, 0.55)",
     zIndex: 1,
   },
   lockedOverlayDark: {
-    backgroundColor: 'rgba(20, 20, 32, 0.65)',
+    backgroundColor: "rgba(20, 20, 32, 0.65)",
   },
   lockIconCircle: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 2,
   },
   playIconCircle: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(107, 91, 140, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(107, 91, 140, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   playIcon: {
     fontSize: 22,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     marginLeft: 3,
   },
   durationBadge: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 12,
     right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
     zIndex: 3,
   },
   durationText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 12,
     fontFamily: AppFonts.bodyMedium,
   },
   watchedBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 12,
     left: 12,
-    backgroundColor: 'rgba(93, 155, 139, 0.9)',
+    backgroundColor: "rgba(93, 155, 139, 0.9)",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
     zIndex: 3,
   },
   watchedBadgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 12,
     fontFamily: AppFonts.bodyBold,
   },
   freePreviewBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(113, 135, 206, 0.95)',
+    backgroundColor: "rgba(113, 135, 206, 0.95)",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
     zIndex: 3,
   },
   freePreviewBadgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 12,
     fontFamily: AppFonts.bodyBold,
   },
@@ -1129,47 +1199,47 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   videoTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   watchedTick: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#5D9B8B',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#5D9B8B",
+    justifyContent: "center",
+    alignItems: "center",
   },
   videoTitle: {
     fontSize: 16,
     fontFamily: AppFonts.headingSemiBold,
-    color: '#2C3E50',
+    color: "#2C3E50",
     marginBottom: 4,
   },
   videoDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: "#6B7280",
     lineHeight: 20,
     fontFamily: AppFonts.bodyRegular,
   },
   emptyState: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 40,
     marginTop: 60,
   },
   emptyText: {
     fontSize: 18,
     fontFamily: AppFonts.headingSemiBold,
-    color: '#2C3E50',
+    color: "#2C3E50",
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#8E8EA0',
-    textAlign: 'center',
+    color: "#8E8EA0",
+    textAlign: "center",
     fontFamily: AppFonts.bodyRegular,
   },
 });
